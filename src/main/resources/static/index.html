@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CurtaVento — Monitor de Curtailment do Alto Sertão</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FAF9F5;
+      --surface: #FFFFFF;
+      --border: #E4E0D6;
+      --ink: #23262B;
+      --ink-muted: #6C7075;
+      --ink-faint: #9A9C9F;
+      --brand: #2E5266;
+      --brand-soft: #E7EEF1;
+      --ok: #4C8C5B;
+      --warn: #B9832A;
+      --high: #BD5A22;
+      --crit: #AC3E36;
+      --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: inherit; }
+    html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      background: rgba(250, 249, 245, 0.92);
+      backdrop-filter: blur(6px);
+    }
+    .wordmark { font-weight: 700; font-size: 17px; letter-spacing: -0.2px; }
+    .wordmark small {
+      font-weight: 500;
+      font-size: 12.5px;
+      color: var(--ink-faint);
+      margin-left: 8px;
+    }
+    .updated { font-size: 12.5px; color: var(--ink-muted); }
+
+    main { max-width: 920px; margin: 0 auto; padding: 0 32px 72px; }
+
+    /* HERO — dois números lado a lado, sem caixa, sem brilho */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      padding: 56px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-label {
+      font-size: 13.5px;
+      color: var(--ink-muted);
+      margin: 0 0 10px;
+    }
+    .stat-value {
+      font-size: clamp(30px, 5vw, 44px);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin: 0;
+    }
+    .stat-value.brand { color: var(--brand); }
+    .stat-caption {
+      font-size: 12.5px;
+      color: var(--ink-faint);
+      margin: 8px 0 0;
+    }
+
+    section.block { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    section.block:last-of-type { border-bottom: none; }
+    .block-title { font-size: 15.5px; font-weight: 600; margin: 0 0 4px; }
+    .block-sub { font-size: 13px; color: var(--ink-muted); margin: 0 0 20px; }
+
+    /* TABELA DE USINAS */
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--ink-muted);
+      font-size: 12px;
+      padding: 0 10px 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody td {
+      padding: 13px 10px 13px 0;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    .usina-nome { font-weight: 600; }
+    .usina-op { display: block; font-size: 11.5px; color: var(--ink-faint); font-weight: 400; }
+    .num-col { font-variant-numeric: tabular-nums; color: var(--ink); }
+    .risk-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .risk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--ok)); }
+
+    /* MUNICÍPIOS */
+    .muni-row {
+      display: grid;
+      grid-template-columns: 96px 1fr 100px 52px;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+    .muni-row:last-child { border-bottom: none; }
+    .muni-track { height: 6px; background: var(--brand-soft); border-radius: 3px; overflow: hidden; }
+    .muni-fill { height: 100%; background: var(--brand); border-radius: 3px; }
+    .muni-value { text-align: right; font-variant-numeric: tabular-nums; }
+    .muni-trend { text-align: right; font-size: 12.5px; color: var(--high); }
+
+    footer {
+      padding: 24px 32px 40px;
+      font-size: 12px;
+      color: var(--ink-faint);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 620px) {
+      .hero { grid-template-columns: 1fr; gap: 28px; padding: 40px 0 36px; }
+      .muni-row { grid-template-columns: 74px 1fr 84px; }
+      .muni-trend { display: none; }
+      thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
+      main { padding: 0 18px 56px; }
+      header { padding: 16px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">CurtaVento <small>Alto Sertão · BA</small></div>
+  <div class="updated">Atualizado em 20/09/2026 às 06:00</div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div>
+      <p class="stat-label">Energia cortada desde jan/2026</p>
+      <p class="stat-value" id="hero-energia">1.284.392 <span style="font-size:0.42em; font-weight:500; color:var(--ink-muted);">MWh</span></p>
+      <p class="stat-caption">soma dos eventos de curtailment registrados pelo ONS nas três usinas</p>
+    </div>
+    <div>
+      <p class="stat-label">Impacto estimado no VAF/ICMS</p>
+      <p class="stat-value brand" id="hero-impacto">R$ 280,1 <span style="font-size:0.42em; font-weight:500; color:var(--ink-muted);">mi</span></p>
+      <p class="stat-caption">distribuído entre Caetité, Guanambi e Igaporã, com defasagem de 1–2 anos no repasse</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="block-title">Usinas do Alto Sertão</p>
+    <p class="block-sub">previsão de risco de corte para as próximas 24h</p>
+    <table>
+      <thead>
+      <tr>
+        <th>Usina</th>
+        <th>Vento previsto</th>
+        <th>Corte estimado</th>
+        <th>Risco</th>
+      </tr>
+      </thead>
+      <tbody id="usinas-body"></tbody>
+    </table>
+  </section>
+
+  <section class="block">
+    <p class="block-title">Impacto por município</p>
+    <p class="block-sub">estimativa acumulada de VAF/ICMS no ano-base</p>
+    <div id="muni-list"></div>
+  </section>
+
+  <footer>
+    <span>CurtaVento — protótipo de estudo, IFBaiano Campus Guanambi</span>
+    <span>fontes: INMET · ONS · Sefaz-BA (dados de exemplo nesta prévia)</span>
+  </footer>
+
+</main>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  const RISK_COLOR = { BAIXO: 'var(--ok)', MEDIO: 'var(--warn)', ALTO: 'var(--high)', CRITICO: 'var(--crit)' };
+  const RISK_LABEL = { BAIXO: 'Baixo', MEDIO: 'Médio', ALTO: 'Alto', CRITICO: 'Crítico' };
+
+  // Dados de fallback caso a API esteja desligada
+  const usinasMock = [
+    { nome: 'Alto Sertão I', operador: 'Renova Energia', vento: '13,4 m/s', corte: '21%', risco: 'MEDIO' },
+    { nome: 'Alto Sertão II', operador: 'AES Brasil', vento: '16,1 m/s', corte: '38%', risco: 'ALTO' },
+    { nome: 'Alto Sertão III', operador: 'Renova Energia', vento: '9,8 m/s', corte: '7%', risco: 'BAIXO' },
+  ];
+
+  const municipiosMock = [
+    { nome: 'Caetité', valor: 21.7, max: 25, trend: '+9%' },
+    { nome: 'Guanambi', valor: 18.4, max: 25, trend: '+12%' },
+    { nome: 'Igaporã', valor: 7.1, max: 25, trend: '+4%' },
+  ];
+
+  function renderUsinas(lista) {
+    const tbody = document.getElementById('usinas-body');
+    tbody.innerHTML = ''; // Limpa antes de desenhar
+    lista.forEach(u => {
+      // Como o nosso DTO antigo mandava 'pct', adaptamos aqui para não quebrar a sua tabela nova
+      const ventoTexto = u.vento || (u.detalhe ? u.detalhe.split('·')[0] : 'N/A');
+      const corteTexto = u.corte || (u.pct + '%');
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="usina-nome">${u.nome}</span><span class="usina-op">${u.operador}</span></td>
+        <td class="num-col">${ventoTexto}</td>
+        <td class="num-col">${corteTexto}</td>
+        <td><span class="risk-tag" style="--dot:${RISK_COLOR[u.risco]}"><span class="risk-dot"></span>${RISK_LABEL[u.risco]}</span></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderMunicipios(lista) {
+    const muniList = document.getElementById('muni-list');
+    muniList.innerHTML = ''; // Limpa antes de desenhar
+    lista.forEach(m => {
+      const pct = Math.min(100, (m.valor / m.max) * 100);
+      const row = document.createElement('div');
+      row.className = 'muni-row';
+      row.innerHTML = `
+        <span>${m.nome}</span>
+        <div class="muni-track"><div class="muni-fill" style="width:${pct}%"></div></div>
+        <span class="muni-value">R$ ${m.valor.toFixed(1)} mi</span>
+        <span class="muni-trend">${m.trend}</span>`;
+      muniList.appendChild(row);
+    });
+  }
+
+  // Função que vai buscar os dados reais ao Spring Boot
+  async function carregarDadosReais() {
+    try {
+      const res = await fetch(API_BASE + '/api/dashboard/resumo-geral');
+      if (res.ok) {
+        const data = await res.json();
+
+        // Se a API responder, desenha os dados reais
+        if (data.usinas) renderUsinas(data.usinas);
+        if (data.municipios) renderMunicipios(data.municipios);
+
+        // ---> NOVO: Atualiza os totais da Hero section <---
+        if (data.energiaTotal !== undefined) {
+          document.getElementById('hero-energia').innerHTML = `${data.energiaTotal.toLocaleString('pt-BR')} <span style="font-size:0.42em; font-weight:500; color:var(--ink-muted);">MWh</span>`;
+        }
+        if (data.impactoTotal !== undefined) {
+          document.getElementById('hero-impacto').innerHTML = `R$ ${data.impactoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})} <span style="font-size:0.42em; font-weight:500; color:var(--ink-muted);">mi</span>`;
+        }
+
+        // Atualiza a barra superior
+        document.querySelector('.updated').textContent = 'Conectado à API (Ao Vivo)';
+      } else {
+        throw new Error('API retornou erro');
+      }
+    } catch (e) {
+      console.warn('API não encontrada. A carregar dados de exemplo (Mock)...');
+      renderUsinas(usinasMock);
+      renderMunicipios(municipiosMock);
+    }
+  }
+
+  // Arranca o processo assim que a página carrega
+  carregarDadosReais();
+</script>
+
+</body>
+</html>

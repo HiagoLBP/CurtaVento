@@ -32,11 +32,15 @@ public class SecurityConfig {
                 // Configura a API para não guardar o estado da sessão (stateless)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // Liberta a rota de Login para qualquer pessoa
+                        // Liberta a rota de Login e criação de utilizadores
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        // Liberta temporariamente a criação de utilizadores para podermos criar o nosso admin
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
-                        // Qualquer outra rota exige que o utilizador esteja autenticado com o Token JWT!
+                        // Liberta as rotas internas que geram a interface do Swagger
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/", "/index.html", "/*.html", "/*.css", "/*.js").permitAll()
+                        // ---> NOVO: Liberta a leitura do Dashboard para o HTML <---
+                        .requestMatchers(HttpMethod.GET, "/api/dashboard/**").permitAll()
+                        // Qualquer outra rota exige autenticação JWT
                         .anyRequest().authenticated()
                 )
                 // Coloca o nosso filtro de JWT antes do filtro padrão do Spring Security

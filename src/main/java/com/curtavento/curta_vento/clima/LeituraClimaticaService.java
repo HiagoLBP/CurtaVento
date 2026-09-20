@@ -37,4 +37,5 @@ public class LeituraClimaticaService {
     public List<LeituraClimatica> buscarHistorico(Long usinaId, LocalDateTime inicio, LocalDateTime fim) {
         return leituraRepository.findByUsinaIdAndDataHoraBetween(usinaId, inicio, fim);
     }
+    
 }
