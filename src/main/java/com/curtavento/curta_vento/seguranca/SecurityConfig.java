@@ -1,0 +1,58 @@
+package com.curtavento.curta_vento.seguranca;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private final SecurityFilter securityFilter;
+
+    public SecurityConfig(SecurityFilter securityFilter) {
+        this.securityFilter = securityFilter;
+    }
+
+    // Configuração principal das regras de trânsito HTTP
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
+                // Desativa a proteção CSRF, pois em APIs REST com JWT não sofremos desse tipo de ataque
+                .csrf(csrf -> csrf.disable())
+                // Configura a API para não guardar o estado da sessão (stateless)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        // Liberta a rota de Login para qualquer pessoa
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        // Liberta temporariamente a criação de utilizadores para podermos criar o nosso admin
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
+                        // Qualquer outra rota exige que o utilizador esteja autenticado com o Token JWT!
+                        .anyRequest().authenticated()
+                )
+                // Coloca o nosso filtro de JWT antes do filtro padrão do Spring Security
+                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    // Expõe o gestor de autenticação para podermos usá-lo no Controller de Login
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
+    // Ensina ao Spring como criptografar as senhas
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
