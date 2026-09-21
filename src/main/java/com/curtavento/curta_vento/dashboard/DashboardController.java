@@ -76,24 +76,19 @@ public class DashboardController {
             List<ImpactoVaf> impactos = impactoRepository.findByMunicipioIdAndAnoReferencia(m.getId(), anoAtual);
 
             if (impactos != null && !impactos.isEmpty()) {
-                ImpactoVaf imp = impactos.get(0);
-
-                // Extrai os valores reais (baixos devido ao limite do teste)
+                ImpactoVaf imp = impactos.get(impactos.size() - 1);
+                // Extrai os valores 100% reais direto do banco de dados (sem fator de demonstração)
                 double impactoReal = imp.getImpactoVafEstimado() != null ? imp.getImpactoVafEstimado().doubleValue() : 0.0;
                 double energiaReal = imp.getEnergiaTotalCortadaMwh() != null ? imp.getEnergiaTotalCortadaMwh().doubleValue() : 0.0;
 
-                // --- MULTIPLICADOR DE DEMONSTRAÇÃO (MVP) ---
-                // Multiplica os dados do teste por 50.000 para simular um ano inteiro de cortes
-                double fatorDemo = 50000.0;
-
-                double valorVafMilhoes = (impactoReal * fatorDemo) / 1_000_000.0;
-                double energia = energiaReal * fatorDemo;
+                // Converte apenas a exibição monetária para milhões (mi)
+                double valorVafMilhoes = impactoReal / 1_000_000.0;
 
                 dto.put("valor", valorVafMilhoes);
-                dto.put("max", 25.0); // Teto do gráfico ajustado para a escala visual
+                dto.put("max", 5.0); // Teto do gráfico reajustado para a escala de milhões reais
                 dto.put("trend", "Calculado");
 
-                somaEnergiaTotal += energia;
+                somaEnergiaTotal += energiaReal;
                 somaImpactoTotal += valorVafMilhoes;
             } else {
                 double valorVafBase = m.getVafAnoBase() != null ? m.getVafAnoBase().doubleValue() / 1_000_000.0 : 0.0;

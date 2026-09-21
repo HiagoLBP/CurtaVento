@@ -28,9 +28,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 // Desativa a proteção CSRF, pois em APIs REST com JWT não sofremos desse tipo de ataque
-                .csrf(csrf -> csrf.disable())
-                // Configura a API para não guardar o estado da sessão (stateless)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(csrf -> csrf.disable()) // <-- ISTO É OBRIGATÓRIO PARA APIS REST
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         // Liberta a rota de Login e criação de utilizadores
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()

@@ -4,6 +4,7 @@ import com.curtavento.curta_vento.usuario.Usuario;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -12,14 +13,16 @@ import java.util.Date;
 @Service
 public class TokenService {
 
-    // Gera uma chave criptográfica forte e única em memória de forma automática.
-    // Em sistemas de produção, esta chave costuma vir de uma variável de ambiente.
-    private static final Key CHAVE_SECRETA = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // Chave carregada do application.properties — estável entre reinicializações do servidor.
+    private final Key CHAVE_SECRETA;
+
+    public TokenService(@Value("${jwt.secret}") String segredo) {
+        this.CHAVE_SECRETA = Keys.hmacShaKeyFor(segredo.getBytes());
+    }
 
     // Tempo de validade do token: 2 horas (em milissegundos)
     private static final long TEMPO_VALIDADE = 7200000;
 
-    // Função que "fabrica" o crachá digital quando o login é bem sucedido
     public String gerarToken(Usuario usuario) {
         return Jwts.builder()
                 .setSubject(usuario.getEmail()) // O "dono" do token

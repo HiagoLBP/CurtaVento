@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Table(name = "usuario")
@@ -59,10 +60,10 @@ public class Usuario implements UserDetails {
     public Municipio getMunicipio() { return municipio; }
     public void setMunicipio(Municipio municipio) { this.municipio = municipio; }
 
-    // --- MÉTODOS OBRIGATÓRIOS DO SPRING SECURITY ---
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.perfil));
+        // O prefixo "ROLE_" é obrigatório aqui para o Spring Security abrir a porta
+        return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
     }
 
     @Override
