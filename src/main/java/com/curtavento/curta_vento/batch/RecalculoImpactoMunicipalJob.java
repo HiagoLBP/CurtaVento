@@ -20,9 +20,8 @@ public class RecalculoImpactoMunicipalJob {
         this.impactoVafService = impactoVafService;
     }
 
-    // Configurado para as 03:30 da madrugada (logo após o cálculo de risco)
-    // Para testar agora, troque temporariamente para: @Scheduled(fixedRate = 60000)
-    //@Scheduled(cron = "0 30 3 * * ?")
+    // Configurado para as 03:30 da madrugada (0 30 3 * * *)
+    // Mas para testes manuais via API, roda a cada 1 min. (O Upsert protege contra duplicações)
     @Scheduled(fixedRate = 60000)
     public void recalcularImpacto() {
         System.out.println("JOB ATIVO: A recalcular impacto financeiro (VAF/ICMS) para os municípios...");
@@ -34,6 +33,8 @@ public class RecalculoImpactoMunicipalJob {
             for (Municipio municipio : municipios) {
 
                 impactoVafService.calcularImpacto(municipio.getId(), anoAtual);
+
+                impactoVafService.calcularImpacto(1L, 2024);
 
                 System.out.println("Sucesso: Impacto VAF recalculado para o município ID " + municipio.getId());
             }

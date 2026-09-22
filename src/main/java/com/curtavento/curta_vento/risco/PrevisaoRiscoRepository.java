@@ -9,4 +9,5 @@ import java.util.List;
 public interface PrevisaoRiscoRepository extends JpaRepository<PrevisaoRisco, Long> {
 
     List<PrevisaoRisco> findByUsinaId(Long usinaId);
+    PrevisaoRisco findFirstByUsinaIdAndDataReferencia(Long usinaId, java.time.LocalDate dataReferencia);
 }

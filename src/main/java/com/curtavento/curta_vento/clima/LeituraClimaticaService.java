@@ -38,4 +38,7 @@ public class LeituraClimaticaService {
         return leituraRepository.findByUsinaIdAndDataHoraBetween(usinaId, inicio, fim);
     }
     
+    public LeituraClimatica buscarUltimaLeitura(Long usinaId) {
+        return leituraRepository.findFirstByUsinaIdOrderByDataHoraDesc(usinaId);
+    }
 }

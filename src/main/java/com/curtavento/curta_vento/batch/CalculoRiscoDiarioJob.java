@@ -26,8 +26,9 @@ public class CalculoRiscoDiarioJob {
         this.riscoService = riscoService;
     }
 
-    // Cron configurado para rodar às 03:00 da madrugada
-    // Para testar agora, pode trocar para: @Scheduled(fixedRate = 60000)
+    // Cron configurado para rodar de hora em hora (0 15 * * * *)
+    // Mas para facilitar seus testes manuais via API de Backfill, deixei rodando a cada 1 min.
+    // Como implementamos o Upsert (update or insert), ele NÃO vai duplicar dados!
     @Scheduled(fixedRate = 60000)
     public void processarCalculoDeRisco() {
         System.out.println("JOB ATIVO: A processar o cálculo diário de risco de curtailment...");

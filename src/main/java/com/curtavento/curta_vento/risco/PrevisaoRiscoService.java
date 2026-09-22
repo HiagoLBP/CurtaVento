@@ -23,9 +23,14 @@ public class PrevisaoRiscoService {
     }
 
     public PrevisaoRisco calcularRisco(Usina usina, LeituraClimatica ultimaLeitura, int horizonteHoras) {
-        PrevisaoRisco previsao = new PrevisaoRisco();
-        previsao.setUsina(usina);
-        previsao.setDataReferencia(LocalDate.now());
+        LocalDate hoje = LocalDate.now();
+        PrevisaoRisco previsao = repository.findFirstByUsinaIdAndDataReferencia(usina.getId(), hoje);
+        
+        if (previsao == null) {
+            previsao = new PrevisaoRisco();
+            previsao.setUsina(usina);
+            previsao.setDataReferencia(hoje);
+        }
         previsao.setHorizonteHoras(horizonteHoras);
         previsao.setCriadoEm(LocalDateTime.now());
 

@@ -21,8 +21,10 @@ public class ImpactoVafService {
     private final UsinaRepository usinaRepository;
     private final HistoricoCorteOnsRepository corteRepository;
 
-
+    // Preço médio do MWh (R$ 150,00) conforme regra do projeto
     private static final BigDecimal PRECO_MEDIO_MWH = new BigDecimal("150.00");
+    
+    // Percentual direto do impacto no VAF/ICMS (2%)
     private static final BigDecimal PERCENTUAL_VAF = new BigDecimal("0.02");
 
     public ImpactoVafService(ImpactoVafRepository impactoRepository, MunicipioRepository municipioRepository,
@@ -56,15 +58,26 @@ public class ImpactoVafService {
             }
         }
 
+        // 1. Perda de Receita Bruta
         BigDecimal perdaReceita = energiaTotalCortada.multiply(PRECO_MEDIO_MWH);
-        BigDecimal impactoVaf = perdaReceita.multiply(PERCENTUAL_VAF);
 
-        ImpactoVaf relatorio = new ImpactoVaf();
-        relatorio.setMunicipio(municipio);
-        relatorio.setAnoReferencia(ano);
+        // 2. O Impacto final (que vai pra tela)
+        BigDecimal impactoFinal = perdaReceita.multiply(PERCENTUAL_VAF);
+
+        List<ImpactoVaf> impactosExistentes = impactoRepository.findByMunicipioIdAndAnoReferencia(municipioId, ano);
+        ImpactoVaf relatorio;
+        if (impactosExistentes != null && !impactosExistentes.isEmpty()) {
+            relatorio = impactosExistentes.get(impactosExistentes.size() - 1);
+        } else {
+            relatorio = new ImpactoVaf();
+            relatorio.setMunicipio(municipio);
+            relatorio.setAnoReferencia(ano);
+        }
+
         relatorio.setEnergiaTotalCortadaMwh(energiaTotalCortada);
+        // Salvando os novos valores ajustados
         relatorio.setPerdaReceitaEstimada(perdaReceita);
-        relatorio.setImpactoVafEstimado(impactoVaf);
+        relatorio.setImpactoVafEstimado(impactoFinal);
         relatorio.setDataCalculo(LocalDateTime.now());
 
         return impactoRepository.save(relatorio);
