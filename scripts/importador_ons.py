@@ -39,25 +39,32 @@ def baixar_e_processar(ano, mes):
     df['din_instante'] = pd.to_datetime(df['din_instante'])
     df['data_dia'] = df['din_instante'].dt.date
     
-    # Calcula corte (Estimada - Verificada) * 0.5 (pois é 30 min)
-    df['corte_mw'] = (df['val_geracaoestimada'] - df['val_geracaoverificada']).clip(lower=0)
-    df['corte_mwh'] = df['corte_mw'] * 0.5
-    
-    # Agrupa por Usina e Dia
-    agrupado = df.groupby(['nom_conjuntousina', 'data_dia']).agg(
-        total_mwh=('corte_mwh', 'sum'),
-        blocos=('corte_mwh', 'count')
+    # CORREÇÃO EFEITO JENSEN (Baseado no RTI Brik Engenharia / ONS Submódulo 6.5-PR):
+    # Passo 1: Agrupar por CONJUNTO e INSTANTE (30 min) e somar a energia das usinas
+    agregado_hora = df.groupby(['nom_conjuntousina', 'din_instante', 'data_dia']).agg(
+        soma_estimada=('val_geracaoestimada', 'sum'),
+        soma_verificada=('val_geracaoverificada', 'sum')
     ).reset_index()
     
-    # Mapear para IDs reais do banco de dados (1=I, 2=II, 3=III)
-    # ATENÇÃO: Aqui assumimos que o MySQL tem essas usinas nos IDs 1, 2 e 3
+    # Passo 2: Calcular o corte aplicando a não-negatividade (max 0) no AGREGADO do conjunto
+    # curtailment = máx( Σ val_geracaoreferencia − Σ val_geracao ; 0 )
+    agregado_hora['corte_mw'] = (agregado_hora['soma_estimada'] - agregado_hora['soma_verificada']).clip(lower=0)
+    agregado_hora['corte_mwh'] = agregado_hora['corte_mw'] * 0.5
+    
+    # Passo 3: Mapear para IDs reais do banco de dados (1=I, 2=II, 3=III)
     def resolver_usina(nome):
         nome_upper = nome.upper()
         if "IGAPORÃ III" in nome_upper: return 3
         if "CAETITÉ 123" in nome_upper or "IGAPORÃ II" in nome_upper: return 2
         return 1
         
-    agrupado['usina_id'] = agrupado['nom_conjuntousina'].apply(resolver_usina)
+    agregado_hora['usina_id'] = agregado_hora['nom_conjuntousina'].apply(resolver_usina)
+
+    # Passo 4: Agrupa por usina_id e Dia para salvar no banco
+    agrupado = agregado_hora.groupby(['usina_id', 'data_dia']).agg(
+        total_mwh=('corte_mwh', 'sum'),
+        blocos=('corte_mwh', 'count')
+    ).reset_index()
     
     # Montar DataFrame final para o MySQL
     registros = pd.DataFrame({
