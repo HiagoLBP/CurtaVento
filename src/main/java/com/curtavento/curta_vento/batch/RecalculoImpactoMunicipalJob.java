@@ -14,10 +14,12 @@ public class RecalculoImpactoMunicipalJob {
 
     private final MunicipioService municipioService;
     private final ImpactoVafService impactoVafService;
+    private final GeracaoAlertasJob alertasJob;
 
-    public RecalculoImpactoMunicipalJob(MunicipioService municipioService, ImpactoVafService impactoVafService) {
+    public RecalculoImpactoMunicipalJob(MunicipioService municipioService, ImpactoVafService impactoVafService, GeracaoAlertasJob alertasJob) {
         this.municipioService = municipioService;
         this.impactoVafService = impactoVafService;
+        this.alertasJob = alertasJob;
     }
 
     // Configurado para as 03:30 da madrugada (0 30 3 * * *)
@@ -38,6 +40,10 @@ public class RecalculoImpactoMunicipalJob {
 
                 System.out.println("Sucesso: Impacto VAF recalculado para o município ID " + municipio.getId());
             }
+
+            // Depois de calcular todos os impactos, chama o gerador de alertas
+            alertasJob.analisarEGerarAlertas();
+
         } catch (Exception e) {
             System.err.println("Erro ao calcular impacto VAF: " + e.getMessage());
         }

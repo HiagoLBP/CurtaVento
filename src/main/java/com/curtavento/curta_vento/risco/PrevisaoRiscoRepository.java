@@ -10,4 +10,5 @@ public interface PrevisaoRiscoRepository extends JpaRepository<PrevisaoRisco, Lo
 
     List<PrevisaoRisco> findByUsinaId(Long usinaId);
     PrevisaoRisco findFirstByUsinaIdAndDataReferencia(Long usinaId, java.time.LocalDate dataReferencia);
+    PrevisaoRisco findFirstByUsinaIdOrderByDataReferenciaDesc(Long usinaId);
 }

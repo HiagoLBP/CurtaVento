@@ -16,14 +16,16 @@ public class CalculoRiscoDiarioJob {
     private final UsinaService usinaService;
     private final LeituraClimaticaRepository climaRepository;
     private final PrevisaoRiscoService riscoService;
+    private final GeracaoAlertasJob alertasJob;
 
-    // Injeta os serviços que já existem no seu projeto
     public CalculoRiscoDiarioJob(UsinaService usinaService,
                                  LeituraClimaticaRepository climaRepository,
-                                 PrevisaoRiscoService riscoService) {
+                                 PrevisaoRiscoService riscoService,
+                                 GeracaoAlertasJob alertasJob) {
         this.usinaService = usinaService;
         this.climaRepository = climaRepository;
         this.riscoService = riscoService;
+        this.alertasJob = alertasJob;
     }
 
     // Cron configurado para rodar de hora em hora (0 15 * * * *)
@@ -45,6 +47,10 @@ public class CalculoRiscoDiarioJob {
 
                 System.out.println("Sucesso: Risco calculado para a usina ID " + usina.getId());
             }
+            
+            // Depois de calcular todos os riscos, chama o gerador de alertas!
+            alertasJob.analisarEGerarAlertas();
+            
         } catch (Exception e) {
             System.err.println("Erro ao executar job de cálculo de risco: " + e.getMessage());
         }
