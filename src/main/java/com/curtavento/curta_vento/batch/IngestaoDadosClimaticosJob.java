@@ -6,6 +6,8 @@ import com.curtavento.curta_vento.usina.Usina;
 import com.curtavento.curta_vento.usina.UsinaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -87,6 +89,7 @@ public class IngestaoDadosClimaticosJob {
         }
     }
 
+    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 2000, multiplier = 2))
     private Map<String, BigDecimal> fetchOpenMeteoForecast(Usina usina) {
         if (usina.getLatitude() == null || usina.getLongitude() == null) {
             throw new RuntimeException("Usina sem coordenadas para buscar no Open-Meteo.");

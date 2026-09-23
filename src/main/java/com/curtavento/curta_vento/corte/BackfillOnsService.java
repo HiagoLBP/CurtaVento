@@ -49,7 +49,7 @@ public class BackfillOnsService {
         String url = String.format(URL_BASE, ano, mes);
         System.out.println("Baixando: " + url);
 
-        Map<String, double[]> agregadoPorUsinaEDia = new HashMap<>();
+        Map<String, double[]> agregadoPorInstante = new HashMap<>(); // Chave: nomeUsina|din_instante
         Map<String, Usina> cacheUsinaPorNome = new HashMap<>();
 
         RestTemplate restTemplate = new RestTemplate();
@@ -60,17 +60,6 @@ public class BackfillOnsService {
                 String headerLine = reader.readLine();
                 if (headerLine == null) return null;
                 Map<String, Integer> idx = mapearColunas(headerLine);
-
-                int obrigatorias = 0;
-                for (String col : List.of("nom_conjuntousina", "din_instante", "val_geracaoestimada",
-                        "val_geracaoverificada", "flg_geracaorestrita", "id_estado")) {
-                    if (!idx.containsKey(col)) {
-                        System.err.println("Coluna esperada não encontrada no CSV: " + col
-                                + " - confira o delimitador (atual: '" + DELIMITADOR + "')");
-                        obrigatorias++;
-                    }
-                }
-                if (obrigatorias > 0) return null;
 
                 String linha;
                 long totalLinhas = 0;
@@ -84,7 +73,6 @@ public class BackfillOnsService {
                     String estado = col[idx.get("id_estado")].trim();
                     if (!"BA".equalsIgnoreCase(estado)) continue;
 
-                    // AQUI É O SEGREDO: Agrupar por CONJUNTO e não por usina (parque) individual!
                     String nomeUsina = col[idx.get("nom_conjuntousina")].trim();
                     if (!bateComAlvo(nomeUsina)) continue;
 
@@ -95,27 +83,41 @@ public class BackfillOnsService {
 
                     double estimada = parseDecimalBr(col[idx.get("val_geracaoestimada")]);
                     double verificada = parseDecimalBr(col[idx.get("val_geracaoverificada")]);
-                    double corteNoBloco = Math.max(0, estimada - verificada) * 0.5; // MWmed * 0.5h = MWh
+                    String instanteStr = col[idx.get("din_instante")].trim();
 
-                    LocalDateTime instante = LocalDateTime.parse(
-                            col[idx.get("din_instante")].trim(),
-                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                    LocalDate dia = instante.toLocalDate();
-
-                    String chave = nomeUsina + "|" + dia;
-                    double[] acumulado = agregadoPorUsinaEDia.computeIfAbsent(chave, k -> new double[2]);
-                    acumulado[0] += corteNoBloco;
-                    acumulado[1] += 1;
-                }
-
-                System.out.println("Linhas lidas: " + totalLinhas + " | linhas casadas com o filtro: " + linhasCasadas);
-                if (linhasCasadas == 0) {
-                    System.err.println("ATENÇÃO: nenhuma linha casou com NOMES_CONJUNTO_ALVO=" + NOMES_CONJUNTO_ALVO
-                            + " para id_estado=BA. Confira os nomes reais de nom_conjuntousina neste arquivo.");
+                    // Agrupamento NÍVEL 1: Por Conjunto e por Instante de 30 min
+                    String chaveInstante = nomeUsina + "|" + instanteStr;
+                    double[] valoresInstante = agregadoPorInstante.computeIfAbsent(chaveInstante, k -> new double[2]);
+                    valoresInstante[0] += estimada;
+                    valoresInstante[1] += verificada;
                 }
             }
             return null;
         });
+
+        // Agrupamento NÍVEL 2: Calcular o corte final por dia com a correção de Jensen
+        Map<String, double[]> agregadoPorUsinaEDia = new HashMap<>();
+        
+        for (Map.Entry<String, double[]> entry : agregadoPorInstante.entrySet()) {
+            String[] partes = entry.getKey().split("\\|");
+            String nomeUsina = partes[0];
+            
+            LocalDateTime instante = LocalDateTime.parse(partes[1], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            LocalDate dia = instante.toLocalDate();
+            
+            double sumEstimada = entry.getValue()[0];
+            double sumVerificada = entry.getValue()[1];
+            
+            // Aqui aplicamos a regra do ONS (Submódulo 6.5-PR): max(0, somaEstimada - somaVerificada) no conjunto
+            double corteNoBloco = Math.max(0, sumEstimada - sumVerificada) * 0.5; // MWmed * 0.5h = MWh
+            
+            if (corteNoBloco > 0) {
+                String chaveDia = nomeUsina + "|" + dia;
+                double[] acumulado = agregadoPorUsinaEDia.computeIfAbsent(chaveDia, k -> new double[2]);
+                acumulado[0] += corteNoBloco;
+                acumulado[1] += 1; // 1 bloco com corte
+            }
+        }
 
         int registrosGravados = 0;
         for (Map.Entry<String, double[]> entrada : agregadoPorUsinaEDia.entrySet()) {

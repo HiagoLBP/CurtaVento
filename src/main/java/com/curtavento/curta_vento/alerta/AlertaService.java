@@ -18,6 +18,17 @@ public class AlertaService {
     }
 
     public Alerta criarAlertaUsina(String tipo, String nivel, String mensagem, Usina usina) {
+        List<Alerta> existentes = alertaRepository.findByUsinaIdOrderByDataCriacaoDesc(usina.getId());
+        if (!existentes.isEmpty()) {
+            Alerta ultimo = existentes.get(0);
+            if (ultimo.getTipo().equals(tipo) && ultimo.getDataCriacao().toLocalDate().equals(java.time.LocalDate.now())) {
+                ultimo.setNivelSeveridade(nivel);
+                ultimo.setMensagem(mensagem);
+                ultimo.setLido(false);
+                return alertaRepository.save(ultimo);
+            }
+        }
+
         Alerta alerta = new Alerta();
         alerta.setTipo(tipo);
         alerta.setNivelSeveridade(nivel);
@@ -29,6 +40,17 @@ public class AlertaService {
     }
 
     public Alerta criarAlertaMunicipio(String tipo, String nivel, String mensagem, Municipio municipio) {
+        List<Alerta> existentes = alertaRepository.findByMunicipioIdOrderByDataCriacaoDesc(municipio.getId());
+        if (!existentes.isEmpty()) {
+            Alerta ultimo = existentes.get(0);
+            if (ultimo.getTipo().equals(tipo) && ultimo.getDataCriacao().toLocalDate().equals(java.time.LocalDate.now())) {
+                ultimo.setNivelSeveridade(nivel);
+                ultimo.setMensagem(mensagem);
+                ultimo.setLido(false);
+                return alertaRepository.save(ultimo);
+            }
+        }
+
         Alerta alerta = new Alerta();
         alerta.setTipo(tipo);
         alerta.setNivelSeveridade(nivel);

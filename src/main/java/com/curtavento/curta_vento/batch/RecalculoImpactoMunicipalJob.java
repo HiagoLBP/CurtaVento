@@ -36,8 +36,6 @@ public class RecalculoImpactoMunicipalJob {
 
                 impactoVafService.calcularImpacto(municipio.getId(), anoAtual);
 
-                impactoVafService.calcularImpacto(1L, 2024);
-
                 System.out.println("Sucesso: Impacto VAF recalculado para o município ID " + municipio.getId());
             }
 
