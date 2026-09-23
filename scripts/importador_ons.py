@@ -51,14 +51,28 @@ def baixar_e_processar(ano, mes):
     agregado_hora['corte_mw'] = (agregado_hora['soma_estimada'] - agregado_hora['soma_verificada']).clip(lower=0)
     agregado_hora['corte_mwh'] = agregado_hora['corte_mw'] * 0.5
     
-    # Passo 3: Mapear para IDs reais do banco de dados (1=I, 2=II, 3=III)
-    def resolver_usina(nome):
-        nome_upper = nome.upper()
-        if "IGAPORÃ III" in nome_upper: return 3
-        if "CAETITÉ 123" in nome_upper or "IGAPORÃ II" in nome_upper: return 2
-        return 1
+    # Passo 3: Mapear nomes para IDs reais consultando o banco de dados
+    # Conectamos ao MySQL e pegamos o dicionário de nome -> id
+    engine = sqlalchemy.create_engine('mysql+mysqlconnector://root:admin123@localhost/curtavento')
+    
+    with engine.connect() as conn:
+        result = conn.execute(sqlalchemy.text("SELECT id, nome FROM usina"))
+        mapa_usinas = {row[1].upper(): row[0] for row in result.fetchall()}
         
-    agregado_hora['usina_id'] = agregado_hora['nom_conjuntousina'].apply(resolver_usina)
+    def resolver_usina_db(nome):
+        nome_upper = nome.upper()
+        # Se for nome exato
+        if nome_upper in mapa_usinas:
+            return mapa_usinas[nome_upper]
+        # Se for string parecida (fallback do ONS)
+        for nome_db, usina_id in mapa_usinas.items():
+            # Ex: nome_db = "CONJ. CAETITE" e nome = "CONJ. CAETITÉ A"
+            if nome_db.replace("CONJ. ", "") in nome_upper.replace("É", "E").replace("Ã", "A"):
+                return usina_id
+        return None
+        
+    agregado_hora['usina_id'] = agregado_hora['nom_conjuntousina'].apply(resolver_usina_db)
+    agregado_hora = agregado_hora.dropna(subset=['usina_id']) # Remove o que não mapeou
 
     # Passo 4: Agrupa por usina_id e Dia para salvar no banco
     agrupado = agregado_hora.groupby(['usina_id', 'data_dia']).agg(

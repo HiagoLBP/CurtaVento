@@ -143,14 +143,14 @@ public class IngestaoDadosClimaticosJob {
             throw new RuntimeException("Usina sem coordenadas para buscar no Open-Meteo.");
         }
 
-        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_10m&wind_speed_unit=ms",
+        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_80m&wind_speed_unit=ms",
                 usina.getLatitude(), usina.getLongitude());
 
         Map<?, ?> response = restTemplate.getForObject(url, Map.class);
         if (response != null && response.containsKey("current")) {
             Map<?, ?> current = (Map<?, ?>) response.get("current");
             
-            Object windObj = current.get("wind_speed_10m");
+            Object windObj = current.get("wind_speed_80m");
             Object tempObj = current.get("temperature_2m");
             
             BigDecimal vento = windObj != null ? new BigDecimal(windObj.toString()) : null;

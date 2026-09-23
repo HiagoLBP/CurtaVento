@@ -23,9 +23,6 @@ public class ImpactoVafService {
 
     // Preço médio do MWh (R$ 150,00) conforme regra do projeto
     private static final BigDecimal PRECO_MEDIO_MWH = new BigDecimal("150.00");
-    
-    // Percentual direto do impacto no VAF/ICMS (2%)
-    private static final BigDecimal PERCENTUAL_VAF = new BigDecimal("0.02");
 
     public ImpactoVafService(ImpactoVafRepository impactoRepository, MunicipioRepository municipioRepository,
                              UsinaRepository usinaRepository, HistoricoCorteOnsRepository corteRepository) {
@@ -62,7 +59,13 @@ public class ImpactoVafService {
         BigDecimal perdaReceita = energiaTotalCortada.multiply(PRECO_MEDIO_MWH);
 
         // 2. O Impacto final (que vai pra tela)
-        BigDecimal impactoFinal = perdaReceita.multiply(PERCENTUAL_VAF);
+        BigDecimal ipmMunicipio = municipio.getVafAnoBase() != null ? municipio.getVafAnoBase() : new BigDecimal("0.02"); // Fallback para 2% caso nulo no banco
+        if (ipmMunicipio.compareTo(BigDecimal.ONE) > 0) {
+            // Se alguém preencheu 2.5 em vez de 0.025 no banco, dividimos por 100
+            ipmMunicipio = ipmMunicipio.divide(new BigDecimal("100"));
+        }
+        
+        BigDecimal impactoFinal = perdaReceita.multiply(ipmMunicipio);
 
         List<ImpactoVaf> impactosExistentes = impactoRepository.findByMunicipioIdAndAnoReferencia(municipioId, ano);
         ImpactoVaf relatorio;
