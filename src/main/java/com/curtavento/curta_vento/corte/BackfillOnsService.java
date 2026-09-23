@@ -33,7 +33,8 @@ public class BackfillOnsService {
             "Conj. Caetité A",
             "Conj. Caetité Norte",
             "Conj. Igaporã II",
-            "Conj. Igaporã III 500 kV"
+            "Conj. Igaporã III 500 kV",
+            "Conj. Pindaí II 230 kV"
     );
 
     private final HistoricoCorteOnsService corteService;
@@ -197,9 +198,11 @@ public class BackfillOnsService {
         
         List<Usina> todasUsinas = usinaRepository.findAll();
         
-        if (upper.contains("IGAPORÃ III")) {
+        if (upper.contains("PINDA")) {
+            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("PINDA")).findFirst().orElse(null);
+        } else if (upper.contains("IGAPORǟ III") || upper.contains("IGAPORÃ III")) {
             return todasUsinas.stream().filter(u -> u.getNome().contains("III")).findFirst().orElse(null);
-        } else if (upper.contains("CAETITÉ 123") || upper.contains("IGAPORÃ II")) {
+        } else if (upper.contains("CAETIT% 123") || upper.contains("CAETITÉ 123") || upper.contains("IGAPORǟ II") || upper.contains("IGAPORÃ II")) {
             return todasUsinas.stream().filter(u -> u.getNome().contains("II") && !u.getNome().contains("III")).findFirst().orElse(null);
         } else {
             return todasUsinas.stream().filter(u -> u.getNome().contains("I") && !u.getNome().contains("II")).findFirst().orElse(null);

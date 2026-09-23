@@ -1,0 +1,1 @@
+INSERT INTO usina (nome, operador, municipio_id, capacidade_instalada_mw, latitude, longitude, data_inicio_operacao) VALUES ('Conj. Pindaí II', 'Renova Energia / AES', 1, 150.0, -14.228, -42.766, '2016-01-01');
