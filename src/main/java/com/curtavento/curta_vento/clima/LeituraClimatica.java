@@ -22,7 +22,13 @@ public class LeituraClimatica {
     private LocalDateTime dataHora;
 
     @Column(name = "velocidade_vento_ms")
-    private BigDecimal velocidadeVentoMs;
+    private BigDecimal velocidadeVentoMs; // Usado agora como Vento Atual
+
+    @Column(name = "vento_previsao_24h_ms")
+    private BigDecimal ventoPrevisao24hMs;
+
+    @Column(name = "vento_previsao_48h_ms")
+    private BigDecimal ventoPrevisao48hMs;
 
     @Column(name = "direcao_vento_graus")
     private BigDecimal direcaoVentoGraus;
@@ -59,21 +65,17 @@ public class LeituraClimatica {
         this.dataHora = dataHora;
     }
 
-    public BigDecimal getVelocidadeVentoMs() {
-        return velocidadeVentoMs;
-    }
+    public BigDecimal getVelocidadeVentoMs() { return velocidadeVentoMs; }
+    public void setVelocidadeVentoMs(BigDecimal velocidadeVentoMs) { this.velocidadeVentoMs = velocidadeVentoMs; }
 
-    public void setVelocidadeVentoMs(BigDecimal velocidadeVentoMs) {
-        this.velocidadeVentoMs = velocidadeVentoMs;
-    }
+    public BigDecimal getVentoPrevisao24hMs() { return ventoPrevisao24hMs; }
+    public void setVentoPrevisao24hMs(BigDecimal ventoPrevisao24hMs) { this.ventoPrevisao24hMs = ventoPrevisao24hMs; }
 
-    public BigDecimal getDirecaoVentoGraus() {
-        return direcaoVentoGraus;
-    }
+    public BigDecimal getVentoPrevisao48hMs() { return ventoPrevisao48hMs; }
+    public void setVentoPrevisao48hMs(BigDecimal ventoPrevisao48hMs) { this.ventoPrevisao48hMs = ventoPrevisao48hMs; }
 
-    public void setDirecaoVentoGraus(BigDecimal direcaoVentoGraus) {
-        this.direcaoVentoGraus = direcaoVentoGraus;
-    }
+    public BigDecimal getDirecaoVentoGraus() { return direcaoVentoGraus; }
+    public void setDirecaoVentoGraus(BigDecimal direcaoVentoGraus) { this.direcaoVentoGraus = direcaoVentoGraus; }
 
     public BigDecimal getTemperaturaC() {
         return temperaturaC;

@@ -440,7 +440,9 @@
           <thead>
             <tr>
               <th>Usina</th>
-              <th>Vento previsto</th>
+              <th>Vento Agora</th>
+              <th>Pico 24h</th>
+              <th>Pico 48h</th>
               <th>Risco 24h</th>
               <th>Perda no Ano</th>
               <th>Ação</th>
@@ -539,12 +541,16 @@
       else if (u.risco === 'ALTO' || u.risco === 'CRITICO') contAlto++;
 
       const ventoTexto = u.vento || (u.detalhe ? u.detalhe.split('·')[0] : 'N/A');
+      const vento24 = u.vento24h || 'N/D';
+      const vento48 = u.vento48h || 'N/D';
       const energiaCortada = u.energiaCortada !== undefined ? u.energiaCortada.toLocaleString('pt-BR', {maximumFractionDigits: 1}) + ' MWh' : '0 MWh';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><span class="usina-nome">${u.nome}</span><span class="usina-op">${u.operador}</span></td>
-        <td class="num-col">${ventoTexto}</td>
+        <td class="num-col" style="color: var(--text-muted);">${ventoTexto}</td>
+        <td class="num-col" style="font-weight: 500;">${vento24}</td>
+        <td class="num-col" style="color: var(--text-faint);">${vento48}</td>
         <td><span class="risk-tag" style="--dot:${RISK_COLOR[u.risco] || 'var(--text-muted)'}"><span class="risk-dot"></span>${RISK_LABEL[u.risco] || 'N/A'}</span></td>
         <td class="num-col" style="color: var(--warn); font-weight: 500;">${energiaCortada}</td>
         <td><a class="action-link" onclick="alert('Visão detalhada em desenvolvimento.')">Ver detalhes</a></td>`;

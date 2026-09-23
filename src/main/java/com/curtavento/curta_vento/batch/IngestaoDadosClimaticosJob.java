@@ -38,42 +38,52 @@ public class IngestaoDadosClimaticosJob {
 
         List<Usina> usinas = usinaRepository.findAll();
         for (Usina usina : usinas) {
-            BigDecimal ventoMaximo = null;
-            BigDecimal tempMaximo = null;
+            BigDecimal ventoAtual = null;
+            BigDecimal vento24h = null;
+            BigDecimal vento48h = null;
+            BigDecimal tempAtual = null;
             String fonte = null;
 
             try {
                 Map<String, BigDecimal> dadosOpenMeteo = fetchOpenMeteoForecast(usina);
-                ventoMaximo = dadosOpenMeteo.get("vento");
-                tempMaximo = dadosOpenMeteo.get("temperatura");
-                fonte = "Open-Meteo (Previsão 48h - Pico)";
+                ventoAtual = dadosOpenMeteo.get("vento_atual");
+                vento24h = dadosOpenMeteo.get("vento_24h");
+                vento48h = dadosOpenMeteo.get("vento_48h");
+                tempAtual = dadosOpenMeteo.get("temperatura");
+                fonte = "Open-Meteo (Atual e Prev 48h)";
             } catch (Exception ex) {
                 logger.error("Falha no Open-Meteo para a usina ID {}. Buscando no cache. Erro: {}", usina.getId(), ex.getMessage());
             }
 
-            if (ventoMaximo == null) {
+            if (ventoAtual == null) {
                 LeituraClimatica ultima = leituraService.buscarUltimaLeitura(usina.getId());
                 if (ultima != null) {
-                    ventoMaximo = ultima.getVelocidadeVentoMs();
-                    tempMaximo = ultima.getTemperaturaC();
+                    ventoAtual = ultima.getVelocidadeVentoMs();
+                    vento24h = ultima.getVentoPrevisao24hMs();
+                    vento48h = ultima.getVentoPrevisao48hMs();
+                    tempAtual = ultima.getTemperaturaC();
                     fonte = "CACHE_ANTIGO";
                 } else {
                     logger.error("Nenhuma leitura anterior encontrada para usina ID {}. Usando valores zerados.", usina.getId());
-                    ventoMaximo = BigDecimal.ZERO;
-                    tempMaximo = BigDecimal.ZERO;
+                    ventoAtual = BigDecimal.ZERO;
+                    vento24h = BigDecimal.ZERO;
+                    vento48h = BigDecimal.ZERO;
+                    tempAtual = BigDecimal.ZERO;
                     fonte = "DEFAULT_ZERADO";
                 }
             }
 
             LeituraClimatica leitura = new LeituraClimatica();
             leitura.setUsina(usina);
-            leitura.setVelocidadeVentoMs(ventoMaximo);
-            leitura.setTemperaturaC(tempMaximo != null ? tempMaximo : BigDecimal.ZERO);
+            leitura.setVelocidadeVentoMs(ventoAtual);
+            leitura.setVentoPrevisao24hMs(vento24h);
+            leitura.setVentoPrevisao48hMs(vento48h);
+            leitura.setTemperaturaC(tempAtual != null ? tempAtual : BigDecimal.ZERO);
             leitura.setFonte(fonte);
             leitura.setDataHora(LocalDateTime.now());
 
             leituraService.salvar(leitura);
-            logger.info("Previsão atualizada: Usina {} - Pico Vento 48h: {} m/s - Fonte: {}", usina.getId(), ventoMaximo, fonte);
+            logger.info("Clima atualizado: Usina {} - Atual: {} m/s - 24h: {} - 48h: {}", usina.getId(), ventoAtual, vento24h, vento48h);
         }
     }
 
@@ -82,42 +92,51 @@ public class IngestaoDadosClimaticosJob {
             throw new RuntimeException("Usina sem coordenadas para buscar no Open-Meteo.");
         }
 
-        // Busca a previsão HORA A HORA (hourly) para os próximos 2 dias, vento a 80m
-        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&hourly=temperature_2m,wind_speed_80m&wind_speed_unit=ms&forecast_days=2",
+        // Busca o 'current' e a 'hourly' para 2 dias
+        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_80m&hourly=wind_speed_80m&wind_speed_unit=ms&forecast_days=2",
                 usina.getLatitude(), usina.getLongitude());
 
         Map<?, ?> response = restTemplate.getForObject(url, Map.class);
-        if (response != null && response.containsKey("hourly")) {
+        if (response != null && response.containsKey("hourly") && response.containsKey("current")) {
+            Map<?, ?> current = (Map<?, ?>) response.get("current");
             Map<?, ?> hourly = (Map<?, ?>) response.get("hourly");
             
+            Object currentWindObj = current.get("wind_speed_80m");
+            Object currentTempObj = current.get("temperature_2m");
+            
+            BigDecimal ventoAtual = currentWindObj != null ? new BigDecimal(currentWindObj.toString()) : BigDecimal.ZERO;
+            BigDecimal tempAtual = currentTempObj != null ? new BigDecimal(currentTempObj.toString()) : BigDecimal.ZERO;
+            
             List<?> windList = (List<?>) hourly.get("wind_speed_80m");
-            List<?> tempList = (List<?>) hourly.get("temperature_2m");
             
-            BigDecimal maxVento = BigDecimal.ZERO;
-            BigDecimal maxTemp = BigDecimal.ZERO;
+            BigDecimal max24h = BigDecimal.ZERO;
+            BigDecimal max48h = BigDecimal.ZERO;
             
-            if (windList != null && !windList.isEmpty()) {
-                // Iterar sobre as 48 horas previstas para achar o pico de vento
-                for (int i = 0; i < windList.size(); i++) {
-                    Object windObj = windList.get(i);
-                    Object tempObj = tempList != null && tempList.size() > i ? tempList.get(i) : null;
-                    
-                    if (windObj != null) {
-                        BigDecimal v = new BigDecimal(windObj.toString());
-                        if (v.compareTo(maxVento) > 0) {
-                            maxVento = v;
-                            if (tempObj != null) {
-                                maxTemp = new BigDecimal(tempObj.toString());
-                            }
-                        }
+            if (windList != null && windList.size() >= 48) {
+                // Primeira 24 horas
+                for (int i = 0; i < 24; i++) {
+                    Object wObj = windList.get(i);
+                    if (wObj != null) {
+                        BigDecimal v = new BigDecimal(wObj.toString());
+                        if (v.compareTo(max24h) > 0) max24h = v;
                     }
                 }
-                
-                Map<String, BigDecimal> result = new HashMap<>();
-                result.put("vento", maxVento);
-                result.put("temperatura", maxTemp);
-                return result;
+                // Próximas 24 horas (24 a 47)
+                for (int i = 24; i < 48; i++) {
+                    Object wObj = windList.get(i);
+                    if (wObj != null) {
+                        BigDecimal v = new BigDecimal(wObj.toString());
+                        if (v.compareTo(max48h) > 0) max48h = v;
+                    }
+                }
             }
+            
+            Map<String, BigDecimal> result = new HashMap<>();
+            result.put("vento_atual", ventoAtual);
+            result.put("vento_24h", max24h);
+            result.put("vento_48h", max48h);
+            result.put("temperatura", tempAtual);
+            return result;
         }
         throw new RuntimeException("Dados do Open-Meteo inválidos ou lista horária vazia.");
     }

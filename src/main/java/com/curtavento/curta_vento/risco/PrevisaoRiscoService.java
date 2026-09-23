@@ -39,8 +39,8 @@ public class PrevisaoRiscoService {
         int scoreRisco = 0;
         StringBuilder justificativa = new StringBuilder();
 
-        if (ultimaLeitura != null && ultimaLeitura.getVelocidadeVentoMs() != null) {
-            double vento = ultimaLeitura.getVelocidadeVentoMs().doubleValue();
+        if (ultimaLeitura != null && ultimaLeitura.getVentoPrevisao24hMs() != null) {
+            double vento = ultimaLeitura.getVentoPrevisao24hMs().doubleValue();
 
             // Calibrado para vento a 80m de altura
             if (vento >= 10.0) {

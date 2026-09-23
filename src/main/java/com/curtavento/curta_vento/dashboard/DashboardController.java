@@ -69,9 +69,13 @@ public class DashboardController {
 
             LeituraClimatica ultimaLeitura = leituraService.buscarUltimaLeitura(u.getId());
             if (ultimaLeitura != null) {
-                dto.put("vento", ultimaLeitura.getVelocidadeVentoMs() + " m/s");
+                dto.put("vento", ultimaLeitura.getVelocidadeVentoMs() != null ? ultimaLeitura.getVelocidadeVentoMs() + " m/s" : "N/D");
+                dto.put("vento24h", ultimaLeitura.getVentoPrevisao24hMs() != null ? ultimaLeitura.getVentoPrevisao24hMs() + " m/s" : "N/D");
+                dto.put("vento48h", ultimaLeitura.getVentoPrevisao48hMs() != null ? ultimaLeitura.getVentoPrevisao48hMs() + " m/s" : "N/D");
             } else {
                 dto.put("vento", "N/D");
+                dto.put("vento24h", "N/D");
+                dto.put("vento48h", "N/D");
             }
 
             java.time.LocalDateTime inicioAno = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
