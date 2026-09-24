@@ -86,8 +86,11 @@ public class BackfillOnsService {
                     double verificada = parseDecimalBr(col[idx.get("val_geracaoverificada")]);
                     String instanteStr = col[idx.get("din_instante")].trim();
 
-                    // Agrupamento NÍVEL 1: Por Conjunto e por Instante de 30 min
-                    String chaveInstante = nomeUsina + "|" + instanteStr;
+                    // Agrupamento NÍVEL 1: Por Usina (ID do banco) e por Instante de 30 min
+                    Usina usinaDb = cacheUsinaPorNome.computeIfAbsent(nomeUsina, this::resolverUsinaPorNome);
+                    if (usinaDb == null) continue; // Ignora se não for alvo
+
+                    String chaveInstante = usinaDb.getId() + "|" + instanteStr;
                     double[] valoresInstante = agregadoPorInstante.computeIfAbsent(chaveInstante, k -> new double[2]);
                     valoresInstante[0] += estimada;
                     valoresInstante[1] += verificada;
@@ -101,7 +104,7 @@ public class BackfillOnsService {
         
         for (Map.Entry<String, double[]> entry : agregadoPorInstante.entrySet()) {
             String[] partes = entry.getKey().split("\\|");
-            String nomeUsina = partes[0];
+            Long usinaId = Long.parseLong(partes[0]);
             
             LocalDateTime instante = LocalDateTime.parse(partes[1], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             LocalDate dia = instante.toLocalDate();
@@ -109,11 +112,11 @@ public class BackfillOnsService {
             double sumEstimada = entry.getValue()[0];
             double sumVerificada = entry.getValue()[1];
             
-            // Aqui aplicamos a regra do ONS (Submódulo 6.5-PR): max(0, somaEstimada - somaVerificada) no conjunto
+            // Aqui aplicamos a regra do ONS (Submódulo 6.5-PR): max(0, somaEstimada - somaVerificada) no conjunto unificado
             double corteNoBloco = Math.max(0, sumEstimada - sumVerificada) * 0.5; // MWmed * 0.5h = MWh
             
             if (corteNoBloco > 0) {
-                String chaveDia = nomeUsina + "|" + dia;
+                String chaveDia = usinaId + "|" + dia;
                 double[] acumulado = agregadoPorUsinaEDia.computeIfAbsent(chaveDia, k -> new double[2]);
                 acumulado[0] += corteNoBloco;
                 acumulado[1] += 1; // 1 bloco com corte
@@ -123,17 +126,13 @@ public class BackfillOnsService {
         int registrosGravados = 0;
         for (Map.Entry<String, double[]> entrada : agregadoPorUsinaEDia.entrySet()) {
             String[] partes = entrada.getKey().split("\\|");
-            String nomeUsina = partes[0];
+            Long usinaId = Long.parseLong(partes[0]);
             LocalDate dia = LocalDate.parse(partes[1]);
             double somaCorteMwh = entrada.getValue()[0];
             int blocos = (int) entrada.getValue()[1];
 
-            Usina usina = cacheUsinaPorNome.computeIfAbsent(nomeUsina, this::resolverUsinaPorNome);
-            if (usina == null) {
-                System.err.println("Nenhuma Usina cadastrada localmente casa com '" + nomeUsina
-                        + "' - cadastre-a antes de importar, ou ajuste o matching.");
-                continue;
-            }
+            Usina usina = usinaRepository.findById(usinaId).orElse(null);
+            if (usina == null) continue;
 
             HistoricoCorteOns corte = new HistoricoCorteOns();
             corte.setUsina(usina);
@@ -200,12 +199,13 @@ public class BackfillOnsService {
         
         if (upper.contains("PINDA")) {
             return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("PINDA")).findFirst().orElse(null);
-        } else if (upper.contains("IGAPORǟ III") || upper.contains("IGAPORÃ III")) {
-            return todasUsinas.stream().filter(u -> u.getNome().contains("III")).findFirst().orElse(null);
-        } else if (upper.contains("CAETIT% 123") || upper.contains("CAETITÉ 123") || upper.contains("IGAPORǟ II") || upper.contains("IGAPORÃ II")) {
-            return todasUsinas.stream().filter(u -> u.getNome().contains("II") && !u.getNome().contains("III")).findFirst().orElse(null);
-        } else {
-            return todasUsinas.stream().filter(u -> u.getNome().contains("I") && !u.getNome().contains("II")).findFirst().orElse(null);
+        } else if (upper.contains("IGAPOR") && upper.contains("III")) {
+            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("IGAPORA III")).findFirst().orElse(null);
+        } else if (upper.contains("IGAPOR") && upper.contains("II")) {
+            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("IGAPORA II")).findFirst().orElse(null);
+        } else if (upper.contains("CAETIT")) {
+            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("CAETITE")).findFirst().orElse(null);
         }
+        return null;
     }
 }

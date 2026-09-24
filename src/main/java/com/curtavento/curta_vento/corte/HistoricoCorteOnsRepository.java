@@ -12,4 +12,6 @@ public interface HistoricoCorteOnsRepository extends JpaRepository<HistoricoCort
     List<HistoricoCorteOns> findByUsinaId(Long usinaId);
 
     List<HistoricoCorteOns> findByUsinaIdAndDataCorteBetween(Long usinaId, LocalDateTime inicio, LocalDateTime fim);
+
+    java.util.Optional<HistoricoCorteOns> findByUsinaIdAndDataCorte(Long usinaId, LocalDateTime dataCorte);
 }

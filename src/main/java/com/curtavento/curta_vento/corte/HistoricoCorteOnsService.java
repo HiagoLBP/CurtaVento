@@ -31,6 +31,16 @@ public class HistoricoCorteOnsService {
             corte.setDataCorte(LocalDateTime.now());
         }
 
+        // Realiza o Upsert: busca se já existe para não duplicar
+        java.util.Optional<HistoricoCorteOns> existente = corteRepository.findByUsinaIdAndDataCorte(corte.getUsina().getId(), corte.getDataCorte());
+        if (existente.isPresent()) {
+            HistoricoCorteOns existenteCorte = existente.get();
+            existenteCorte.setEnergiaCortadaMwh(corte.getEnergiaCortadaMwh());
+            existenteCorte.setDuracaoMinutos(corte.getDuracaoMinutos());
+            existenteCorte.setMotivoOns(corte.getMotivoOns());
+            return corteRepository.save(existenteCorte);
+        }
+
         return corteRepository.save(corte);
     }
 

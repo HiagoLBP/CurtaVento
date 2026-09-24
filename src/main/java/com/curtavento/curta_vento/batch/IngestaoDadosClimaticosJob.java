@@ -33,8 +33,8 @@ public class IngestaoDadosClimaticosJob {
         this.restTemplate = new RestTemplate();
     }
 
-    // Para testes: roda 4 segundos após iniciar a aplicação, e depois 1x por dia.
-    @Scheduled(initialDelay = 4000, fixedDelay = 86400000)
+    // Para testes/apresentação: roda 4 segundos após iniciar a aplicação, e depois a cada 10 minutos.
+    @Scheduled(initialDelay = 4000, fixedDelay = 600000)
     public void buscarPrevisaoClimatica() {
         logger.info("JOB ATIVO: Buscando PREVISÃO climática (próximas 48h) no Open-Meteo...");
 

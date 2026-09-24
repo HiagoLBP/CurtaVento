@@ -26,7 +26,8 @@ def baixar_e_processar(ano, mes):
     
     conjuntos_alvo = [
         "Conj. Caetité", "Conj. Caetité A", "Conj. Caetité Norte",
-        "Conj. Caetité 123", "Conj. Igaporã II", "Conj. Igaporã III 500 kV"
+        "Conj. Caetité 123", "Conj. Igaporã II", "Conj. Igaporã III 500 kV",
+        "Conj. Pindaí II 230 kV"
     ]
     df = df[df['nom_conjuntousina'].isin(conjuntos_alvo)]
     df = df[df['flg_geracaorestrita'] == 1]
@@ -61,13 +62,15 @@ def baixar_e_processar(ano, mes):
         
     def resolver_usina_db(nome):
         nome_upper = nome.upper()
+        if "PINDA" in nome_upper:
+            return next((id for nom, id in mapa_usinas.items() if "PINDA" in nom), None)
         # Se for nome exato
         if nome_upper in mapa_usinas:
             return mapa_usinas[nome_upper]
         # Se for string parecida (fallback do ONS)
         for nome_db, usina_id in mapa_usinas.items():
-            # Ex: nome_db = "CONJ. CAETITE" e nome = "CONJ. CAETITÉ A"
-            if nome_db.replace("CONJ. ", "") in nome_upper.replace("É", "E").replace("Ã", "A"):
+            # Ex: nome_db = "CONJ. CAETITE" e nome = "CONJ. CAETIT% A"
+            if nome_db.replace("CONJ. ", "") in nome_upper.replace("%", "E").replace("ǟ", "A"):
                 return usina_id
         return None
         
