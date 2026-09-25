@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - CurtaVento</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F4F5F7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #1A1D21;
+    }
+    .auth-container {
+      background: #FFFFFF;
+      width: 100%;
+      max-width: 400px;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2563EB;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #D1D5DB;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #2563EB;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    .btn:hover { background-color: #1D4ED8; }
+    .error-msg {
+      color: #DC2626;
+      font-size: 13px;
+      margin-top: -1rem;
+      margin-bottom: 1rem;
+      display: none;
+      text-align: center;
+    }
+    .footer-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 14px;
+      color: #6B7280;
+    }
+    .footer-link a {
+      color: #2563EB;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .footer-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="logo">CurtaVento</div>
+  
+  <form id="loginForm">
+    <div class="form-group">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" required placeholder="admin@curtavento.com">
+    </div>
+    
+    <div class="form-group">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" required placeholder="••••••••">
+    </div>
+
+    <div class="error-msg" id="errorMsg">E-mail ou senha incorretos.</div>
+
+    <button type="submit" class="btn">Entrar</button>
+  </form>
+
+  <div class="footer-link">
+    Não tem uma conta? <a href="cadastro.html">Cadastre-se</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('senha').value;
+    const errorMsg = document.getElementById('errorMsg');
+    
+    errorMsg.style.display = 'none';
+    
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('jwt_token', data.token);
+        window.location.href = '/index.html';
+      } else {
+        errorMsg.style.display = 'block';
+      }
+    } catch (err) {
+      errorMsg.textContent = 'Erro de conexão com o servidor.';
+      errorMsg.style.display = 'block';
+    }
+  });
+</script>
+
+</body>
+</html>
+

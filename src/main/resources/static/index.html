@@ -1,708 +1,1420 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
+
 <head>
+
   <meta charset="UTF-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
   <title>CurtaVento — Plataforma de Monitoramento</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
+
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
+
     :root {
+
       --bg-body: #F4F5F7;
+
       --bg-sidebar: #1E2329;
+
       --bg-surface: #FFFFFF;
+
       --border: #E4E5E7;
+
       --border-light: #F0F1F3;
+
       
+
       --text-main: #1A1D21;
+
       --text-muted: #6B7280;
+
       --text-faint: #9CA3AF;
+
       --text-sidebar: #9CA3AF;
+
       --text-sidebar-active: #FFFFFF;
+
       
+
       --brand: #2563EB;
+
       --brand-soft: #DBEAFE;
+
       
+
       --ok: #10B981;
+
       --warn: #F59E0B;
+
       --high: #EF4444;
+
       --crit: #991B1B;
+
       
+
       --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+
       --radius: 8px;
+
     }
+
     
+
     * { box-sizing: border-box; }
+
     body {
+
       margin: 0;
+
       background: var(--bg-body);
+
       color: var(--text-main);
+
       font-family: var(--font);
+
       line-height: 1.5;
+
       -webkit-font-smoothing: antialiased;
+
       display: flex;
+
       height: 100vh;
+
       overflow: hidden;
+
     }
+
+
 
     /* ====== SIDEBAR ====== */
+
     .sidebar {
+
       width: 260px;
+
       background: var(--bg-sidebar);
+
       color: var(--text-sidebar);
+
       display: flex;
+
       flex-direction: column;
+
       flex-shrink: 0;
+
       transition: transform 0.3s ease;
+
     }
+
     .sidebar-header {
+
       padding: 24px 20px;
+
       font-size: 18px;
+
       font-weight: 700;
+
       color: #FFF;
+
       letter-spacing: 1px;
+
       border-bottom: 1px solid rgba(255,255,255,0.05);
+
     }
+
     .nav-list {
+
       display: flex;
+
       flex-direction: column;
+
       padding: 16px 12px;
+
       gap: 4px;
+
     }
+
     .nav-item {
+
       padding: 10px 16px;
+
       border-radius: 6px;
+
       color: var(--text-sidebar);
+
       text-decoration: none;
+
       font-size: 14px;
+
       font-weight: 500;
+
       display: flex;
+
       align-items: center;
+
       gap: 12px;
+
       transition: all 0.2s ease;
+
     }
+
     .nav-item:hover {
+
       background: rgba(255,255,255,0.05);
+
       color: #FFF;
+
     }
+
     .nav-item.active {
+
       background: var(--brand);
+
       color: #FFF;
+
     }
+
+
 
     /* ====== MAIN LAYOUT ====== */
+
     .main-wrapper {
+
       flex: 1;
+
       display: flex;
+
       flex-direction: column;
+
       overflow-y: auto;
+
     }
+
+
 
     /* ====== HEADER ====== */
+
     header {
+
       display: flex;
+
       align-items: center;
+
       justify-content: space-between;
+
       padding: 20px 32px;
+
       background: var(--bg-surface);
+
       border-bottom: 1px solid var(--border);
+
       position: sticky;
+
       top: 0;
+
       z-index: 10;
+
     }
+
     .header-left h1 {
+
       margin: 0 0 2px 0;
+
       font-size: 20px;
+
       font-weight: 600;
+
     }
+
     .header-left span {
+
       font-size: 13px;
+
       color: var(--text-muted);
+
     }
+
     .header-controls {
+
       display: flex;
+
       align-items: center;
+
       gap: 20px;
+
     }
+
+
 
     .year-select {
+
       appearance: none;
+
       background: var(--bg-body);
+
       border: 1px solid var(--border);
+
       padding: 6px 28px 6px 12px;
+
       border-radius: 6px;
+
       font-family: inherit;
+
       font-size: 13px;
+
       font-weight: 500;
+
       color: var(--text-main);
+
       cursor: pointer;
+
       outline: none;
+
       background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%236B7280%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
+
       background-repeat: no-repeat;
+
       background-position: right 8px center;
+
     }
+
+
 
     .status-chip {
+
       display: inline-flex;
+
       align-items: center;
+
       gap: 6px;
+
       background: var(--bg-body);
+
       padding: 4px 12px;
+
       border-radius: 12px;
+
       font-size: 12px;
+
       font-weight: 500;
+
       color: var(--text-muted);
+
       border: 1px solid var(--border);
+
     }
+
     .status-dot {
+
       width: 8px;
+
       height: 8px;
+
       border-radius: 50%;
+
       background: var(--text-muted);
+
     }
+
     .status-chip.connected .status-dot { background: var(--ok); }
+
     .status-chip.error .status-dot { background: var(--crit); }
 
+
+
     /* ====== CONTENT ====== */
+
     main {
+
       padding: 32px;
+
       max-width: 1200px;
+
       margin: 0 auto;
+
       width: 100%;
+
       display: flex;
+
       flex-direction: column;
+
       gap: 24px;
+
     }
+
+
 
     /* ====== CARDS GRID ====== */
+
     .kpi-grid {
+
       display: grid;
+
       grid-template-columns: repeat(4, 1fr);
+
       gap: 16px;
+
     }
+
     .card {
+
       background: var(--bg-surface);
+
       border: 1px solid var(--border);
+
       border-radius: var(--radius);
+
       padding: 20px;
+
       box-shadow: var(--shadow-sm);
+
       display: flex;
+
       flex-direction: column;
+
     }
+
     .card-title {
+
       font-size: 12px;
+
       font-weight: 600;
+
       color: var(--text-muted);
+
       text-transform: uppercase;
+
       letter-spacing: 0.5px;
+
       margin: 0 0 8px 0;
+
     }
+
     .card-value {
+
       font-size: 28px;
+
       font-weight: 700;
+
       margin: 0;
+
       line-height: 1.2;
+
     }
+
     .card-value small {
+
       font-size: 14px;
+
       font-weight: 500;
+
       color: var(--text-muted);
+
     }
+
     .card-subtitle {
+
       font-size: 12px;
+
       color: var(--text-faint);
+
       margin: 4px 0 0 0;
+
     }
+
     .val-brand { color: var(--brand); }
+
     .val-warn { color: var(--warn); }
 
+
+
     /* ====== SECTIONS ====== */
+
     .section-card {
+
       background: var(--bg-surface);
+
       border: 1px solid var(--border);
+
       border-radius: var(--radius);
+
       box-shadow: var(--shadow-sm);
+
       overflow: hidden;
+
     }
+
     .section-header {
+
       padding: 20px 24px;
+
       border-bottom: 1px solid var(--border-light);
+
       display: flex;
+
       justify-content: space-between;
+
       align-items: center;
+
       flex-wrap: wrap;
+
       gap: 16px;
+
     }
+
     .section-header h2 {
+
       margin: 0 0 4px 0;
+
       font-size: 16px;
+
       font-weight: 600;
+
     }
+
     .section-header p {
+
       margin: 0;
+
       font-size: 13px;
+
       color: var(--text-muted);
+
     }
+
     
+
     .search-input {
+
       padding: 8px 12px 8px 32px;
+
       border: 1px solid var(--border);
+
       border-radius: 6px;
+
       font-family: inherit;
+
       font-size: 13px;
+
       outline: none;
+
       width: 240px;
+
       background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%239CA3AF%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M15.5%2014h-.79l-.28-.27A6.471%206.471%200%200%200%2016%209.5%206.5%206.5%200%201%200%209.5%2016c1.61%200%203.09-.59%204.23-1.57l.27.28v.79l5%204.99L20.49%2019l-4.99-5zm-6%200C7.01%2014%205%2011.99%205%209.5S7.01%205%209.5%205%2014%207.01%2014%209.5%2011.99%2014%209.5%2014z%22%2F%3E%3C%2Fsvg%3E") no-repeat 10px center;
+
     }
+
+
 
     /* ====== TABLES ====== */
+
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
     thead th {
+
       text-align: left;
+
       font-weight: 500;
+
       color: var(--text-muted);
+
       font-size: 12px;
+
       padding: 12px 24px;
+
       border-bottom: 1px solid var(--border-light);
+
       background: #FAFAFA;
+
     }
+
     tbody td {
+
       padding: 14px 24px;
+
       border-bottom: 1px solid var(--border-light);
+
       vertical-align: middle;
+
     }
+
     tbody tr:last-child td { border-bottom: none; }
+
     tbody tr:hover { background: #FAFAFA; }
+
     
+
     .usina-nome { font-weight: 600; display: block; margin-bottom: 2px;}
+
     .usina-op { font-size: 11.5px; color: var(--text-faint); }
+
     .num-col { font-variant-numeric: tabular-nums; }
+
     .action-link { color: var(--brand); text-decoration: none; font-weight: 500; cursor: pointer; }
+
     .action-link:hover { text-decoration: underline; }
 
+
+
     /* ====== RISK TAGS ====== */
+
     .risk-tag {
+
       display: inline-flex;
+
       align-items: center;
+
       gap: 6px;
+
       font-weight: 500;
+
     }
+
     .risk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--ok)); }
 
+
+
     /* ====== 2 COLUMN BOTTOM ====== */
+
     .bottom-grid {
+
       display: grid;
+
       grid-template-columns: 1fr 2fr;
+
       gap: 24px;
+
     }
+
+
 
     /* ====== SITUAÇÃO OPERACIONAL ====== */
+
     .op-status-list {
+
       padding: 24px;
+
       display: flex;
+
       flex-direction: column;
+
       gap: 16px;
+
     }
+
     .op-row {
+
       display: flex;
+
       align-items: center;
+
       justify-content: space-between;
+
       font-size: 13px;
+
       font-weight: 500;
+
     }
+
     .op-label { display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+
     .op-val { font-variant-numeric: tabular-nums; }
 
+
+
     /* ====== IMPACTO MUNICIPAL ====== */
+
     .muni-list-container {
+
       padding: 0 24px 24px;
+
     }
+
     .muni-row {
+
       display: grid;
+
       grid-template-columns: 120px 1fr 100px;
+
       align-items: center;
+
       gap: 16px;
+
       padding: 14px 0;
+
       border-bottom: 1px solid var(--border-light);
+
       font-size: 13px;
+
     }
+
     .muni-row:last-child { border-bottom: none; }
+
     .muni-name { font-weight: 500; }
+
     .muni-track { height: 8px; background: var(--bg-body); border-radius: 4px; overflow: hidden; }
+
     .muni-fill { height: 100%; background: var(--brand); border-radius: 4px; transition: width 0.4s ease; }
+
     .muni-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
 
+
+
     /* ====== FOOTER ====== */
+
     footer {
+
       padding: 24px 32px;
+
       font-size: 12px;
+
       color: var(--text-faint);
+
       display: flex;
+
       justify-content: space-between;
+
       border-top: 1px solid var(--border);
+
       background: var(--bg-surface);
+
     }
+
+
 
     /* ====== RESPONSIVE ====== */
+
     @media (max-width: 1024px) {
+
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+
       .bottom-grid { grid-template-columns: 1fr; }
+
     }
+
     @media (max-width: 768px) {
+
       body { flex-direction: column; }
+
       .sidebar { width: 100%; height: auto; flex-direction: row; padding: 0; align-items: center; overflow-x: auto; }
+
       .sidebar-header { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.05); padding: 16px; }
+
       .nav-list { flex-direction: row; padding: 0 16px; }
+
       .nav-item { white-space: nowrap; }
+
       header { flex-direction: column; align-items: flex-start; gap: 16px; }
+
       main { padding: 16px; }
+
       .kpi-grid { grid-template-columns: 1fr; }
+
       .muni-row { grid-template-columns: 90px 1fr 80px; }
+
       thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
+
     }
+
   </style>
+
 </head>
+
 <body>
 
+
+
 <!-- SIDEBAR -->
+
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
   <nav class="nav-list">
-    <a href="#" class="nav-item active">▣ Visão Geral</a>
-    <a href="#" class="nav-item">◫ Usinas</a>
-    <a href="#" class="nav-item">◈ Cortes ONS</a>
-    <a href="#" class="nav-item">☁ Clima</a>
-    <a href="#" class="nav-item">⚠ Risco</a>
-    <a href="#" class="nav-item">$ Impacto VAF</a>
+    <a href="index.html" class="nav-item active">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item">☁ Clima</a>
+    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
   </nav>
 </aside>
 
+
+
 <!-- MAIN CONTENT -->
+
 <div class="main-wrapper">
+
   
+
   <header>
+
     <div class="header-left">
+
       <h1>Visão Geral</h1>
-      <span>Alto Sertão • BA</span>
+
+      <span>Alto Sertão — BA</span>
+
     </div>
+
     <div class="header-controls">
+
       <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
+
         <option value="2026">2026 ▼</option>
+
         <option value="2024">2024 ▼</option>
+
       </select>
+
       <div id="api-status-chip" class="status-chip">
+
         <span class="status-dot"></span>
+
         <span id="api-status-text">Aguardando API...</span>
+
       </div>
+
     </div>
+
   </header>
 
+
+
   <main>
+
     
+
     <!-- 1. KPI CARDS -->
+
     <div class="kpi-grid">
+
       <div class="card">
+
         <h3 class="card-title">Energia Cortada</h3>
+
         <p class="card-value" id="card-energia">0 <small>MWh</small></p>
+
         <p class="card-subtitle" id="label-energia">Em 2026</p>
+
       </div>
+
       <div class="card">
+
         <h3 class="card-title">Perda Bruta</h3>
+
         <p class="card-value val-warn" id="card-receita">R$ 0,0 <small>mi</small></p>
+
         <p class="card-subtitle">Estimada (R$ 150/MWh)</p>
+
       </div>
+
       <div class="card">
+
         <h3 class="card-title">Impacto VAF/ICMS</h3>
+
         <p class="card-value val-brand" id="card-impacto">R$ 0,0 <small>mi</small></p>
+
         <p class="card-subtitle">Estimado nos municípios</p>
+
       </div>
+
       <div class="card">
+
         <h3 class="card-title">Usinas</h3>
+
         <p class="card-value" id="card-usinas-count">0</p>
+
         <p class="card-subtitle">Monitoradas</p>
+
       </div>
+
     </div>
+
+
 
     <!-- 2. MONITORAMENTO DE USINAS -->
+
     <section class="section-card">
+
       <div class="section-header">
+
         <div>
+
           <h2>Monitoramento das Usinas</h2>
+
           <p>Previsão de risco e histórico de perdas</p>
+
         </div>
+
         <input type="text" id="usina-search" class="search-input" placeholder="Buscar usina..." onkeyup="filtrarUsinas()">
+
       </div>
+
       <div style="overflow-x: auto;">
+
         <table>
+
           <thead>
+
             <tr>
+
               <th>Usina</th>
+
               <th>Vento Agora</th>
+
               <th>Pico 24h</th>
+
               <th>Pico 48h</th>
+
               <th>Risco 24h</th>
+
               <th>Perda no Ano</th>
+
               <th>Ação</th>
+
             </tr>
+
           </thead>
+
           <tbody id="usinas-body"></tbody>
+
         </table>
+
       </div>
+
     </section>
+
+
 
     <!-- 3. GRÁFICOS E INDICADORES DE REDE -->
+
     <section class="section-card" id="grafico-section">
+
       <div class="section-header" style="display: flex; justify-content: space-between;">
+
         <div>
+
           <h2>Motivos de Corte (ONS)</h2>
+
           <p>Distribuição do curtailment por classificação técnica (Base: Subestação BAIGT)</p>
+
         </div>
+
         <div style="text-align: right;">
+
           <h2 style="color: var(--crit); margin-bottom: 4px;">0 MW</h2>
+
           <p>Margem de Escoamento (2027-2031)</p>
+
         </div>
+
       </div>
+
       <div style="padding: 24px;">
+
         <div style="display: flex; height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 16px;" id="stacked-bar">
+
           <!-- Barras injetadas via JS -->
+
         </div>
+
         <div style="display: flex; gap: 24px; justify-content: center; font-size: 13px;" id="legendas-motivo">
+
           <!-- Legendas injetadas via JS -->
+
         </div>
+
       </div>
+
     </section>
 
+
+
     <!-- 4. BOTTOM GRID -->
+
     <div class="bottom-grid">
+
       
+
       <!-- Situação Operacional -->
+
       <section class="section-card">
+
         <div class="section-header">
+
           <h2>Situação Operacional</h2>
+
           <p>Níveis de risco atuais</p>
+
         </div>
+
         <div class="op-status-list">
+
           <div class="op-row" style="border-bottom: 1px solid var(--border-light); padding-bottom: 16px; margin-bottom: 4px;">
+
             <span class="op-label" style="font-weight: 600;">Total monitoradas</span>
+
             <span class="op-val" id="op-total">0</span>
+
           </div>
+
           <div class="op-row">
+
             <span class="op-label"><span class="status-dot" style="background: var(--ok)"></span> Baixo</span>
+
             <span class="op-val" id="op-baixo">0</span>
+
           </div>
+
           <div class="op-row">
+
             <span class="op-label"><span class="status-dot" style="background: var(--warn)"></span> Médio</span>
+
             <span class="op-val" id="op-medio">0</span>
+
           </div>
+
           <div class="op-row">
+
             <span class="op-label"><span class="status-dot" style="background: var(--high)"></span> Alto</span>
+
             <span class="op-val" id="op-alto">0</span>
+
           </div>
+
         </div>
+
       </section>
+
+
 
       <!-- Impacto Econômico -->
+
       <section class="section-card">
+
         <div class="section-header">
+
           <div>
+
             <h2>Impacto Econômico por Município</h2>
+
             <p>Estimativa acumulada de VAF/ICMS no ano selecionado</p>
+
           </div>
+
         </div>
+
         <div class="muni-list-container">
+
           <div id="muni-list" style="margin-top: 10px;"></div>
+
         </div>
+
       </section>
 
+
+
     </div>
+
+
 
   </main>
 
+
+
   <footer>
+
     <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
+
     <span>Fontes: INMET · ONS · Sefaz-BA</span>
+
   </footer>
+
+
 
 </div>
 
+
+
 <script>
+
   const API_BASE = 'http://localhost:8080';
 
+
+
   const RISK_COLOR = { BAIXO: 'var(--ok)', MEDIO: 'var(--warn)', ALTO: 'var(--high)', CRITICO: 'var(--crit)' };
+
   const RISK_LABEL = { BAIXO: 'Baixo', MEDIO: 'Médio', ALTO: 'Alto', CRITICO: 'Crítico' };
 
+
+
   function renderUsinas(lista) {
+
     const tbody = document.getElementById('usinas-body');
+
     tbody.innerHTML = '';
+
     
+
     let contBaixo = 0;
+
     let contMedio = 0;
+
     let contAlto = 0;
 
+
+
     lista.forEach(u => {
+
       // Contagem para Situação Operacional
+
       if (u.risco === 'BAIXO') contBaixo++;
+
       else if (u.risco === 'MEDIO') contMedio++;
+
       else if (u.risco === 'ALTO' || u.risco === 'CRITICO') contAlto++;
 
+
+
       const ventoTexto = u.vento || (u.detalhe ? u.detalhe.split('·')[0] : 'N/A');
+
       const vento24 = u.vento24h || 'N/D';
+
       const vento48 = u.vento48h || 'N/D';
+
       const energiaCortada = u.energiaCortada !== undefined ? u.energiaCortada.toLocaleString('pt-BR', {maximumFractionDigits: 1}) + ' MWh' : '0 MWh';
 
+
+
       const tr = document.createElement('tr');
+
       tr.innerHTML = `
+
         <td><span class="usina-nome">${u.nome}</span><span class="usina-op">${u.operador}</span></td>
+
         <td class="num-col" style="color: var(--text-muted);">${ventoTexto}</td>
+
         <td class="num-col" style="font-weight: 500;">${vento24}</td>
+
         <td class="num-col" style="color: var(--text-faint);">${vento48}</td>
+
         <td><span class="risk-tag" style="--dot:${RISK_COLOR[u.risco] || 'var(--text-muted)'}"><span class="risk-dot"></span>${RISK_LABEL[u.risco] || 'N/A'}</span></td>
+
         <td class="num-col" style="color: var(--warn); font-weight: 500;">${energiaCortada}</td>
+
         <td><a class="action-link" onclick="alert('Visão detalhada em desenvolvimento.')">Ver detalhes</a></td>`;
+
       tbody.appendChild(tr);
+
     });
+
     
+
     // Atualiza Totalizadores
+
     document.getElementById('card-usinas-count').textContent = lista.length;
+
     document.getElementById('op-total').textContent = lista.length;
+
     document.getElementById('op-baixo').textContent = contBaixo;
+
     document.getElementById('op-medio').textContent = contMedio;
+
     document.getElementById('op-alto').textContent = contAlto;
 
+
+
     // Reaplica o filtro caso exista texto na busca
+
     filtrarUsinas();
+
   }
+
+
 
   function filtrarUsinas() {
+
     const searchInput = document.getElementById('usina-search');
+
     if (!searchInput) return;
+
     const input = searchInput.value.toLowerCase();
+
     const rows = document.getElementById('usinas-body').getElementsByTagName('tr');
+
     for (let i = 0; i < rows.length; i++) {
+
       const nomeUsina = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+
       if (nomeUsina.includes(input)) {
+
         rows[i].style.display = '';
+
       } else {
+
         rows[i].style.display = 'none';
+
       }
+
     }
+
   }
+
+
 
   function renderMunicipios(lista) {
+
     const muniList = document.getElementById('muni-list');
+
     muniList.innerHTML = '';
+
     lista.forEach(m => {
+
       const pct = Math.min(100, (m.valor / m.max) * 100);
+
       let valorFormatado = '';
+
       if (m.valor >= 1000000) {
+
         valorFormatado = 'R$ ' + (m.valor / 1000000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' mi';
+
       } else {
+
         valorFormatado = 'R$ ' + (m.valor / 1000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' mil';
+
       }
 
+
+
       const row = document.createElement('div');
+
       row.className = 'muni-row';
+
       row.innerHTML = `
+
         <span class="muni-name">${m.nome}</span>
+
         <div class="muni-track"><div class="muni-fill" style="width:${pct}%"></div></div>
+
         <span class="muni-value">${valorFormatado}</span>`;
+
       muniList.appendChild(row);
+
     });
+
   }
+
+
 
   function formatarValor(valor) {
+
     if (valor >= 1000000) {
+
       return { val: (valor / 1000000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}), suf: 'mi' };
+
     } else {
+
       return { val: (valor / 1000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}), suf: 'mil' };
+
     }
+
   }
 
+
+
   function setApiStatus(connected) {
+
     const chip = document.getElementById('api-status-chip');
+
     const text = document.getElementById('api-status-text');
+
     if (connected) {
+
       chip.className = 'status-chip connected';
+
       text.textContent = 'API conectada';
+
     } else {
+
       chip.className = 'status-chip error';
+
       text.textContent = 'Erro de conexão';
+
     }
+
+  }
+
+
+
+  
+  async function fetchWithAuth(url) {
+    const token = localStorage.getItem('jwt_token');
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Erro na API');
+    return await res.json();
   }
 
   async function carregarDadosReais() {
+
+
     const ano = document.getElementById('ano-selector').value;
+
     document.getElementById('label-energia').textContent = `Em ${ano}`;
+
     
+
     const statusText = document.getElementById('api-status-text');
+
     if (statusText.textContent !== 'API conectada') {
+
       statusText.textContent = 'Conectando...';
+
     }
+
+
 
     try {
-      const res = await fetch(`${API_BASE}/api/dashboard/resumo-geral?ano=${ano}`);
-      if (res.ok) {
-        const data = await res.json();
+
+      const data = await fetchWithAuth(`${API_BASE}/api/dashboard/resumo-geral?ano=${ano}`);
+      if (data) {
+
+
 
         if (data.usinas) renderUsinas(data.usinas);
+
         if (data.municipios) renderMunicipios(data.municipios);
 
+
+
         if (data.energiaTotal !== undefined) {
+
           let extraHtml = '';
+
           if (data.taxaDesperdicio) {
+
             extraHtml = `<span style="background: var(--crit); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px; vertical-align: middle;">${data.taxaDesperdicio}% desperdiçado</span>`;
+
           }
-          document.getElementById('card-energia').innerHTML = `${data.energiaTotal.toLocaleString('pt-BR')} <small>MWh</small> ${extraHtml}`;
+
+          let energiaOdometro = data.energiaTotal;
+          const perdaPorSegundo = 0.23; 
+          function renderOdometro() {
+            document.getElementById('card-energia').innerHTML = `<span style="font-variant-numeric: tabular-nums; font-family: 'Courier New', Courier, monospace; font-size: 34px; letter-spacing: -1px; color: var(--crit); text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);">${energiaOdometro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <small>MWh</small> ${extraHtml}`;
+          }
+          renderOdometro();
+          if (window.odometroInterval) clearInterval(window.odometroInterval);
+          window.odometroInterval = setInterval(() => {
+            energiaOdometro += perdaPorSegundo;
+            renderOdometro();
+          }, 1000);
+
         }
+
         if (data.perdaReceitaTotal !== undefined) {
+
           const fmt = formatarValor(data.perdaReceitaTotal);
+
           document.getElementById('card-receita').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
+
         }
+
         if (data.impactoTotal !== undefined) {
+
           const fmt = formatarValor(data.impactoTotal);
+
           document.getElementById('card-impacto').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
+
         }
+
         
+
         // Render stacked bar for Motivos
+
         if (data.motivosCorte && data.energiaTotal > 0) {
+
           const cores = ['#3b82f6', '#f59e0b', '#ef4444'];
+
           let i = 0;
+
           let barHtml = '';
+
           let legHtml = '';
+
           for (const [motivo, valor] of Object.entries(data.motivosCorte)) {
+
             const pct = (valor / data.energiaTotal) * 100;
+
             const cor = cores[i % cores.length];
+
             barHtml += `<div style="width: ${pct}%; background: ${cor};" title="${motivo}: ${pct.toFixed(1)}%"></div>`;
+
             legHtml += `<div style="display: flex; align-items: center; gap: 6px;">
+
                           <span style="width: 10px; height: 10px; border-radius: 50%; background: ${cor};"></span>
+
                           <span style="font-weight: 500;">${motivo}</span>
+
                           <span style="color: var(--text-muted)">${pct.toFixed(1)}%</span>
+
                         </div>`;
+
             i++;
+
           }
+
           document.getElementById('stacked-bar').innerHTML = barHtml;
+
           document.getElementById('legendas-motivo').innerHTML = legHtml;
+
         }
+
+
 
         setApiStatus(true);
+
       } else {
+
         throw new Error('API retornou erro');
+
       }
-    } catch (e) {
+      } catch (e) {
+
       console.warn(e);
+
       setApiStatus(false);
+
     }
+
   }
 
+
+
   // Carrega ao abrir a página
+
   carregarDadosReais();
 
+
+
   // Atualiza automaticamente a cada 10 segundos
+
   setInterval(carregarDadosReais, 10000);
+
 </script>
 
+
+
 </body>
+
 </html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CurtaVento — Impacto VAF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #F4F5F7; --bg-sidebar: #1E2329; --bg-surface: #FFFFFF;
+      --border: #E4E5E7; --border-light: #F0F1F3;
+      --text-main: #1A1D21; --text-muted: #6B7280; --text-faint: #9CA3AF;
+      --text-sidebar: #9CA3AF;
+      --brand: #2563EB; --brand-soft: #DBEAFE;
+      --ok: #10B981; --warn: #F59E0B; --high: #EF4444; --crit: #991B1B;
+      --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg-body); color:var(--text-main); font-family:var(--font); line-height:1.5; display:flex; height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased; }
+
+    /* Sidebar */
+    .sidebar { width:260px; background:var(--bg-sidebar); color:var(--text-sidebar); display:flex; flex-direction:column; flex-shrink:0; }
+    .sidebar-header { padding:24px 20px; font-size:18px; font-weight:700; color:#FFF; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .nav-list { display:flex; flex-direction:column; padding:16px 12px; gap:4px; }
+    .nav-item { padding:10px 16px; border-radius:6px; color:var(--text-sidebar); text-decoration:none; font-size:14px; font-weight:500; display:flex; align-items:center; gap:12px; transition:all .2s; }
+    .nav-item:hover { background:rgba(255,255,255,0.05); color:#FFF; }
+    .nav-item.active { background:var(--brand); color:#FFF; }
+
+    /* Layout */
+    .main-wrapper { flex:1; display:flex; flex-direction:column; overflow-y:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:20px 32px; background:var(--bg-surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+    .header-left h1 { margin:0 0 2px 0; font-size:20px; font-weight:600; }
+    .header-left span { font-size:13px; color:var(--text-muted); }
+    main { padding:32px; max-width:1280px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:24px; }
+
+    /* Metodologia Box */
+    .methodology-box { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:var(--radius); padding:20px; font-size:13px; color:var(--text-muted); }
+    .methodology-box h3 { margin:0 0 12px 0; font-size:14px; color:var(--text-main); }
+    .methodology-box ul { margin:0; padding-left:20px; }
+    .methodology-box li { margin-bottom:6px; }
+    .formula { font-family:monospace; background:#F1F5F9; padding:4px 8px; border-radius:4px; color:#334155; }
+
+    /* KPI Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 20px; display: flex; flex-direction: column; }
+    .card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0 0 12px 0; font-weight: 600; }
+    .card-value { font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; }
+    .card-value small { font-size: 14px; font-weight: 500; color: var(--text-faint); }
+    .card-subtitle { font-size: 12px; color: var(--text-faint); margin: 8px 0 0 0; }
+    
+    .val-warn { color: var(--warn); }
+    .val-brand { color: var(--brand); }
+    .val-ok { color: var(--ok); }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 12px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; background: #FAFAFA; border-bottom: 1px solid var(--border); }
+    td { padding: 16px 24px; font-size: 13px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">CURTAVENTO</div>
+  <nav class="nav-list">
+    <a href="index.html" class="nav-item">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item">☁ Clima</a>
+    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="vaf.html" class="nav-item active">$ Impacto VAF</a>
+  </nav>
+</aside>
+
+<div class="main-wrapper">
+  <header>
+    <div class="header-left">
+      <h1>Impacto Financeiro (VAF e ICMS)</h1>
+      <span>Estimativa de perdas na arrecadação municipal por Curtailment</span>
+    </div>
+  </header>
+  
+  <main>
+    <div class="methodology-box">
+      <h3>Metodologia de Cálculo</h3>
+      <ul>
+        <li><strong>Preço MADI:</strong> Adotado o valor fixo de <span class="formula">R$ 150,00 / MWh</span> conforme histórico de liquidação na CCEE para a fonte eólica no submercado NE.</li>
+        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (MWh) × Preço MADI</span>.</li>
+        <li><strong>ICMS (Estado):</strong> Alíquota média de <span class="formula">18%</span> sobre a Receita Bruta Perdida.</li>
+        <li><strong>Impacto VAF (Município):</strong> <span class="formula">25%</span> da perda de ICMS retorna ao município via cota-parte do VAF (Valor Adicionado Fiscal).</li>
+      </ul>
+      <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--high);">* Os valores apresentados são uma simulação educacional e não representam laudo fiscal oficial.</p>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="card">
+        <h3 class="card-title">Receita Bruta Perdida</h3>
+        <p class="card-value val-warn" id="kpi-receita">R$ 0,00</p>
+        <p class="card-subtitle">Perda total faturamento (Usinas)</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Perda de ICMS (18%)</h3>
+        <p class="card-value val-brand" id="kpi-icms">R$ 0,00</p>
+        <p class="card-subtitle">Perda total de arrecadação (Estado)</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Impacto VAF Municipal (25%)</h3>
+        <p class="card-value val-ok" id="kpi-vaf">R$ 0,00</p>
+        <p class="card-subtitle">Deixou de retornar aos municípios</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <table>
+        <thead>
+          <tr>
+            <th>Município (Alto Sertão BA)</th>
+            <th class="num-col">Energia Cortada (MWh)</th>
+            <th class="num-col">Receita Perdida</th>
+            <th class="num-col">Impacto VAF (Municipal)</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-vaf">
+          <!-- Injetado via JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  async function fetchWithAuth(url) {
+    const token = localStorage.getItem('jwt_token');
+    
+    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
+    
+    if (!res.ok) throw new Error('Erro na API');
+    return await res.json();
+  }
+
+  function formatMoney(value) {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  async function init() {
+    const data = await fetchWithAuth('/api/impacto-vaf');
+    if (!data) return;
+
+    let totalReceita = 0;
+    let totalIcms = 0;
+    let totalVaf = 0;
+
+    const tbody = document.getElementById('tabela-vaf');
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+      totalReceita += item.faturamentoPerdidoRs;
+      totalIcms += item.icmsNaoGeradoRs;
+      totalVaf += item.arrecadacaoPerdidaVafRs;
+
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${item.municipio}</strong></td>
+          <td class="num-col">${item.energiaCortadaMwh.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
+          <td class="num-col val-warn">${formatMoney(item.faturamentoPerdidoRs)}</td>
+          <td class="num-col" style="color:var(--ok); font-weight:600;">${formatMoney(item.arrecadacaoPerdidaVafRs)}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById('kpi-receita').innerHTML = formatMoney(totalReceita);
+    document.getElementById('kpi-icms').innerHTML = formatMoney(totalIcms);
+    document.getElementById('kpi-vaf').innerHTML = formatMoney(totalVaf);
+  }
+
+  init();
+</script>
+</body>
+</html>

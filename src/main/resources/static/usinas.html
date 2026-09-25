@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CurtaVento — Usinas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #F4F5F7; --bg-sidebar: #1E2329; --bg-surface: #FFFFFF;
+      --border: #E4E5E7; --border-light: #F0F1F3;
+      --text-main: #1A1D21; --text-muted: #6B7280; --text-faint: #9CA3AF;
+      --text-sidebar: #9CA3AF;
+      --brand: #2563EB; --brand-soft: #DBEAFE;
+      --ok: #10B981; --warn: #F59E0B; --high: #EF4444; --crit: #991B1B;
+      --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg-body); color:var(--text-main); font-family:var(--font); line-height:1.5; display:flex; height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased; }
+
+    /* Sidebar */
+    .sidebar { width:260px; background:var(--bg-sidebar); color:var(--text-sidebar); display:flex; flex-direction:column; flex-shrink:0; }
+    .sidebar-header { padding:24px 20px; font-size:18px; font-weight:700; color:#FFF; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .nav-list { display:flex; flex-direction:column; padding:16px 12px; gap:4px; }
+    .nav-item { padding:10px 16px; border-radius:6px; color:var(--text-sidebar); text-decoration:none; font-size:14px; font-weight:500; display:flex; align-items:center; gap:12px; transition:all .2s; }
+    .nav-item:hover { background:rgba(255,255,255,0.05); color:#FFF; }
+    .nav-item.active { background:var(--brand); color:#FFF; }
+
+    /* Layout */
+    .main-wrapper { flex:1; display:flex; flex-direction:column; overflow-y:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:20px 32px; background:var(--bg-surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+    .header-left h1 { margin:0 0 2px 0; font-size:20px; font-weight:600; }
+    .header-left span { font-size:13px; color:var(--text-muted); }
+    main { padding:32px; max-width:1280px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:24px; }
+    footer { padding:24px 32px; font-size:12px; color:var(--text-faint); display:flex; justify-content:space-between; border-top:1px solid var(--border); background:var(--bg-surface); }
+
+    /* Usinas Grid */
+    .usinas-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(350px, 1fr)); gap:24px; }
+    .usina-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:24px; display:flex; flex-direction:column; gap:16px; transition: transform 0.2s; }
+    .usina-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    
+    .u-header h3 { margin:0 0 4px 0; font-size:16px; font-weight:600; }
+    .u-header p { margin:0; font-size:13px; color:var(--text-muted); }
+    
+    .u-details { display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border-light); padding-bottom:16px; }
+    .u-row { display:flex; justify-content:space-between; }
+    .u-row strong { color:var(--text-main); font-weight:500; }
+    
+    .u-stats { display:flex; flex-direction:column; gap:12px; padding-top:4px; font-size:13px; color:var(--text-muted); }
+    .u-stat-row { display:flex; justify-content:space-between; align-items:center; }
+    
+    .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+    .val-crit { color:var(--crit); font-weight:600; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">CURTAVENTO</div>
+  <nav class="nav-list">
+    <a href="index.html" class="nav-item">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item active">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item">☁ Clima</a>
+    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
+  </nav>
+</aside>
+
+<div class="main-wrapper">
+  <header>
+    <div class="header-left">
+      <h1>Gestão de Usinas</h1>
+      <span>Cadastro e Status dos Ativos</span>
+    </div>
+  </header>
+  
+  <main>
+    <div class="usinas-grid" id="usinas-grid">
+      <!-- Injetado via JS -->
+    </div>
+  </main>
+
+  <footer>
+    <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
+    <span>Fontes: INMET • ONS • Sefaz-BA</span>
+  </footer>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  const RISK_COLOR = {
+    'BAIXO': 'var(--ok)',
+    'MEDIO': 'var(--warn)',
+    'ALTO': 'var(--high)',
+    'CRITICO': 'var(--crit)'
+  };
+
+  async function fetchWithAuth(url) {
+    const token = localStorage.getItem('jwt_token');
+    
+    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
+    
+    if (!res.ok) throw new Error('Erro na API');
+    return await res.json();
+  }
+
+  async function init() {
+    // Reutiliza a rota do dashboard que já traz tudo
+    const data = await fetchWithAuth('/api/dashboard/resumo-geral?ano=2026');
+    if (data && data.usinas) {
+      const grid = document.getElementById('usinas-grid');
+      data.usinas.forEach(u => {
+        const omHtml = u.risco === 'ALTO' || u.risco === 'CRITICO' 
+            ? '<strong style="color:var(--warn)">ALERTA ⚠</strong>' 
+            : '<strong style="color:var(--ok)">LIBERADO ✔</strong>';
+            
+        const color = RISK_COLOR[u.risco] || 'var(--text-muted)';
+        
+        let dataStr = 'N/I';
+        if(u.dataInicio) {
+          const parts = u.dataInicio.split('-');
+          if(parts.length === 3) dataStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        grid.innerHTML += `
+          <div class="usina-card">
+            <div class="u-header">
+              <h3>${u.nome}</h3>
+              <p>${u.detalhe ? u.detalhe.split('•')[0].trim() : 'N/I'}</p>
+            </div>
+            
+            <div class="u-details">
+              <div class="u-row"><span>Capacidade:</span> <strong>${u.capacidade} MW</strong></div>
+              <div class="u-row"><span>Município:</span> <strong>${u.municipio}</strong></div>
+              <div class="u-row"><span>Início de Operação:</span> <strong>${dataStr}</strong></div>
+            </div>
+            
+            <div class="u-stats">
+              <div class="u-stat-row">
+                <span>Risco Atual:</span>
+                <strong style="color:${color}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
+              </div>
+              <div class="u-stat-row">
+                <span>Janela O&M:</span>
+                ${omHtml}
+              </div>
+              <div class="u-stat-row">
+                <span>Energia Cortada (2026):</span>
+                <strong class="val-crit">${u.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/", "/index.html", "/*.html", "/*.css", "/*.js").permitAll()
                         // ---> NOVO: Liberta a leitura do Dashboard para o HTML <---
-                        .requestMatchers(HttpMethod.GET, "/api/dashboard/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
                         // Qualquer outra rota exige autenticação JWT
                         .anyRequest().authenticated()
                 )

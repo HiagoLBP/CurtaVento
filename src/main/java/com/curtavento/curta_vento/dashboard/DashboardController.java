@@ -56,11 +56,18 @@ public class DashboardController {
             Map<String, Object> dto = new HashMap<>();
             dto.put("nome", u.getNome());
             dto.put("operador", u.getOperador());
+            dto.put("capacidade", u.getCapacidadeInstaladaMw());
+            dto.put("latitude", u.getLatitude());
+            dto.put("longitude", u.getLongitude());
+            dto.put("municipio", u.getMunicipio() != null ? u.getMunicipio().getNome() : "N/D");
+            dto.put("dataInicio", u.getDataInicioOperacao());
 
+            String riscoBase = "BAIXO";
             List<PrevisaoRisco> previsoes = riscoService.buscarPorUsina(u.getId());
             if (!previsoes.isEmpty()) {
                 PrevisaoRisco ultima = previsoes.get(previsoes.size() - 1);
-                dto.put("risco", ultima.getNivelRisco());
+                riscoBase = ultima.getNivelRisco().name();
+                dto.put("risco", riscoBase);
                 dto.put("corte", ultima.getPercentualCorteEstimado() + "%");
             } else {
                 dto.put("risco", "BAIXO");
@@ -69,13 +76,38 @@ public class DashboardController {
 
             LeituraClimatica ultimaLeitura = leituraService.buscarUltimaLeitura(u.getId());
             if (ultimaLeitura != null) {
-                dto.put("vento", ultimaLeitura.getVelocidadeVentoMs() != null ? ultimaLeitura.getVelocidadeVentoMs() + " m/s" : "N/D");
-                dto.put("vento24h", ultimaLeitura.getVentoPrevisao24hMs() != null ? ultimaLeitura.getVentoPrevisao24hMs() + " m/s" : "N/D");
-                dto.put("vento48h", ultimaLeitura.getVentoPrevisao48hMs() != null ? ultimaLeitura.getVentoPrevisao48hMs() + " m/s" : "N/D");
+                java.math.BigDecimal ventoBd = ultimaLeitura.getVelocidadeVentoMs();
+                Double ventoMs = ventoBd != null ? ventoBd.doubleValue() : null;
+                Double v24h = ultimaLeitura.getVentoPrevisao24hMs() != null ? ultimaLeitura.getVentoPrevisao24hMs().doubleValue() : null;
+                Double v48h = ultimaLeitura.getVentoPrevisao48hMs() != null ? ultimaLeitura.getVentoPrevisao48hMs().doubleValue() : null;
+
+                dto.put("vento", ventoMs != null ? ventoMs + " m/s" : "N/D");
+                dto.put("vento24h", v24h != null ? v24h + " m/s" : "N/D");
+                dto.put("vento48h", v48h != null ? v48h + " m/s" : "N/D");
+                
+                dto.put("riscoAtual", calcularRiscoVisual(riscoBase, ventoMs));
+                dto.put("risco24h", calcularRiscoVisual(riscoBase, v24h));
+                dto.put("risco48h", calcularRiscoVisual(riscoBase, v48h));
+
+                if (ventoMs != null) {
+                    if (ventoMs <= 10.0) {
+                        dto.put("janelaManutencao", "LIBERADO ✅");
+                    } else if (ventoMs <= 15.0) {
+                        dto.put("janelaManutencao", "ALERTA ⚠️");
+                    } else {
+                        dto.put("janelaManutencao", "BLOQUEADO ❌");
+                    }
+                } else {
+                    dto.put("janelaManutencao", "N/D");
+                }
             } else {
                 dto.put("vento", "N/D");
                 dto.put("vento24h", "N/D");
                 dto.put("vento48h", "N/D");
+                dto.put("riscoAtual", "N/D");
+                dto.put("risco24h", "N/D");
+                dto.put("risco48h", "N/D");
+                dto.put("janelaManutencao", "N/D");
             }
 
             java.time.LocalDateTime inicioAno = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
@@ -147,5 +179,13 @@ public class DashboardController {
         resposta.put("motivosCorte", motivos);
 
         return ResponseEntity.ok(resposta);
+    }
+
+    private String calcularRiscoVisual(String riscoBase, Double vento) {
+        if (vento == null) return riscoBase;
+        if (vento >= 10.0) return "CRITICO";
+        if (vento >= 7.0) return "ALTO";
+        if (vento >= 4.0 && !"BAIXO".equals(riscoBase)) return "MEDIO";
+        return "BAIXO";
     }
 }

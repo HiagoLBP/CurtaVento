@@ -44,6 +44,7 @@ public class IngestaoDadosClimaticosJob {
             BigDecimal vento24h = null;
             BigDecimal vento48h = null;
             BigDecimal tempAtual = null;
+            BigDecimal direcaoVento = null;
             String fonte = null;
 
             try {
@@ -52,6 +53,7 @@ public class IngestaoDadosClimaticosJob {
                 vento24h = dadosOpenMeteo.get("vento_24h");
                 vento48h = dadosOpenMeteo.get("vento_48h");
                 tempAtual = dadosOpenMeteo.get("temperatura");
+                direcaoVento = dadosOpenMeteo.get("direcao_vento");
                 fonte = "Open-Meteo (Atual e Prev 48h)";
             } catch (Exception ex) {
                 logger.error("Falha no Open-Meteo para a usina ID {}. Buscando no cache. Erro: {}", usina.getId(), ex.getMessage());
@@ -81,6 +83,7 @@ public class IngestaoDadosClimaticosJob {
             leitura.setVentoPrevisao24hMs(vento24h);
             leitura.setVentoPrevisao48hMs(vento48h);
             leitura.setTemperaturaC(tempAtual != null ? tempAtual : BigDecimal.ZERO);
+            leitura.setDirecaoVentoGraus(direcaoVento);
             leitura.setFonte(fonte);
             leitura.setDataHora(LocalDateTime.now());
 
@@ -96,7 +99,7 @@ public class IngestaoDadosClimaticosJob {
         }
 
         // Busca o 'current' e a 'hourly' para 2 dias
-        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_80m&hourly=wind_speed_80m&wind_speed_unit=ms&forecast_days=2",
+        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_80m,wind_direction_80m&hourly=wind_speed_80m&wind_speed_unit=ms&forecast_days=2",
                 usina.getLatitude(), usina.getLongitude());
 
         Map<?, ?> response = restTemplate.getForObject(url, Map.class);
@@ -106,9 +109,11 @@ public class IngestaoDadosClimaticosJob {
             
             Object currentWindObj = current.get("wind_speed_80m");
             Object currentTempObj = current.get("temperature_2m");
+            Object currentDirObj = current.get("wind_direction_80m");
             
             BigDecimal ventoAtual = currentWindObj != null ? new BigDecimal(currentWindObj.toString()) : BigDecimal.ZERO;
             BigDecimal tempAtual = currentTempObj != null ? new BigDecimal(currentTempObj.toString()) : BigDecimal.ZERO;
+            BigDecimal direcaoVento = currentDirObj != null ? new BigDecimal(currentDirObj.toString()) : null;
             
             List<?> windList = (List<?>) hourly.get("wind_speed_80m");
             
@@ -139,6 +144,7 @@ public class IngestaoDadosClimaticosJob {
             result.put("vento_24h", max24h);
             result.put("vento_48h", max48h);
             result.put("temperatura", tempAtual);
+            result.put("direcao_vento", direcaoVento);
             return result;
         }
         throw new RuntimeException("Dados do Open-Meteo inválidos ou lista horária vazia.");

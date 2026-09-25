@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CurtaVento — Clima</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-body: #F4F5F7; --bg-sidebar: #1E2329; --bg-surface: #FFFFFF;
+      --border: #E4E5E7; --border-light: #F0F1F3;
+      --text-main: #1A1D21; --text-muted: #6B7280; --text-faint: #9CA3AF;
+      --text-sidebar: #9CA3AF;
+      --brand: #2563EB; --brand-soft: #DBEAFE;
+      --ok: #10B981; --warn: #F59E0B; --high: #EF4444; --crit: #991B1B;
+      --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg-body); color:var(--text-main); font-family:var(--font); line-height:1.5; display:flex; height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased; }
+
+    /* Sidebar */
+    .sidebar { width:260px; background:var(--bg-sidebar); color:var(--text-sidebar); display:flex; flex-direction:column; flex-shrink:0; }
+    .sidebar-header { padding:24px 20px; font-size:18px; font-weight:700; color:#FFF; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .nav-list { display:flex; flex-direction:column; padding:16px 12px; gap:4px; }
+    .nav-item { padding:10px 16px; border-radius:6px; color:var(--text-sidebar); text-decoration:none; font-size:14px; font-weight:500; display:flex; align-items:center; gap:12px; transition:all .2s; }
+    .nav-item:hover { background:rgba(255,255,255,0.05); color:#FFF; }
+    .nav-item.active { background:var(--brand); color:#FFF; }
+
+    /* Layout */
+    .main-wrapper { flex:1; display:flex; flex-direction:column; overflow-y:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:20px 32px; background:var(--bg-surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+    .header-left h1 { margin:0 0 2px 0; font-size:20px; font-weight:600; }
+    .header-left span { font-size:13px; color:var(--text-muted); }
+    main { padding:32px; max-width:1280px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:24px; }
+    footer { padding:24px 32px; font-size:12px; color:var(--text-faint); display:flex; justify-content:space-between; border-top:1px solid var(--border); background:var(--bg-surface); }
+
+    /* Cards */
+    .card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:24px; }
+    .card h2 { margin:0 0 16px 0; font-size:16px; font-weight:600; }
+
+    /* Station Grid */
+    .station-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+    .station-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:20px; display:flex; flex-direction:column; gap:14px; }
+    .station-header { display:flex; justify-content:space-between; align-items:flex-start; }
+    .station-header h3 { margin:0; font-size:15px; font-weight:600; }
+    .station-header small { font-size:11px; color:var(--text-faint); }
+
+    .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; gap:4px; }
+    .badge.alerta { background:#FEF3C7; color:#B45309; }
+    .badge.liberado { background:#D1FAE5; color:#065F46; }
+
+    .metrics-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .metric { display:flex; flex-direction:column; }
+    .metric-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .metric-value { font-size:16px; font-weight:600; }
+    .metric-value.temp { color:var(--warn); }
+    .metric-value.wind { color:var(--brand); }
+
+    .compass-row { display:flex; align-items:center; gap:8px; margin-top:8px; padding-top:12px; border-top:1px solid var(--border-light); }
+    .compass-icon { width:24px; height:24px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--brand); font-size:12px; }
+    .compass-text { font-size:13px; font-weight:500; }
+    .compass-sub { font-size:11px; color:var(--text-muted); }
+
+    /* Charts Row */
+    .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+
+    /* Matrix */
+    .matrix-list { display:flex; flex-direction:column; gap:8px; }
+    .matrix-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#FAFAFA; border:1px solid var(--border-light); border-radius:6px; font-size:14px; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">CURTAVENTO</div>
+  <nav class="nav-list">
+    <a href="index.html" class="nav-item">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item active">☁ Clima</a>
+    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
+  </nav>
+</aside>
+
+<div class="main-wrapper">
+  <header>
+    <div class="header-left">
+      <h1>Monitoramento Climático</h1>
+      <span>Estações meteorológicas em tempo real — Open-Meteo API</span>
+    </div>
+  </header>
+  
+  <main>
+    <div class="station-grid" id="station-grid">
+      <!-- Injetado via JS -->
+    </div>
+
+    <div class="charts-row">
+      <div class="card">
+        <h2>Curva de Previsão de Rajadas (m/s)</h2>
+        <div style="height:320px;"><canvas id="rajadasChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Rosa dos Ventos (Predominância)</h2>
+        <div style="height:320px; display:flex; justify-content:center;"><canvas id="rosaChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Matriz de Alertas de O&M</h2>
+      <div class="matrix-list" id="matrix-list">
+        <!-- Injetado via JS -->
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
+    <span>Fontes: Open-Meteo • INMET • ONS</span>
+  </footer>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  async function fetchWithAuth(url) {
+    const token = localStorage.getItem('jwt_token');
+    
+    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
+    
+    if (!res.ok) throw new Error('Erro na API');
+    return await res.json();
+  }
+
+  function direcaoTexto(graus) {
+    if (graus == null) return 'N/D';
+    if (graus >= 337.5 || graus < 22.5) return 'N';
+    if (graus >= 22.5 && graus < 67.5) return 'NE';
+    if (graus >= 67.5 && graus < 112.5) return 'E';
+    if (graus >= 112.5 && graus < 157.5) return 'SE';
+    if (graus >= 157.5 && graus < 202.5) return 'S';
+    if (graus >= 202.5 && graus < 247.5) return 'SW';
+    if (graus >= 247.5 && graus < 292.5) return 'W';
+    if (graus >= 292.5 && graus < 337.5) return 'NW';
+    return 'N/D';
+  }
+
+  async function init() {
+    const estacoes = await fetchWithAuth('/api/clima/estacoes');
+    if (estacoes) {
+      const grid = document.getElementById('station-grid');
+      const matrix = document.getElementById('matrix-list');
+      
+      estacoes.forEach(e => {
+        const temp = e.temperaturaC != null ? e.temperaturaC.toFixed(1) + '°C' : 'N/D';
+        const vento = e.ventoAtual != null ? e.ventoAtual.toFixed(1) : 'N/D';
+        const v24 = e.vento24h != null ? e.vento24h.toFixed(1) : '—';
+        const v48 = e.vento48h != null ? e.vento48h.toFixed(1) : '—';
+        const graus = e.direcaoGraus;
+        const dirTexto = direcaoTexto(graus);
+        
+        let statusBadge = '<span class="badge liberado">✔ LIBERADO</span>';
+        let matrixBadge = '<span class="badge liberado">Liberado p/ O&M</span>';
+        if (e.ventoAtual > 10.0) {
+          statusBadge = '<span class="badge alerta">⚠ ALERTA</span>';
+          matrixBadge = '<span class="badge alerta">Atenção Redobrada</span>';
+        }
+
+        grid.innerHTML += `
+          <div class="station-card">
+            <div class="station-header">
+              <div>
+                <h3>${e.usina}</h3>
+                <small>${e.operadorUsina || 'N/I'}</small>
+              </div>
+              ${statusBadge}
+            </div>
+            
+            <div class="metrics-row">
+              <div class="metric">
+                <span class="metric-label">Temperatura</span>
+                <span class="metric-value temp">${temp}</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Vento Atual</span>
+                <span class="metric-value wind">${vento} m/s</span>
+              </div>
+            </div>
+            
+            <div class="metrics-row">
+              <div class="metric">
+                <span class="metric-label">Previsão 24h</span>
+                <span class="metric-value">${v24} m/s</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Previsão 48h</span>
+                <span class="metric-value">${v48} m/s</span>
+              </div>
+            </div>
+            
+            <div class="compass-row">
+              <div class="compass-icon" style="transform: rotate(${graus || 0}deg);">➤</div>
+              <div>
+                <div class="compass-text">${dirTexto} • ${graus || 0}°</div>
+                <div class="compass-sub">Direção do vento</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        matrix.innerHTML += `
+          <div class="matrix-item">
+            <div>
+              <strong>⚠ ${e.usina}</strong> • Vento: ${vento} m/s
+            </div>
+            ${matrixBadge}
+          </div>
+        `;
+      });
+    }
+
+    const rajadas = await fetchWithAuth('/api/clima/previsao-rajadas');
+      if (rajadas && Array.isArray(rajadas)) {
+        new Chart(document.getElementById('rajadasChart'), {
+          type: 'bar',
+          data: {
+            labels: rajadas.map(r => r.usina),
+            datasets: [
+              { label: 'Hoje', data: rajadas.map(r => r.atual), backgroundColor: '#3b82f6' },
+              { label: 'Amanhã', data: rajadas.map(r => r.prev24h), backgroundColor: '#f59e0b' },
+              { label: 'Depois', data: rajadas.map(r => r.prev48h), backgroundColor: '#ef4444' }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    const rosa = await fetchWithAuth('/api/clima/rosa-ventos');
+    if (rosa) {
+      new Chart(document.getElementById('rosaChart'), {
+        type: 'polarArea',
+        data: {
+          labels: rosa.direcoes,
+          datasets: [{
+            data: rosa.intensidades,
+            backgroundColor: [
+              'rgba(59,130,246,0.6)', 'rgba(16,185,129,0.6)', 'rgba(245,158,11,0.6)', 'rgba(239,68,68,0.6)',
+              'rgba(139,92,246,0.6)', 'rgba(236,72,153,0.6)', 'rgba(6,182,212,0.6)', 'rgba(107,114,128,0.6)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CurtaVento — Cortes ONS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-body: #F4F5F7; --bg-sidebar: #1E2329; --bg-surface: #FFFFFF;
+      --border: #E4E5E7; --border-light: #F0F1F3;
+      --text-main: #1A1D21; --text-muted: #6B7280; --text-faint: #9CA3AF;
+      --text-sidebar: #9CA3AF;
+      --brand: #2563EB;
+      --ok: #10B981; --warn: #F59E0B; --high: #EF4444; --crit: #991B1B;
+      --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg-body); color:var(--text-main); font-family:var(--font); line-height:1.5; display:flex; height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased; }
+
+    /* Sidebar */
+    .sidebar { width:260px; background:var(--bg-sidebar); color:var(--text-sidebar); display:flex; flex-direction:column; flex-shrink:0; }
+    .sidebar-header { padding:24px 20px; font-size:18px; font-weight:700; color:#FFF; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .nav-list { display:flex; flex-direction:column; padding:16px 12px; gap:4px; }
+    .nav-item { padding:10px 16px; border-radius:6px; color:var(--text-sidebar); text-decoration:none; font-size:14px; font-weight:500; display:flex; align-items:center; gap:12px; transition:all .2s; }
+    .nav-item:hover { background:rgba(255,255,255,0.05); color:#FFF; }
+    .nav-item.active { background:var(--brand); color:#FFF; }
+
+    /* Layout */
+    .main-wrapper { flex:1; display:flex; flex-direction:column; overflow-y:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:20px 32px; background:var(--bg-surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10; }
+    .header-left h1 { margin:0 0 2px 0; font-size:20px; font-weight:600; }
+    .header-left span { font-size:13px; color:var(--text-muted); }
+    main { padding:32px; max-width:1280px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:24px; }
+
+    /* Cards & Grids */
+    .dashboard-grid { display:grid; grid-template-columns:2fr 1fr; gap:24px; }
+    .card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:24px; display:flex; flex-direction:column; }
+    .card h2 { margin:0 0 16px 0; font-size:16px; font-weight:600; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 12px 16px; border-bottom: 2px solid var(--border-light); background: #FAFAFA; text-transform: uppercase; font-size:11px; }
+    tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+    
+    .ranking-list { display:flex; flex-direction:column; gap:12px; }
+    .ranking-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#FAFAFA; border:1px solid var(--border-light); border-radius:6px; }
+    .ranking-item strong { font-size:14px; }
+    .ranking-item .value { font-weight:600; color:var(--crit); }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">CURTAVENTO</div>
+  <nav class="nav-list">
+    <a href="index.html" class="nav-item">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item active">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item">☁ Clima</a>
+    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
+  </nav>
+</aside>
+
+<div class="main-wrapper">
+  <header>
+    <div class="header-left">
+      <h1>Análise de Curtailment ONS</h1>
+      <span>Histórico, Evolução e Auditoria de Cortes</span>
+    </div>
+  </header>
+  
+  <main>
+    <div class="dashboard-grid">
+      <div class="card">
+        <h2>Evolução Anual (Volume Cortado MWh)</h2>
+        <div style="height:300px;"><canvas id="linhaChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Distribuição por Motivo</h2>
+        <div style="height:300px; display:flex; justify-content:center;"><canvas id="motivoChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h2>Ranking: Top Usinas Afetadas</h2>
+        <div class="ranking-list" id="ranking-list">
+          <!-- Injetado via JS -->
+        </div>
+      </div>
+      
+      <div class="card" style="overflow-x: auto;">
+        <h2>Auditoria Bruta (Últimas 100 inserções)</h2>
+        <div style="max-height: 400px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Data/Hora</th>
+                <th>Usina</th>
+                <th>Duração</th>
+                <th>Cortado</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table">
+              <!-- Injetado via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8080';
+
+  async function fetchWithAuth(url) {
+    const token = localStorage.getItem('jwt_token');
+    
+    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
+    
+    if (!res.ok) throw new Error('Erro na API');
+    return await res.json();
+  }
+
+  async function init() {
+    const [evolucao, motivos, rankingUsinas, ultimosCortes] = await Promise.all([
+        fetchWithAuth('/api/cortes-ons/evolucao'),
+        fetchWithAuth('/api/cortes-ons/motivos'),
+        fetchWithAuth('/api/cortes-ons/ranking'),
+        fetchWithAuth('/api/cortes-ons/auditoria')
+      ]);
+      if (!evolucao || !motivos || !rankingUsinas || !ultimosCortes) return;
+      
+      const data = {
+        evolucaoMeses: evolucao.map(e => e.mes),
+        evolucaoValores: evolucao.map(e => e.total),
+        motivosLabels: motivos.map(m => m.motivo),
+        motivosValores: motivos.map(m => m.valor),
+        rankingUsinas: rankingUsinas,
+        ultimosCortes: ultimosCortes
+      };
+
+    // Chart Linha
+    new Chart(document.getElementById('linhaChart'), {
+      type: 'line',
+      data: {
+        labels: data.evolucaoMeses,
+        datasets: [{
+          label: 'MWh Cortado',
+          data: data.evolucaoValores,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Chart Pizza
+    new Chart(document.getElementById('motivoChart'), {
+      type: 'doughnut',
+      data: {
+        labels: data.motivosLabels,
+        datasets: [{
+          data: data.motivosValores,
+          backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Ranking
+    const rankingDiv = document.getElementById('ranking-list');
+    data.rankingUsinas.forEach((u, i) => {
+      rankingDiv.innerHTML += `
+        <div class="ranking-item">
+          <div>
+            <strong>${i+1}. ${u.usina}</strong>
+          </div>
+          <div class="value">${u.totalCortadoMwh.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</div>
+        </div>
+      `;
+    });
+
+    // Auditoria
+    const tbody = document.getElementById('audit-table');
+    data.ultimosCortes.forEach(c => {
+      const duracao = (c.duracaoMinutos / 60).toFixed(1);
+      tbody.innerHTML += `
+        <tr>
+          <td style="white-space:nowrap">${c.dataHora}</td>
+          <td><strong>${c.usina}</strong></td>
+          <td>${duracao}h</td>
+          <td style="color:var(--crit); font-weight:600;">${c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
+        </tr>
+      `;
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>
