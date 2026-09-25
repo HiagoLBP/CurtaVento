@@ -63,7 +63,7 @@ public class Usuario implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // O prefixo "ROLE_" é obrigatório aqui para o Spring Security abrir a porta
-        return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.perfil));
     }
 
     @Override
