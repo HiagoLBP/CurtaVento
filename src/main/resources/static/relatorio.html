@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Curtailment - CurtaVento</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1E2329;
+      background: white;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 2px solid #0061FF;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #0061FF;
+      margin: 0 0 10px 0;
+      font-size: 28px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header h2 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      color: #6B7280;
+      font-weight: 500;
+    }
+    .header p {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #4B5563;
+    }
+    .info-table, .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      font-size: 13px;
+    }
+    .info-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #E4E5E7;
+    }
+    .info-table td:first-child {
+      font-weight: bold;
+      width: 30%;
+      background-color: #F9FAFB;
+    }
+    .summary-box {
+      border: 1px solid #E4E5E7;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 30px;
+      background-color: #F9FAFB;
+      border-radius: 4px;
+    }
+    .summary-box h3 {
+      margin: 0 0 10px 0;
+      color: #1E2329;
+      font-size: 16px;
+    }
+    .summary-box .value {
+      font-size: 28px;
+      color: #D93025;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .summary-box .sub-value {
+      font-size: 13px;
+      color: #6B7280;
+    }
+    .motivos-grid {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      border-top: 1px solid #E4E5E7;
+      padding-top: 15px;
+    }
+    .motivo-item {
+      text-align: center;
+      width: 30%;
+    }
+    .motivo-item h4 {
+      margin: 0 0 5px 0;
+      font-size: 16px;
+      color: #1E2329;
+    }
+    .motivo-item p {
+      margin: 0;
+      font-size: 12px;
+      color: #6B7280;
+    }
+    h3.section-title {
+      font-size: 18px;
+      color: #0061FF;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #E4E5E7;
+      padding-bottom: 5px;
+    }
+    .data-table th, .data-table td {
+      padding: 8px 10px;
+      border: 1px solid #E4E5E7;
+      text-align: left;
+    }
+    .data-table th {
+      background-color: #1E2329;
+      color: white;
+      font-weight: 500;
+    }
+    .data-table tr:nth-child(even) {
+      background-color: #F9FAFB;
+    }
+    .data-table td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .footer {
+      margin-top: 50px;
+      font-size: 10px;
+      color: #9CA3AF;
+      text-align: center;
+      border-top: 1px solid #E4E5E7;
+      padding-top: 10px;
+    }
+    
+    @media print {
+      body { margin: 0; }
+      .container { padding: 0; max-width: 100%; }
+      .no-print { display: none; }
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 100px;
+      font-size: 18px;
+      color: #6B7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="background: #0061FF; color: white; padding: 10px; text-align: center; margin-bottom: 20px;">
+    <button onclick="window.print()" style="padding: 8px 16px; background: white; color: #0061FF; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">Imprimir PDF</button>
+  </div>
+
+  <div id="loading" class="loading">Gerando relatório... aguarde.</div>
+
+  <div class="container" id="report-content" style="display: none;">
+    <div class="header">
+      <h1>CURTAVENTO</h1>
+      <h2>RELATÓRIO TÉCNICO INDEPENDENTE - CURTAILMENT</h2>
+      <p id="header-desc">Bahia · Eólica · Estado Completo</p>
+    </div>
+
+    <table class="info-table">
+      <tr>
+        <td>Documento (controle)</td>
+        <td>RTI-CURTAVENTO-BAHIA-<span id="ano-doc"></span></td>
+      </tr>
+      <tr>
+        <td>Emissor</td>
+        <td>Sistema CurtaVento</td>
+      </tr>
+      <tr>
+        <td>Escopo</td>
+        <td>Usinas Eólicas do Estado da Bahia</td>
+      </tr>
+      <tr>
+        <td>Janela apurada (cálculo)</td>
+        <td>01/01/<span id="ano-inicio"></span> a 31/12/<span id="ano-fim"></span></td>
+      </tr>
+      <tr>
+        <td>Geração / as-of</td>
+        <td id="data-geracao"></td>
+      </tr>
+    </table>
+
+    <h3 class="section-title">1. Sumário Executivo</h3>
+    <div class="summary-box">
+      <h3>Apuração Conjunta - Perda de Receita (Estimada)</h3>
+      <div class="value" id="total-rs">R$ 0,00</div>
+      <div class="sub-value" id="total-mwh">0 MWh · Total restringido no período</div>
+      
+      <div class="motivos-grid">
+        <div class="motivo-item">
+          <h4 id="mwh-rel">0 MWh</h4>
+          <p>REL — Indisponibilidade Ext. (33%)</p>
+        </div>
+        <div class="motivo-item">
+          <h4 id="mwh-cnf">0 MWh</h4>
+          <p>CNF — Confiabilidade (12%)</p>
+        </div>
+        <div class="motivo-item">
+          <h4 id="mwh-ene">0 MWh</h4>
+          <p>ENE — Sobreoferta (55%)</p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 13px; text-align: justify; color: #4B5563; margin-bottom: 40px;">
+      O número técnico deste relatório corresponde à apuração agregada do conjunto de usinas do escopo selecionado, valorada pelo preço médio da energia (R$ 200,00/MWh). A divisão por motivo de corte (REL, CNF, ENE) é uma projeção macroeconômica baseada no padrão de operação do subsistema Nordeste. A compensação financeira oficial aos agentes submete-se às regras de comercialização da CCEE e regulamentação da ANEEL (Lei 15.269/2025).
+    </p>
+
+    <h3 class="section-title">2. Usinas Integrantes (Top Curtailment)</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Usina</th>
+          <th>Operador</th>
+          <th class="num">Capac. (MW)</th>
+          <th class="num">Corte (MWh)</th>
+          <th class="num">Perda (R$)</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-usinas">
+        <!-- Renderizado via JS -->
+      </tbody>
+    </table>
+
+    <div class="footer">
+      Documento técnico independente fundamentado em dados agregados do sistema CurtaVento. Base ONS/CCEE.<br>
+      Gerado em <span id="footer-data"></span>
+    </div>
+  </div>
+
+  <script>
+    function formatMoney(value) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value);
+    }
+
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return str;
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    async function carregarRelatorio() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ano = urlParams.get('ano') || '2026';
+      
+      document.getElementById('ano-doc').textContent = ano;
+      document.getElementById('ano-inicio').textContent = ano;
+      document.getElementById('ano-fim').textContent = ano;
+      
+      const dataAtual = new Date().toLocaleString('pt-BR');
+      document.getElementById('data-geracao').textContent = dataAtual;
+      document.getElementById('footer-data').textContent = dataAtual;
+
+      try {
+        const token = localStorage.getItem('jwt_token');
+        const res = await fetch(`/api/dashboard/resumo-geral?ano=${ano}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            window.location.href = '/login.html';
+            return;
+          }
+          throw new Error('Erro ao buscar dados.');
+        }
+
+        const data = await res.json();
+        
+        document.getElementById('total-rs').textContent = formatMoney(data.perdaReceitaTotal);
+        document.getElementById('total-mwh').textContent = formatNumber(data.energiaTotal) + " MWh · Total restringido no período";
+        
+        if(data.motivosCorte) {
+          document.getElementById('mwh-rel').textContent = formatNumber(data.motivosCorte['REL (Rede Local - Estimado)']) + " MWh";
+          document.getElementById('mwh-cnf').textContent = formatNumber(data.motivosCorte['CNF (Confiabilidade - Estimado)']) + " MWh";
+          document.getElementById('mwh-ene').textContent = formatNumber(data.motivosCorte['ENE (Energética)']) + " MWh";
+        }
+
+        const tbody = document.getElementById('tabela-usinas');
+        tbody.innerHTML = '';
+        
+        // Renderizar top 50 usinas para caber no relatório
+        const usinasRender = data.usinas.slice(0, 50);
+        
+        usinasRender.forEach((u, index) => {
+          if(u.energiaCortada > 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${index + 1}</td>
+              <td>${escapeHTML(u.nome)}</td>
+              <td>${escapeHTML(u.operador || 'N/D')}</td>
+              <td class="num">${formatNumber(u.capacidade)}</td>
+              <td class="num">${formatNumber(u.energiaCortada)}</td>
+              <td class="num">${formatMoney(u.prejuizoFinanceiro)}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        });
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('report-content').style.display = 'block';
+
+        // Auto print para simular geração imediata de PDF
+        setTimeout(() => {
+          window.print();
+        }, 500);
+
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Erro ao gerar o relatório. Verifique sua conexão.';
+        console.error(err);
+      }
+    }
+
+    carregarRelatorio();
+  </script>
+</body>
+</html>

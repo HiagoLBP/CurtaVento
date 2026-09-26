@@ -771,7 +771,8 @@
     </div>
 
     <div class="header-controls" style="display: flex; gap: 12px; align-items: center;">
-        <button onclick="exportarCSV()" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">Exportar CSV</button>
+        <button onclick="exportarCSV()" style="padding: 6px 12px; background: #0061FF; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📥 Exportar CSV</button>
+        <button onclick="gerarRelatorio()" style="padding: 6px 12px; background: #1E2329; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📄 Gerar Relatório</button>
         <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
           <option value="2026">2026 ▼</option>
           <option value="2023">2023 ▼</option>
@@ -1511,7 +1512,12 @@
       link.click();
       document.body.removeChild(link);
     }
-</script>
+
+    function gerarRelatorio() {
+      const ano = document.getElementById('ano-selector').value;
+      window.open(`relatorio.html?ano=${ano}`, '_blank');
+    }
+  </script>
 </body>
 
 </html>
