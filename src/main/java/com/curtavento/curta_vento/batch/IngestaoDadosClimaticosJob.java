@@ -45,6 +45,10 @@ public class IngestaoDadosClimaticosJob {
         logger.info("JOB ATIVO: Buscando PREVISÃO climática (próximas 48h) no Open-Meteo...");
 
         List<Usina> usinas = usinaRepository.findAll();
+        
+        // CACHE GEOGRÁFICO: Reduz as chamadas da API de 381 para ~10 chamadas (usinas na mesma latitude/longitude não chamam a API novamente)
+        Map<String, Map<String, BigDecimal>> cacheCoordenadas = new HashMap<>();
+        
         for (Usina usina : usinas) {
             BigDecimal ventoAtual = null;
             BigDecimal vento24h = null;
@@ -54,17 +58,26 @@ public class IngestaoDadosClimaticosJob {
             String fonte = null;
 
                         Map<String, BigDecimal> dadosOpenMeteo = null;
-            int tentativas = 0;
-            while(tentativas < 3) {
-                try {
-                    dadosOpenMeteo = fetchOpenMeteoForecast(usina);
-                    break;
-                } catch (Exception ex) {
-                    tentativas++;
-                    if(tentativas >= 3) {
-                        logger.error("Falha no Open-Meteo para a usina ID " + usina.getId() + ". Buscando no cache. Erro: " + ex.getMessage());
-                    } else {
-                        try { Thread.sleep(2000); } catch(InterruptedException ie) {}
+            String coordKey = usina.getLatitude() + "," + usina.getLongitude();
+            
+            if (cacheCoordenadas.containsKey(coordKey)) {
+                dadosOpenMeteo = cacheCoordenadas.get(coordKey);
+            } else {
+                int tentativas = 0;
+                while(tentativas < 3) {
+                    try {
+                        dadosOpenMeteo = fetchOpenMeteoForecast(usina);
+                        cacheCoordenadas.put(coordKey, dadosOpenMeteo);
+                        // Pausa gentil para não bater no rate-limit (apenas quando vai realmente chamar a API)
+                        try { Thread.sleep(200); } catch(InterruptedException ie) {}
+                        break;
+                    } catch (Exception ex) {
+                        tentativas++;
+                        if(tentativas >= 3) {
+                            logger.error("Falha no Open-Meteo para usina ID " + usina.getId() + ". Erro: " + ex.getMessage());
+                        } else {
+                            try { Thread.sleep(2000); } catch(InterruptedException ie) {}
+                        }
                     }
                 }
             }

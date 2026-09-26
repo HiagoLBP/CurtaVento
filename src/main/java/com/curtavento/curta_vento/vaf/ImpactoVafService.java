@@ -22,7 +22,7 @@ public class ImpactoVafService {
     private final HistoricoCorteOnsRepository corteRepository;
 
     // Preço médio do MWh (R$ 150,00) conforme regra do projeto
-    private static final BigDecimal PRECO_MEDIO_MWH = new BigDecimal("200.00");
+    
 
     public ImpactoVafService(ImpactoVafRepository impactoRepository, MunicipioRepository municipioRepository,
                              UsinaRepository usinaRepository, HistoricoCorteOnsRepository corteRepository) {
@@ -56,7 +56,7 @@ public class ImpactoVafService {
         }
 
         // 1. Perda de Receita Bruta
-        BigDecimal perdaReceita = energiaTotalCortada.multiply(PRECO_MEDIO_MWH);
+        BigDecimal perdaReceita = energiaTotalCortada.multiply(BigDecimal.valueOf(com.curtavento.curta_vento.util.PrecoEnergia.PRECO_MWH));
 
         // 2. O Impacto final (que vai pra tela)
         BigDecimal ipmMunicipio = municipio.getVafAnoBase() != null ? municipio.getVafAnoBase() : new BigDecimal("0.02"); // Fallback para 2% caso nulo no banco

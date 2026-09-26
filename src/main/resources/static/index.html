@@ -1043,6 +1043,19 @@
 
 
 <script>
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return str;
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
 
   const API_BASE = '';
 
@@ -1103,8 +1116,8 @@
 
       tr.innerHTML = `
         <td>
-          <div style="font-weight: 500;">${u.nome}</div>
-          <div style="font-size: 12px; color: var(--text-muted);">${u.operador}</div>
+          <div style="font-weight: 500;">${escapeHTML(u.nome)}</div>
+          <div style="font-size: 12px; color: var(--text-muted);">${escapeHTML(u.operador)}</div>
         </td>
         <td style="font-variant-numeric: tabular-nums;">${u.vento}</td>
         <td style="font-weight: 500;">${u.vento24h}</td>
@@ -1463,6 +1476,19 @@
 
 
 <script>
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return str;
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
     function exportarCSV() {
       const rows = document.querySelectorAll("table tr");
       if (rows.length === 0) {

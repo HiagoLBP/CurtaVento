@@ -109,6 +109,19 @@
 </div>
 
 <script>
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return str;
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
   const API_BASE = '';
 
   const RISK_COLOR = {
@@ -185,7 +198,7 @@
         grid.innerHTML += `
           <div class="usina-card">
             <div class="u-header">
-              <h3>${u.nome}</h3>
+              <h3>${escapeHTML(u.nome)}</h3>
               <p>${u.operador || 'N/I'}</p>
             </div>
             

@@ -18,7 +18,7 @@ public class ImpactoMunicipalController {
     private final HistoricoCorteOnsRepository repository;
 
     // Premissas contábeis simuladas para a região da Bahia
-    private static final double PRECO_MADI_MWH = 200.00; // Preço médio de liquidação R$/MWh
+     // Preço médio de liquidação R$/MWh
     private static final double ALIQUOTA_ICMS = 0.18; // 18% ICMS
     private static final double REPASSE_MUNICIPIO = 0.25; // 25% do ICMS vai para os municípios via VAF
 
@@ -42,7 +42,7 @@ public class ImpactoMunicipalController {
             if (totalCortado == null) totalCortado = BigDecimal.ZERO;
             
             double mwh = totalCortado.doubleValue();
-            double faturamentoBrutoPerdido = mwh * PRECO_MADI_MWH;
+            double faturamentoBrutoPerdido = mwh * com.curtavento.curta_vento.util.PrecoEnergia.PRECO_MWH;
             double totalIcmsNaoGerado = faturamentoBrutoPerdido * ALIQUOTA_ICMS;
             double arrecadacaoMunicipalPerdida = totalIcmsNaoGerado * REPASSE_MUNICIPIO; // Dinheiro que a prefeitura perde
 
