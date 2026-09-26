@@ -1,123 +1,67 @@
--1. Inserir municípios faltantes (usando uma subquery para evitar duplicação)
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Morro do Chapéu', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Morro do Chapéu' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Sobradinho', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Sobradinho' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Tucano', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Tucano' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Gentio do Ouro', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Gentio do Ouro' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Campo Formoso', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Campo Formoso' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Pindaí', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Pindaí' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Licínio de Almeida', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Licínio de Almeida' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Urandi', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Urandi' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Brumado', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Brumado' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Uibaí', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Uibaí' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Caetité', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Caetité' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Canudos', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Canudos' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Mulungu do Morro', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Mulungu do Morro' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Boninal', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Boninal' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Umburanas', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Umburanas' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Souto Soares', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Souto Soares' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Xique', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Xique' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Bonito', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Bonito' AND estado = 'BA');
-
+-- 1. Inserir municipios faltantes (usando uma subquery para evitar duplicacao)
 INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Araci', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Araci' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Guanambi', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Guanambi' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Igaporã', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Igaporã' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Casa Nova', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Casa Nova' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Riacho de Santana', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Riacho de Santana' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Ourolândia', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Ourolândia' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Sento Sé', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Sento Sé' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Novo Horizonte', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Novo Horizonte' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Biritinga', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Biritinga' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Várzea Nova', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Várzea Nova' AND estado = 'BA');
+SELECT 'Boninal', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Boninal' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Bonito', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Bonito' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Brotas de Macaúbas', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Brotas de Macaúbas' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Brumado', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Brumado' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Caetité', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Caetité' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Cafarnaum', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Cafarnaum' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Campo Formoso', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Campo Formoso' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Canudos', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Canudos' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Casa Nova', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Casa Nova' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Gentio do Ouro', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Gentio do Ouro' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Guanambi', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Guanambi' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Ibipeba', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Ibipeba' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Ibitiara', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Ibitiara' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Igaporã', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Igaporã' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Iraquara', 'BA', 0.001
@@ -128,23 +72,78 @@ SELECT 'Itaguaçu da Bahia', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Itaguaçu da Bahia' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Cafarnaum', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Cafarnaum' AND estado = 'BA');
-
-INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Jacaraci', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Jacaraci' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Licínio de Almeida', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Licínio de Almeida' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Morro do Chapéu', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Morro do Chapéu' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Mulungu do Morro', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Mulungu do Morro' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Novo Horizonte', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Novo Horizonte' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Ourolândia', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Ourolândia' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Pindaí', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Pindaí' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Riacho de Santana', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Riacho de Santana' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Sento Sé', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Sento Sé' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Sobradinho', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Sobradinho' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Souto Soares', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Souto Soares' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
 SELECT 'Tanque Novo', 'BA', 0.001
 WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Tanque Novo' AND estado = 'BA');
 
 INSERT INTO municipio (nome, estado, indice_vaf)
-SELECT 'Ibitiara', 'BA', 0.001
-WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Ibitiara' AND estado = 'BA');
+SELECT 'Tucano', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Tucano' AND estado = 'BA');
 
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Uibaí', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Uibaí' AND estado = 'BA');
 
--- 2. Inserir usinas referenciando o municipio_id
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Umburanas', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Umburanas' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Urandi', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Urandi' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Várzea Nova', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Várzea Nova' AND estado = 'BA');
+
+INSERT INTO municipio (nome, estado, indice_vaf)
+SELECT 'Xique', 'BA', 0.001
+WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Xique' AND estado = 'BA');
+
+-- 2. Inserir as usinas com subquery para pegar o ID do municipio correto
 INSERT INTO usina (nome, municipio_id, capacidade_instalada_mw, latitude, longitude, operador)
 SELECT 'Macaúbas', id, 35.07, -12.35119149, -42.33852459, 'MACAUBAS ENERGETICA SA'
 FROM municipio WHERE nome = 'Brotas de Macaúbas' AND estado = 'BA' LIMIT 1;
@@ -1668,4 +1667,3 @@ FROM municipio WHERE nome = 'Gentio do Ouro' AND estado = 'BA' LIMIT 1;
 INSERT INTO usina (nome, municipio_id, capacidade_instalada_mw, latitude, longitude, operador)
 SELECT 'Assuruá 5 VI', id, 34.8, -11.02376103, -42.58903056, 'MANAUS AMBIENTAL S.A.'
 FROM municipio WHERE nome = 'Gentio do Ouro' AND estado = 'BA' LIMIT 1;
-
