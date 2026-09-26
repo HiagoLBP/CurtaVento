@@ -48,10 +48,20 @@ public class DashboardController {
     }
 
     @GetMapping("/resumo-geral")
-    public ResponseEntity<Map<String, Object>> getResumoGeral(@RequestParam(defaultValue = "2026", required = false) int ano) {
+    public ResponseEntity<Map<String, Object>> getResumoGeral(@RequestParam(defaultValue = "2026", required = false) int ano, @RequestParam(defaultValue = "1000", required = false) int limite) {
 
         // 1. Usinas e Riscos (Sempre mostra a previsão para as próximas 24h, independente do ano do histórico)
+        
+        List<Object[]> rankingCortes = corteRepository.findRankingCortesAno(ano);
+        Map<String, Double> cortesMap = new HashMap<>();
+        for (Object[] row : rankingCortes) {
+            String uName = (String) row[0];
+            java.math.BigDecimal val = (java.math.BigDecimal) row[1];
+            cortesMap.put(uName, val != null ? val.doubleValue() : 0.0);
+        }
+
         List<Map<String, Object>> usinasDTO = new ArrayList<>();
+
         for (Usina u : usinaService.listarTodas()) {
             Map<String, Object> dto = new HashMap<>();
             dto.put("nome", u.getNome());
@@ -110,17 +120,20 @@ public class DashboardController {
                 dto.put("janelaManutencao", "N/D");
             }
 
-            java.time.LocalDateTime inicioAno = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
-            java.time.LocalDateTime fimAno = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
-            List<com.curtavento.curta_vento.corte.HistoricoCorteOns> cortes = corteRepository.findByUsinaIdAndDataCorteBetween(u.getId(), inicioAno, fimAno);
-            double somaCortesUsina = cortes.stream()
-                .filter(c -> c.getEnergiaCortadaMwh() != null)
-                .mapToDouble(c -> c.getEnergiaCortadaMwh().doubleValue())
-                .sum();
+            double somaCortesUsina = cortesMap.getOrDefault(u.getNome(), 0.0);
             
             dto.put("energiaCortada", somaCortesUsina);
+            dto.put("prejuizoFinanceiro", somaCortesUsina * 200.0);
 
             usinasDTO.add(dto);
+        }
+
+        
+        
+        // Ordena por maior prejuizo e aplica o limite
+        usinasDTO.sort((a, b) -> Double.compare((Double) b.get("prejuizoFinanceiro"), (Double) a.get("prejuizoFinanceiro")));
+        if (limite < usinasDTO.size()) {
+            usinasDTO = usinasDTO.subList(0, limite);
         }
 
         // 2. Municípios e Totais do VAF baseados no ANO selecionado no Dropdown
@@ -129,37 +142,25 @@ public class DashboardController {
         double somaImpactoTotal = 0.0;
         double somaPerdaReceitaTotal = 0.0;
 
-        for (Municipio m : municipioService.listarTodos()) {
+        List<Object[]> impactosMun = corteRepository.findImpactoPorMunicipio(ano);
+        for (Object[] linha : impactosMun) {
+            String nome = (String) linha[0];
+            java.math.BigDecimal totalCortado = (java.math.BigDecimal) linha[2];
+            double mwh = totalCortado != null ? totalCortado.doubleValue() : 0.0;
+            
+            double perdaReceitaReal = mwh * 200.0;
+            double impactoReal = perdaReceitaReal * 0.18 * 0.25; // 18% ICMS, 25% repasse VAF
+            
             Map<String, Object> dto = new HashMap<>();
-            dto.put("nome", m.getNome());
-
-            // AQUI ESTÁ A MÁGICA: O banco de dados agora filtra pelo ano selecionado no HTML
-            List<ImpactoVaf> impactos = impactoRepository.findByMunicipioIdAndAnoReferencia(m.getId(), ano);
-
-            if (impactos != null && !impactos.isEmpty()) {
-                ImpactoVaf imp = impactos.get(impactos.size() - 1);
-                // Extrai os valores 100% reais direto do banco de dados (sem fator de demonstração)
-                double impactoReal = imp.getImpactoVafEstimado() != null ? imp.getImpactoVafEstimado().doubleValue() : 0.0;
-                double energiaReal = imp.getEnergiaTotalCortadaMwh() != null ? imp.getEnergiaTotalCortadaMwh().doubleValue() : 0.0;
-                double perdaReceitaReal = imp.getPerdaReceitaEstimada() != null ? imp.getPerdaReceitaEstimada().doubleValue() : 0.0;
-
-                // O frontend agora cuida da formatação (milhões ou milhares)
-                double valorVafMilhoes = impactoReal;
-
-                dto.put("valor", valorVafMilhoes);
-                dto.put("max", 50000000.0); // Ajustei o teto visual para 50 milhões
-                dto.put("trend", "Calculado");
-
-                somaEnergiaTotal += energiaReal;
-                somaImpactoTotal += valorVafMilhoes;
-                somaPerdaReceitaTotal += perdaReceitaReal;
-            } else {
-                double valorVafBase = m.getVafAnoBase() != null ? m.getVafAnoBase().doubleValue() : 0.0;
-                dto.put("valor", valorVafBase);
-                dto.put("max", 50000000.0);
-                dto.put("trend", "Pendente");
-            }
-
+            dto.put("nome", nome);
+            dto.put("valor", impactoReal);
+            dto.put("max", 50000000.0);
+            dto.put("trend", "Calculado");
+            
+            somaEnergiaTotal += mwh;
+            somaImpactoTotal += impactoReal;
+            somaPerdaReceitaTotal += perdaReceitaReal;
+            
             municipiosDTO.add(dto);
         }
 

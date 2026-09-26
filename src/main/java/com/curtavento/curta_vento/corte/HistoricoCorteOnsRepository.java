@@ -24,6 +24,6 @@ public interface HistoricoCorteOnsRepository extends JpaRepository<HistoricoCort
     @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM historico_corte_ons ORDER BY data_corte DESC LIMIT 100", nativeQuery = true)
     List<HistoricoCorteOns> findUltimosCortes();
 
-    @org.springframework.data.jpa.repository.Query("SELECT c.usina.municipio.nome, COUNT(DISTINCT c.usina.id), SUM(c.energiaCortadaMwh) FROM HistoricoCorteOns c GROUP BY c.usina.municipio.nome ORDER BY SUM(c.energiaCortadaMwh) DESC")
-    List<Object[]> findImpactoPorMunicipio();
+    @org.springframework.data.jpa.repository.Query("SELECT c.usina.municipio.nome, COUNT(DISTINCT c.usina.id), SUM(c.energiaCortadaMwh) FROM HistoricoCorteOns c WHERE YEAR(c.dataCorte) = :ano GROUP BY c.usina.municipio.nome ORDER BY SUM(c.energiaCortadaMwh) DESC")
+    List<Object[]> findImpactoPorMunicipio(@org.springframework.data.repository.query.Param("ano") int ano);
 }

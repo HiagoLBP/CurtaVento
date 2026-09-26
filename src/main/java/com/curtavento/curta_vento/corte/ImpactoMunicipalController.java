@@ -18,7 +18,7 @@ public class ImpactoMunicipalController {
     private final HistoricoCorteOnsRepository repository;
 
     // Premissas contábeis simuladas para a região da Bahia
-    private static final double PRECO_MADI_MWH = 150.00; // Preço médio de liquidação R$/MWh
+    private static final double PRECO_MADI_MWH = 200.00; // Preço médio de liquidação R$/MWh
     private static final double ALIQUOTA_ICMS = 0.18; // 18% ICMS
     private static final double REPASSE_MUNICIPIO = 0.25; // 25% do ICMS vai para os municípios via VAF
 
@@ -27,8 +27,8 @@ public class ImpactoMunicipalController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getImpactoPorMunicipio() {
-        List<Object[]> resultados = repository.findImpactoPorMunicipio();
+    public ResponseEntity<List<Map<String, Object>>> getImpactoPorMunicipio(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "2026", required = false) int ano) {
+        List<Object[]> resultados = repository.findImpactoPorMunicipio(ano);
         List<Map<String, Object>> impactos = new ArrayList<>();
 
         for (Object[] linha : resultados) {

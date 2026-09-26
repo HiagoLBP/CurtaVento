@@ -150,7 +150,8 @@
   }
 
   async function init() {
-    const data = await fetchWithAuth('/api/impacto-vaf');
+    const ano = document.getElementById('ano-selector') ? document.getElementById('ano-selector').value : 2026;
+    const data = await fetchWithAuth('/api/impacto-vaf?ano=' + ano);
     if (!data) return;
 
     let totalReceita = 0;

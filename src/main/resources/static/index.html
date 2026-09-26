@@ -774,7 +774,7 @@
 
         <option value="2026">2026 ▼</option>
 
-        <option value="2024">2024 ▼</option>
+        <option value="2023">2023 ▼</option>
 
       </select>
 
@@ -1078,49 +1078,46 @@
 
 
 
+    
     lista.forEach(u => {
-
       // Contagem para Situação Operacional
-
       if (u.risco === 'BAIXO') contBaixo++;
-
       else if (u.risco === 'MEDIO') contMedio++;
-
       else if (u.risco === 'ALTO' || u.risco === 'CRITICO') contAlto++;
 
-
-
-      const ventoTexto = u.vento || (u.detalhe ? u.detalhe.split('·')[0] : 'N/A');
-
-      const vento24 = u.vento24h || 'N/D';
-
-      const vento48 = u.vento48h || 'N/D';
-
-      const energiaCortada = u.energiaCortada !== undefined ? (u.energiaCortada / 1000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' GWh' : '0 GWh';
-
-
-
       const tr = document.createElement('tr');
+      const perdaGwh = (u.energiaCortada / 1000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
+      const riscoClass = u.risco ? u.risco.toLowerCase() : 'baixo';
+      const riscoLabel = RISK_LABEL[u.risco] || 'Baixo';
+      
+      const pR$ = (u.prejuizoFinanceiro || 0);
+      const preFormatado = pR$ > 1000000 ? 
+          'R$ ' + (pR$/1000000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' mi' : 
+          'R$ ' + (pR$/1000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' mil';
+          
+      const statusVaf = pR$ > 1000000 ? '<span style="color:var(--crit); font-weight:bold;">Crítico</span>' : 
+                        pR$ > 100000 ? '<span style="color:var(--high); font-weight:bold;">Atenção</span>' : 
+                        '<span style="color:var(--ok);">Normal</span>';
 
       tr.innerHTML = `
-
-        <td><span class="usina-nome">${u.nome}</span><span class="usina-op">${u.operador}</span></td>
-
-        <td class="num-col" style="color: var(--text-muted);">${ventoTexto}</td>
-
-        <td class="num-col" style="font-weight: 500;">${vento24}</td>
-
-        <td class="num-col" style="color: var(--text-faint);">${vento48}</td>
-
-        <td><span class="risk-tag" style="--dot:${RISK_COLOR[u.risco] || 'var(--text-muted)'}"><span class="risk-dot"></span>${RISK_LABEL[u.risco] || 'N/A'}</span></td>
-
-        <td class="num-col" style="color: var(--warn); font-weight: 500;">${energiaCortada}</td>
-
-        <td><a class="action-link" onclick="alert('Visão detalhada em desenvolvimento.')">Ver detalhes</a></td>`;
-
+        <td>
+          <div style="font-weight: 500;">${u.nome}</div>
+          <div style="font-size: 12px; color: var(--text-muted);">${u.operador}</div>
+        </td>
+        <td style="font-variant-numeric: tabular-nums;">${u.vento}</td>
+        <td style="font-weight: 500;">${u.vento24h}</td>
+        <td style="color: var(--text-muted);">${u.vento48h}</td>
+        <td>
+          <span class="risk-badge risk-${riscoClass}"></span> ${riscoLabel}
+        </td>
+        <td style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
+        <td style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
+        <td>${statusVaf}</td>
+        <td><a href="#" style="color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 500;">Ver detalhes</a></td>
+      `;
       tbody.appendChild(tr);
-
     });
+
 
     
 
@@ -1289,7 +1286,7 @@
 
     try {
 
-      const data = await fetchWithAuth(`${API_BASE}/api/dashboard/resumo-geral?ano=${ano}`);
+      const data = await fetchWithAuth(`${API_BASE}/api/dashboard/resumo-geral?ano=${ano}&limite=15`);
       if (data) {
 
 
