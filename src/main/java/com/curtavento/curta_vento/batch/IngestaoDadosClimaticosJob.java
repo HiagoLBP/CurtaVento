@@ -75,6 +75,8 @@ public class IngestaoDadosClimaticosJob {
                         tentativas++;
                         if(tentativas >= 3) {
                             logger.error("Falha no Open-Meteo para usina ID " + usina.getId() + ". Erro: " + ex.getMessage());
+                            // Salva um cache vazio para não metralhar a API de novo nessa mesma coordenada quebrada (Ex: Erro 429)
+                            cacheCoordenadas.put(coordKey, null);
                         } else {
                             try { Thread.sleep(2000); } catch(InterruptedException ie) {}
                         }
@@ -98,6 +100,7 @@ public class IngestaoDadosClimaticosJob {
                     vento24h = ultima.getVentoPrevisao24hMs();
                     vento48h = ultima.getVentoPrevisao48hMs();
                     tempAtual = ultima.getTemperaturaC();
+                    direcaoVento = ultima.getDirecaoVentoGraus(); // Correção: restaurando a direção
                     fonte = "CACHE_ANTIGO";
                 } else {
                     logger.error("Nenhuma leitura anterior encontrada para usina ID {}. Usando valores zerados.", usina.getId());
