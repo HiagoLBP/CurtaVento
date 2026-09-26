@@ -58,7 +58,7 @@ public class IngestaoDadosClimaticosJob {
             String fonte = null;
 
                         Map<String, BigDecimal> dadosOpenMeteo = null;
-            String coordKey = usina.getLatitude() + "," + usina.getLongitude();
+            String coordKey = String.format(java.util.Locale.US, "%.1f,%.1f", usina.getLatitude(), usina.getLongitude());
             
             if (cacheCoordenadas.containsKey(coordKey)) {
                 dadosOpenMeteo = cacheCoordenadas.get(coordKey);
