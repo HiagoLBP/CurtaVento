@@ -1123,7 +1123,7 @@
         <td style="font-weight: 500;">${u.vento24h}</td>
         <td style="color: var(--text-muted);">${u.vento48h}</td>
         <td>
-          <span class="risk-badge risk-${riscoClass}" title="${u.fatorRisco}"></span> <span title="${u.fatorRisco}">${riscoLabel}</span>
+          <span class="risk-badge risk-${riscoClass}" title="${escapeHTML(u.fatorRisco)}"></span> <span title="${escapeHTML(u.fatorRisco)}">${riscoLabel}</span>
         </td>
         <td style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
         <td style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
@@ -1218,7 +1218,7 @@
 
       row.innerHTML = `
 
-        <span class="muni-name">${m.nome}</span>
+        <span class="muni-name">${escapeHTML(m.nome)}</span>
 
         <div class="muni-track"><div class="muni-fill" style="width:${pct}%"></div></div>
 

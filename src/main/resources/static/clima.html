@@ -212,8 +212,8 @@
           <div class="station-card">
             <div class="station-header">
               <div>
-                <h3>${e.usina}</h3>
-                <small>${e.operador || 'N/I'}</small>
+                <h3>${escapeHTML(e.usina)}</h3>
+                <small>${escapeHTML(e.operador) || '$1'}</small>
               </div>
               ${statusBadge}
             </div>
@@ -253,7 +253,7 @@
         matrix.innerHTML += `
           <div class="matrix-item">
             <div>
-              <strong>⚠ ${e.usina}</strong> • Vento: ${vento} m/s
+              <strong>⚠ ${escapeHTML(e.usina)}</strong> • Vento: ${vento} m/s
             </div>
             ${matrixBadge}
           </div>

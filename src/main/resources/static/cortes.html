@@ -354,7 +354,7 @@
         rankingDiv.innerHTML += `
           <div class="ranking-item">
             <div>
-              <strong>${i+1}. ${u.usina}</strong>
+              <strong>${i+1}. ${escapeHTML(u.usina)}</strong>
             </div>
             <div class="value">${fmtGWh(u.totalCortadoMwh)} GWh</div>
           </div>
@@ -368,7 +368,7 @@
         tbody.innerHTML += `
           <tr>
             <td style="white-space:nowrap">${c.dataHora}</td>
-            <td><strong>${c.usina}</strong></td>
+            <td><strong>${escapeHTML(c.usina)}</strong></td>
             <td>${duracao}h</td>
             <td style="color:var(--crit); font-weight:600;">${c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
           </tr>

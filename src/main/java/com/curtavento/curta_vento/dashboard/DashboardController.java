@@ -151,7 +151,7 @@ public class DashboardController {
             double somaCortesUsina = cortesMap.getOrDefault(u.getNome(), 0.0);
             
             dto.put("energiaCortada", somaCortesUsina);
-            dto.put("prejuizoFinanceiro", somaCortesUsina * 200.0);
+            dto.put("prejuizoFinanceiro", somaCortesUsina * com.curtavento.curta_vento.util.PrecoEnergia.PRECO_MWH);
 
             usinasDTO.add(dto);
         }
@@ -176,7 +176,7 @@ public class DashboardController {
             java.math.BigDecimal totalCortado = (java.math.BigDecimal) linha[2];
             double mwh = totalCortado != null ? totalCortado.doubleValue() : 0.0;
             
-            double perdaReceitaReal = mwh * 200.0;
+            double perdaReceitaReal = mwh * com.curtavento.curta_vento.util.PrecoEnergia.PRECO_MWH;
             double impactoReal = perdaReceitaReal * 0.18 * 0.25; // 18% ICMS, 25% repasse VAF
             
             Map<String, Object> dto = new HashMap<>();

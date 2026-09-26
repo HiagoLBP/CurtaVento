@@ -199,12 +199,12 @@
           <div class="usina-card">
             <div class="u-header">
               <h3>${escapeHTML(u.nome)}</h3>
-              <p>${u.operador || 'N/I'}</p>
+              <p>${escapeHTML(u.operador) || '$1'}</p>
             </div>
             
             <div class="u-details">
               <div class="u-row"><span>Capacidade:</span> <strong>${u.capacidade} MW</strong></div>
-              <div class="u-row"><span>Município:</span> <strong>${u.municipio}</strong></div>
+              <div class="u-row"><span>Município:</span> <strong>${escapeHTML(u.municipio)}</strong></div>
               <div class="u-row"><span>Início de Operação:</span> <strong>${dataStr}</strong></div>
             </div>
             
@@ -212,10 +212,10 @@
               
                 <div class="u-stat-row">
                   <span>Risco Atual:</span>
-                  <strong style="color:${color}" title="${u.fatorRisco || 'Sem dados'}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
+                  <strong style="color:${color}" title="${escapeHTML(u.fatorRisco) || '$1'}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px; margin-bottom: 8px; font-style: italic;">
-                  ${u.fatorRisco || ''}
+                  ${escapeHTML(u.fatorRisco) || '$1'}
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
                   <span>Fonte: ${u.fonteClima === 'CACHE_ANTIGO' || u.fonteClima === 'SEM_DADOS' ? '<strong style="color:var(--warn)">' + u.fonteClima + '</strong>' : u.fonteClima || 'Open-Meteo'}</span>

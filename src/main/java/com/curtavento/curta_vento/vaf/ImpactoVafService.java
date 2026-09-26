@@ -83,6 +83,12 @@ public class ImpactoVafService {
         relatorio.setImpactoVafEstimado(impactoFinal);
         relatorio.setDataCalculo(LocalDateTime.now());
 
-        return impactoRepository.save(relatorio);
+        try {
+            return impactoRepository.save(relatorio);
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            System.err.println("Concorrência resolvida: Relatório VAF já existe para o município " + municipioId + " no ano " + ano);
+            List<ImpactoVaf> salvos = impactoRepository.findByMunicipioIdAndAnoReferencia(municipioId, ano);
+            return salvos.get(salvos.size() - 1);
+        }
     }
 }
