@@ -2,6 +2,7 @@ package com.curtavento.curta_vento.usuario;
 
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -14,12 +15,16 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public List<Usuario> listar() {
-        return service.listarTodos();
+    public List<UsuarioResponseDTO> listar() {
+        return service.listarTodos().stream().map(UsuarioResponseDTO::new).collect(Collectors.toList());
     }
 
     @PostMapping
-    public Usuario cadastrar(@RequestBody Usuario usuario) {
-        return service.salvar(usuario);
+    public UsuarioResponseDTO cadastrar(@RequestBody UsuarioCreateDTO dto) {
+        Usuario u = new Usuario();
+        u.setNome(dto.getNome());
+        u.setEmail(dto.getEmail());
+        u.setSenha(dto.getSenha());
+        return new UsuarioResponseDTO(service.salvar(u));
     }
 }

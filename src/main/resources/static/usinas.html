@@ -55,8 +55,10 @@
     .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
     .val-crit { color:var(--crit); font-weight:600; }
   </style>
+<style>#error-banner { display:none; background:var(--high); color:#fff; padding:12px; text-align:center; position:fixed; top:0; width:100%; z-index:9999; font-weight:600; }</style>
 </head>
 <body>
+<div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
 
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
@@ -107,7 +109,7 @@
 </div>
 
 <script>
-  const API_BASE = 'http://localhost:8080';
+  const API_BASE = '';
 
   const RISK_COLOR = {
     'BAIXO': 'var(--ok)',
@@ -116,12 +118,34 @@
     'CRITICO': 'var(--crit)'
   };
 
-  async function fetchWithAuth(url) {
+  async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('jwt_token');
     
-    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
-    
-    if (!res.ok) throw new Error('Erro na API');
+    // Se não tiver token e não for a tela de login, redireciona
+    if (!token && !window.location.href.includes('login.html') && !window.location.href.includes('cadastro.html')) {
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    const headers = options.headers || {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    options.headers = headers;
+
+    const res = await fetch(url, options);
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('jwt_token');
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    if (!res.ok) {
+      const banner = document.getElementById('error-banner');
+      if(banner) banner.style.display = 'block';
+      throw new Error('Erro na API');
+    }
     return await res.json();
   }
 
@@ -135,10 +159,16 @@
     grid.innerHTML = '';
     
     lista.forEach(u => {
-        const omHtml = u.risco === 'ALTO' || u.risco === 'CRITICO' 
-            ? '<strong style="color:var(--warn)">ALERTA ⚠️</strong>' 
-            : '<strong style="color:var(--ok)">LIBERADO ✅</strong>';
-            
+        
+        
+        let omHtml = '<strong style="color:var(--text-muted)">N/D</strong>';
+        if (u.janelaManutencao === 'LIBERADO') {
+            omHtml = '<strong style="color:var(--ok)">LIBERADO ✅</strong>';
+        } else if (u.janelaManutencao === 'ALERTA') {
+            omHtml = '<strong style="color:var(--warn)">ALERTA ⚠️</strong>';
+        } else if (u.janelaManutencao === 'BLOQUEADO') {
+            omHtml = '<strong style="color:var(--high)">BLOQUEADO ❌</strong>';
+        }
         const color = RISK_COLOR[u.risco] || 'var(--text-muted)';
         
         let dataStr = 'N/I';
@@ -166,10 +196,18 @@
             </div>
             
             <div class="u-stats">
-              <div class="u-stat-row">
-                <span>Risco Atual:</span>
-                <strong style="color:${color}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
-              </div>
+              
+                <div class="u-stat-row">
+                  <span>Risco Atual:</span>
+                  <strong style="color:${color}" title="${u.fatorRisco || 'Sem dados'}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px; margin-bottom: 8px; font-style: italic;">
+                  ${u.fatorRisco || ''}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+                  <span>Fonte: ${u.fonteClima === 'CACHE_ANTIGO' || u.fonteClima === 'SEM_DADOS' ? '<strong style="color:var(--warn)">' + u.fonteClima + '</strong>' : u.fonteClima || 'Open-Meteo'}</span>
+                </div>
+
               <div class="u-stat-row">
                 <span>Janela O&M:</span>
                 ${omHtml}

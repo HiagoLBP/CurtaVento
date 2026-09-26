@@ -25,7 +25,9 @@ public class CortesOnsController {
 
     @GetMapping("/ranking")
     public ResponseEntity<List<Map<String, Object>>> getRanking(@RequestParam(defaultValue = "2026") int ano) {
-        List<Object[]> resultados = repository.findRankingCortesAno(ano);
+        java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
+        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        List<Object[]> resultados = repository.findRankingCortesAno(start, end);
         List<Map<String, Object>> ranking = new ArrayList<>();
         
         for (Object[] linha : resultados) {
@@ -34,7 +36,7 @@ public class CortesOnsController {
             if (totalCortado == null) totalCortado = BigDecimal.ZERO;
             
             // Perda Financeira Simulada (Ex: R$ 150/MWh)
-            double perdaFinanceira = totalCortado.doubleValue() * 150.0;
+            double perdaFinanceira = totalCortado.doubleValue() * 200.0;
             
             Map<String, Object> map = new HashMap<>();
             map.put("usina", usinaNome);
@@ -48,7 +50,9 @@ public class CortesOnsController {
 
     @GetMapping("/evolucao")
     public ResponseEntity<List<Map<String, Object>>> getEvolucao(@RequestParam(defaultValue = "2026") int ano) {
-        List<Object[]> resultados = repository.findEvolucaoMensalCortes(ano);
+        java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
+        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        List<Object[]> resultados = repository.findEvolucaoMensalCortes(start, end);
         List<Map<String, Object>> evolucao = new ArrayList<>();
         
         // Inicializa 12 meses
@@ -72,12 +76,14 @@ public class CortesOnsController {
 
     @GetMapping("/motivos")
     public ResponseEntity<List<Map<String, Object>>> getMotivos(@RequestParam(defaultValue = "2026") int ano) {
+        java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
+        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
         // Como o motivo real não vem do CSV bruto (é setado no script genérico), vamos usar
         // a mesma proporção analítica para fins de exibição na banca (55% ENE, 33% REL, 12% CNF)
         // Isso prova que a interface suporta a divisão de restrições por classificação técnica.
         
         // Pegar total cortado no ano para fazer a proporção:
-        List<Object[]> resultados = repository.findRankingCortesAno(ano);
+        List<Object[]> resultados = repository.findRankingCortesAno(start, end);
         double energiaTotal = 0.0;
         for (Object[] linha : resultados) {
             BigDecimal total = (BigDecimal) linha[1];

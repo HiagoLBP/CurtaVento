@@ -10,7 +10,9 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
+import java.time.Duration;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,7 +32,11 @@ public class IngestaoDadosClimaticosJob {
     public IngestaoDadosClimaticosJob(LeituraClimaticaService leituraService, UsinaRepository usinaRepository) {
         this.leituraService = leituraService;
         this.usinaRepository = usinaRepository;
-        this.restTemplate = new RestTemplate();
+        
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000); // 5 segundos
+        factory.setReadTimeout(5000);    // 5 segundos
+        this.restTemplate = new RestTemplate(factory);
     }
 
     // Para testes/apresentação: roda 4 segundos após iniciar a aplicação, e depois a cada 10 minutos.
@@ -47,17 +53,30 @@ public class IngestaoDadosClimaticosJob {
             BigDecimal direcaoVento = null;
             String fonte = null;
 
-            try {
-                Map<String, BigDecimal> dadosOpenMeteo = fetchOpenMeteoForecast(usina);
+                        Map<String, BigDecimal> dadosOpenMeteo = null;
+            int tentativas = 0;
+            while(tentativas < 3) {
+                try {
+                    dadosOpenMeteo = fetchOpenMeteoForecast(usina);
+                    break;
+                } catch (Exception ex) {
+                    tentativas++;
+                    if(tentativas >= 3) {
+                        logger.error("Falha no Open-Meteo para a usina ID " + usina.getId() + ". Buscando no cache. Erro: " + ex.getMessage());
+                    } else {
+                        try { Thread.sleep(2000); } catch(InterruptedException ie) {}
+                    }
+                }
+            }
+            if (dadosOpenMeteo != null) {
                 ventoAtual = dadosOpenMeteo.get("vento_atual");
                 vento24h = dadosOpenMeteo.get("vento_24h");
                 vento48h = dadosOpenMeteo.get("vento_48h");
                 tempAtual = dadosOpenMeteo.get("temperatura");
                 direcaoVento = dadosOpenMeteo.get("direcao_vento");
                 fonte = "Open-Meteo (Atual e Prev 48h)";
-            } catch (Exception ex) {
-                logger.error("Falha no Open-Meteo para a usina ID {}. Buscando no cache. Erro: {}", usina.getId(), ex.getMessage());
             }
+                
 
             if (ventoAtual == null) {
                 LeituraClimatica ultima = leituraService.buscarUltimaLeitura(usina.getId());
@@ -69,30 +88,41 @@ public class IngestaoDadosClimaticosJob {
                     fonte = "CACHE_ANTIGO";
                 } else {
                     logger.error("Nenhuma leitura anterior encontrada para usina ID {}. Usando valores zerados.", usina.getId());
-                    ventoAtual = BigDecimal.ZERO;
-                    vento24h = BigDecimal.ZERO;
-                    vento48h = BigDecimal.ZERO;
-                    tempAtual = BigDecimal.ZERO;
-                    fonte = "DEFAULT_ZERADO";
+                    ventoAtual = null;
+                    vento24h = null;
+                    vento48h = null;
+                    tempAtual = null;
+                    fonte = "SEM_DADOS";
+                    // Removendo a atribuição de zeros que distorcia o modelo.
                 }
             }
 
-            LeituraClimatica leitura = new LeituraClimatica();
-            leitura.setUsina(usina);
+            
+            LocalDateTime agora = LocalDateTime.now();
+            LocalDateTime inicioHora = agora.withMinute(0).withSecond(0).withNano(0);
+            
+            // Lógica de idempotência (simplificada): se a última leitura for da mesma hora, atualize-a em vez de duplicar.
+            LeituraClimatica leitura = leituraService.buscarUltimaLeitura(usina.getId());
+            if (leitura == null || leitura.getDataHora().isBefore(inicioHora)) {
+                leitura = new LeituraClimatica();
+                leitura.setUsina(usina);
+            }
+
             leitura.setVelocidadeVentoMs(ventoAtual);
             leitura.setVentoPrevisao24hMs(vento24h);
             leitura.setVentoPrevisao48hMs(vento48h);
             leitura.setTemperaturaC(tempAtual != null ? tempAtual : BigDecimal.ZERO);
             leitura.setDirecaoVentoGraus(direcaoVento);
             leitura.setFonte(fonte);
-            leitura.setDataHora(LocalDateTime.now());
+            leitura.setDataHora(agora);
 
             leituraService.salvar(leitura);
+
             logger.info("Clima atualizado: Usina {} - Atual: {} m/s - 24h: {} - 48h: {}", usina.getId(), ventoAtual, vento24h, vento48h);
         }
     }
 
-    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 2000, multiplier = 2))
+    
     private Map<String, BigDecimal> fetchOpenMeteoForecast(Usina usina) {
         if (usina.getLatitude() == null || usina.getLongitude() == null) {
             throw new RuntimeException("Usina sem coordenadas para buscar no Open-Meteo.");

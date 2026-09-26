@@ -730,9 +730,11 @@
 
   </style>
 
+<style>#error-banner { display:none; background:var(--high); color:#fff; padding:12px; text-align:center; position:fixed; top:0; width:100%; z-index:9999; font-weight:600; }</style>
 </head>
 
 <body>
+<div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
 
 
 
@@ -768,17 +770,13 @@
 
     </div>
 
-    <div class="header-controls">
-
-      <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
-
-        <option value="2026">2026 ▼</option>
-
-        <option value="2023">2023 ▼</option>
-
-      </select>
-
-      <div id="api-status-chip" class="status-chip">
+    <div class="header-controls" style="display: flex; gap: 12px; align-items: center;">
+        <button onclick="exportarCSV()" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">Exportar CSV</button>
+        <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
+          <option value="2026">2026 ▼</option>
+          <option value="2023">2023 ▼</option>
+        </select>
+        <div id="api-status-chip" class="status-chip">
 
         <span class="status-dot"></span>
 
@@ -818,7 +816,7 @@
 
         <p class="card-value val-warn" id="card-receita">R$ 0,0 <small>mi</small></p>
 
-        <p class="card-subtitle">Estimada (R$ 150/MWh)</p>
+        <p class="card-subtitle">Estimada (R$ 200/MWh)</p>
 
       </div>
 
@@ -871,21 +869,15 @@
           <thead>
 
             <tr>
-
               <th>Usina</th>
-
               <th>Vento Agora</th>
-
               <th>Pico 24h</th>
-
               <th>Pico 48h</th>
-
               <th>Risco 24h</th>
-
               <th>Perda no Ano (GWh)</th>
-
+              <th>Prejuízo (R$)</th>
+              <th>Status VAF</th>
               <th>Ação</th>
-
             </tr>
 
           </thead>
@@ -1052,7 +1044,7 @@
 
 <script>
 
-  const API_BASE = 'http://localhost:8080';
+  const API_BASE = '';
 
 
 
@@ -1079,7 +1071,17 @@
 
 
     
-    lista.forEach(u => {
+    
+      // RANKING OPERACIONAL: Risco x Impacto Financeiro
+      lista.sort((a, b) => {
+          const getRiscoWeight = (r) => r === 'CRITICO' ? 4 : r === 'ALTO' ? 3 : r === 'MEDIO' ? 2 : 1;
+          const scoreA = (a.energiaCortada || 0) * getRiscoWeight(a.risco);
+          const scoreB = (b.energiaCortada || 0) * getRiscoWeight(b.risco);
+          return scoreB - scoreA;
+      });
+
+      lista.forEach(u => {
+
       // Contagem para Situação Operacional
       if (u.risco === 'BAIXO') contBaixo++;
       else if (u.risco === 'MEDIO') contMedio++;
@@ -1108,7 +1110,7 @@
         <td style="font-weight: 500;">${u.vento24h}</td>
         <td style="color: var(--text-muted);">${u.vento48h}</td>
         <td>
-          <span class="risk-badge risk-${riscoClass}"></span> ${riscoLabel}
+          <span class="risk-badge risk-${riscoClass}" title="${u.fatorRisco}"></span> <span title="${u.fatorRisco}">${riscoLabel}</span>
         </td>
         <td style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
         <td style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
@@ -1258,10 +1260,34 @@
 
 
   
-  async function fetchWithAuth(url) {
+  async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('jwt_token');
-    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!res.ok) throw new Error('Erro na API');
+    
+    // Se não tiver token e não for a tela de login, redireciona
+    if (!token && !window.location.href.includes('login.html') && !window.location.href.includes('cadastro.html')) {
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    const headers = options.headers || {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    options.headers = headers;
+
+    const res = await fetch(url, options);
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('jwt_token');
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    if (!res.ok) {
+      const banner = document.getElementById('error-banner');
+      if(banner) banner.style.display = 'block';
+      throw new Error('Erro na API');
+    }
     return await res.json();
   }
 
@@ -1308,11 +1334,12 @@
           }
 
           let energiaOdometro = data.energiaTotal;
-          const perdaPorSegundo = 0.23; // MWh/s (odometer is in MWh internally, displayed as GWh) 
-          function renderOdometro() {
-            document.getElementById('card-energia').innerHTML = `<span style="font-variant-numeric: tabular-nums; font-family: 'Courier New', Courier, monospace; font-size: 34px; letter-spacing: -1px; color: var(--crit); text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);">${energiaOdometro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <small>MWh</small> ${extraHtml}`;
-          }
-          renderOdometro();
+          const perdaPorSegundo = 0.23; 
+            function renderOdometro() {
+              const gwh = energiaOdometro / 1000;
+              document.getElementById('card-energia').innerHTML = `<span style="font-variant-numeric: tabular-nums; font-family: 'Inter', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--crit);">${gwh.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</span> <small style="font-size: 14px; color: var(--text-muted); font-weight: 600;">GWh</small> ${extraHtml}`;
+            }
+            renderOdometro();
           if (window.odometroInterval) clearInterval(window.odometroInterval);
           window.odometroInterval = setInterval(() => {
             energiaOdometro += perdaPorSegundo;
@@ -1428,12 +1455,37 @@
 
   // Atualiza automaticamente a cada 10 segundos
 
-  setInterval(carregarDadosReais, 10000);
+  setInterval(carregarDadosReais, 300000); // 5 minutes polling
 
 </script>
 
 
 
+
+<script>
+    function exportarCSV() {
+      const rows = document.querySelectorAll("table tr");
+      if (rows.length === 0) {
+        alert("Sem dados para exportar.");
+        return;
+      }
+      let csv = [];
+      for (let i = 0; i < rows.length; i++) {
+          let row = [], cols = rows[i].querySelectorAll("td, th");
+          for (let j = 0; j < cols.length; j++) 
+              row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
+          csv.push(row.join(";"));
+      }
+      const csvStr = csv.join("\n");
+      const blob = new Blob(["\uFEFF" + csvStr], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "curtavento_relatorio_operacional.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+</script>
 </body>
 
 </html>

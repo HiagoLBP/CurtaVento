@@ -22,7 +22,7 @@ public class ImpactoVafService {
     private final HistoricoCorteOnsRepository corteRepository;
 
     // Preço médio do MWh (R$ 150,00) conforme regra do projeto
-    private static final BigDecimal PRECO_MEDIO_MWH = new BigDecimal("150.00");
+    private static final BigDecimal PRECO_MEDIO_MWH = new BigDecimal("200.00");
 
     public ImpactoVafService(ImpactoVafRepository impactoRepository, MunicipioRepository municipioRepository,
                              UsinaRepository usinaRepository, HistoricoCorteOnsRepository corteRepository) {

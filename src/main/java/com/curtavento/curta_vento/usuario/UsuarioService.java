@@ -40,9 +40,8 @@ public class UsuarioService {
             usuario.setMunicipio(municipio);
         }
 
-        if (usuario.getPerfil() == null || usuario.getPerfil().isEmpty()) {
-            usuario.setPerfil("ADMIN");
-        }
+        // Força sempre o perfil VISUALIZADOR para novos cadastros pela API pública
+        usuario.setPerfil("VISUALIZADOR");
 
         // Hash da senha usando BCrypt antes de salvar no banco
         if (usuario.getSenha() != null && !usuario.getSenha().startsWith("$2a$")) {

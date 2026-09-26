@@ -28,7 +28,9 @@ public class ImpactoMunicipalController {
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getImpactoPorMunicipio(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "2026", required = false) int ano) {
-        List<Object[]> resultados = repository.findImpactoPorMunicipio(ano);
+        java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
+        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        List<Object[]> resultados = repository.findImpactoPorMunicipio(start, end);
         List<Map<String, Object>> impactos = new ArrayList<>();
 
         for (Object[] linha : resultados) {

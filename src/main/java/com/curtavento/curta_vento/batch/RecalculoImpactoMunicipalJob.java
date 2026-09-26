@@ -24,7 +24,7 @@ public class RecalculoImpactoMunicipalJob {
 
     // Configurado para as 03:30 da madrugada (0 30 3 * * *)
     // Mas para testes manuais via API, roda a cada 1 min. (O Upsert protege contra duplicações)
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(cron = "0 0 2 * * *")
     public void recalcularImpacto() {
         System.out.println("JOB ATIVO: A recalcular impacto financeiro (VAF/ICMS) para os municípios...");
 

@@ -62,8 +62,10 @@
     tr:last-child td { border-bottom: none; }
     .num-col { text-align: right; font-variant-numeric: tabular-nums; }
   </style>
+<style>#error-banner { display:none; background:var(--high); color:#fff; padding:12px; text-align:center; position:fixed; top:0; width:100%; z-index:9999; font-weight:600; }</style>
 </head>
 <body>
+<div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
 
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
@@ -89,7 +91,7 @@
     <div class="methodology-box">
       <h3>Metodologia de Cálculo</h3>
       <ul>
-        <li><strong>Preço MADI:</strong> Adotado o valor fixo de <span class="formula">R$ 150,00 / MWh</span> conforme histórico de liquidação na CCEE para a fonte eólica no submercado NE.</li>
+        <li><strong>Preço MADI:</strong> Adotado o valor fixo de <span class="formula">R$ 200,00 / MWh</span> conforme histórico de liquidação na CCEE para a fonte eólica no submercado NE.</li>
         <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (GWh) × Preço MADI</span>.</li>
         <li><strong>ICMS (Estado):</strong> Alíquota média de <span class="formula">18%</span> sobre a Receita Bruta Perdida.</li>
         <li><strong>Impacto VAF (Município):</strong> <span class="formula">25%</span> da perda de ICMS retorna ao município via cota-parte do VAF (Valor Adicionado Fiscal).</li>
@@ -134,14 +136,36 @@
 </div>
 
 <script>
-  const API_BASE = 'http://localhost:8080';
+  const API_BASE = '';
 
-  async function fetchWithAuth(url) {
+  async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('jwt_token');
     
-    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
-    
-    if (!res.ok) throw new Error('Erro na API');
+    // Se não tiver token e não for a tela de login, redireciona
+    if (!token && !window.location.href.includes('login.html') && !window.location.href.includes('cadastro.html')) {
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    const headers = options.headers || {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    options.headers = headers;
+
+    const res = await fetch(url, options);
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('jwt_token');
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    if (!res.ok) {
+      const banner = document.getElementById('error-banner');
+      if(banner) banner.style.display = 'block';
+      throw new Error('Erro na API');
+    }
     return await res.json();
   }
 

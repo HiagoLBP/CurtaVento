@@ -9,6 +9,8 @@ import com.curtavento.curta_vento.risco.PrevisaoRiscoService;
 import com.curtavento.curta_vento.usina.Usina;
 import com.curtavento.curta_vento.usina.UsinaService;
 import com.curtavento.curta_vento.vaf.ImpactoVaf;
+import com.curtavento.curta_vento.clima.LeituraClimaticaRepository;
+import com.curtavento.curta_vento.risco.PrevisaoRiscoRepository;
 import com.curtavento.curta_vento.vaf.ImpactoVafRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +33,8 @@ public class DashboardController {
     private final PrevisaoRiscoService riscoService;
     private final ImpactoVafRepository impactoRepository;
     private final LeituraClimaticaService leituraService;
+    private final LeituraClimaticaRepository leituraRepo;
+    private final PrevisaoRiscoRepository riscoRepo;
     private final com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository corteRepository;
 
     public DashboardController(UsinaService usinaService,
@@ -38,26 +42,46 @@ public class DashboardController {
                                PrevisaoRiscoService riscoService,
                                ImpactoVafRepository impactoRepository,
                                LeituraClimaticaService leituraService,
+                                 LeituraClimaticaRepository leituraRepo,
+                                 PrevisaoRiscoRepository riscoRepo,
                                com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository corteRepository) {
         this.usinaService = usinaService;
         this.municipioService = municipioService;
         this.riscoService = riscoService;
         this.impactoRepository = impactoRepository;
         this.leituraService = leituraService;
+        this.leituraRepo = leituraRepo;
+        this.riscoRepo = riscoRepo;
         this.corteRepository = corteRepository;
     }
 
     @GetMapping("/resumo-geral")
     public ResponseEntity<Map<String, Object>> getResumoGeral(@RequestParam(defaultValue = "2026", required = false) int ano, @RequestParam(defaultValue = "1000", required = false) int limite) {
+        if (limite < 1) limite = 1000;
+        if (limite > 2000) limite = 2000;
 
         // 1. Usinas e Riscos (Sempre mostra a previsão para as próximas 24h, independente do ano do histórico)
         
-        List<Object[]> rankingCortes = corteRepository.findRankingCortesAno(ano);
+                java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
+        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        List<Object[]> rankingCortes = corteRepository.findRankingCortesAno(start, end);
         Map<String, Double> cortesMap = new HashMap<>();
         for (Object[] row : rankingCortes) {
             String uName = (String) row[0];
             java.math.BigDecimal val = (java.math.BigDecimal) row[1];
             cortesMap.put(uName, val != null ? val.doubleValue() : 0.0);
+        }
+        
+        List<com.curtavento.curta_vento.clima.LeituraClimatica> todasLeituras = leituraRepo.findUltimasLeiturasGeral();
+        Map<Long, com.curtavento.curta_vento.clima.LeituraClimatica> leituraMap = new HashMap<>();
+        for (com.curtavento.curta_vento.clima.LeituraClimatica l : todasLeituras) {
+            leituraMap.put(l.getUsina().getId(), l);
+        }
+
+        List<com.curtavento.curta_vento.risco.PrevisaoRisco> todosRiscos = riscoRepo.findUltimosRiscosGeral();
+        Map<Long, com.curtavento.curta_vento.risco.PrevisaoRisco> riscoMap = new HashMap<>();
+        for (com.curtavento.curta_vento.risco.PrevisaoRisco r : todosRiscos) {
+            riscoMap.put(r.getUsina().getId(), r);
         }
 
         List<Map<String, Object>> usinasDTO = new ArrayList<>();
@@ -73,18 +97,18 @@ public class DashboardController {
             dto.put("dataInicio", u.getDataInicioOperacao());
 
             String riscoBase = "BAIXO";
-            List<PrevisaoRisco> previsoes = riscoService.buscarPorUsina(u.getId());
-            if (!previsoes.isEmpty()) {
-                PrevisaoRisco ultima = previsoes.get(previsoes.size() - 1);
+            PrevisaoRisco ultima = riscoMap.get(u.getId());
+            if (ultima != null) {
                 riscoBase = ultima.getNivelRisco().name();
                 dto.put("risco", riscoBase);
+                  dto.put("fatorRisco", ultima.getFatoresJustificativa());
                 dto.put("corte", ultima.getPercentualCorteEstimado() + "%");
             } else {
                 dto.put("risco", "BAIXO");
                 dto.put("corte", "0%");
             }
 
-            LeituraClimatica ultimaLeitura = leituraService.buscarUltimaLeitura(u.getId());
+            LeituraClimatica ultimaLeitura = leituraMap.get(u.getId());
             if (ultimaLeitura != null) {
                 java.math.BigDecimal ventoBd = ultimaLeitura.getVelocidadeVentoMs();
                 Double ventoMs = ventoBd != null ? ventoBd.doubleValue() : null;
@@ -95,20 +119,22 @@ public class DashboardController {
                 dto.put("vento24h", v24h != null ? v24h + " m/s" : "N/D");
                 dto.put("vento48h", v48h != null ? v48h + " m/s" : "N/D");
                 
-                dto.put("riscoAtual", calcularRiscoVisual(riscoBase, ventoMs));
-                dto.put("risco24h", calcularRiscoVisual(riscoBase, v24h));
-                dto.put("risco48h", calcularRiscoVisual(riscoBase, v48h));
+                dto.put("riscoAtual", riscoBase);
+                dto.put("risco24h", riscoBase);
+                dto.put("risco48h", riscoBase);
 
                 if (ventoMs != null) {
                     if (ventoMs <= 10.0) {
-                        dto.put("janelaManutencao", "LIBERADO ✅");
+                        dto.put("janelaManutencao", "LIBERADO");
                     } else if (ventoMs <= 15.0) {
-                        dto.put("janelaManutencao", "ALERTA ⚠️");
+                        dto.put("janelaManutencao", "ALERTA");
                     } else {
-                        dto.put("janelaManutencao", "BLOQUEADO ❌");
+                        dto.put("janelaManutencao", "BLOQUEADO");
                     }
                 } else {
                     dto.put("janelaManutencao", "N/D");
+                  dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
+                  dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
                 }
             } else {
                 dto.put("vento", "N/D");
@@ -118,6 +144,8 @@ public class DashboardController {
                 dto.put("risco24h", "N/D");
                 dto.put("risco48h", "N/D");
                 dto.put("janelaManutencao", "N/D");
+                  dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
+                  dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
             }
 
             double somaCortesUsina = cortesMap.getOrDefault(u.getNome(), 0.0);
@@ -142,7 +170,7 @@ public class DashboardController {
         double somaImpactoTotal = 0.0;
         double somaPerdaReceitaTotal = 0.0;
 
-        List<Object[]> impactosMun = corteRepository.findImpactoPorMunicipio(ano);
+        List<Object[]> impactosMun = corteRepository.findImpactoPorMunicipio(start, end);
         for (Object[] linha : impactosMun) {
             String nome = (String) linha[0];
             java.math.BigDecimal totalCortado = (java.math.BigDecimal) linha[2];
@@ -167,8 +195,8 @@ public class DashboardController {
         // Injeção dos dados analisados da subestação BAIGT para o painel de impacto
         Map<String, Double> motivos = new HashMap<>();
         motivos.put("ENE (Energética)", somaEnergiaTotal * 0.55);
-        motivos.put("REL (Rede Local)", somaEnergiaTotal * 0.33);
-        motivos.put("CNF (Confiabilidade)", somaEnergiaTotal * 0.12);
+        motivos.put("REL (Rede Local - Estimado)", somaEnergiaTotal * 0.33);
+        motivos.put("CNF (Confiabilidade - Estimado)", somaEnergiaTotal * 0.12);
 
         Map<String, Object> resposta = new HashMap<>();
         resposta.put("usinas", usinasDTO);

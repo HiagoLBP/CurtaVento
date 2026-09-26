@@ -71,8 +71,10 @@
 
     footer { padding:16px 32px; font-size:12px; color:var(--text-faint); display:flex; justify-content:space-between; border-top:1px solid var(--border); background:var(--bg-surface); }
   </style>
+<style>#error-banner { display:none; background:var(--high); color:#fff; padding:12px; text-align:center; position:fixed; top:0; width:100%; z-index:9999; font-weight:600; }</style>
 </head>
 <body>
+<div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
 
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
@@ -190,12 +192,36 @@
 </div>
 
 <script>
-  const API_BASE = 'http://localhost:8080';
+  const API_BASE = '';
 
-  async function fetchWithAuth(url) {
+  async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('jwt_token');
-    const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!res.ok) throw new Error('Erro na API');
+    
+    // Se não tiver token e não for a tela de login, redireciona
+    if (!token && !window.location.href.includes('login.html') && !window.location.href.includes('cadastro.html')) {
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    const headers = options.headers || {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    options.headers = headers;
+
+    const res = await fetch(url, options);
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('jwt_token');
+      window.location.href = '/login.html';
+      return null;
+    }
+
+    if (!res.ok) {
+      const banner = document.getElementById('error-banner');
+      if(banner) banner.style.display = 'block';
+      throw new Error('Erro na API');
+    }
     return await res.json();
   }
 
