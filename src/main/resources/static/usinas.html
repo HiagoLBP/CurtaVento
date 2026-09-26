@@ -151,7 +151,7 @@
               </div>
               <div class="u-stat-row">
                 <span>Energia Cortada (2026):</span>
-                <strong class="val-crit">${u.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</strong>
+                <strong class="val-crit">${(u.energiaCortada/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} GWh</strong>
               </div>
             </div>
           </div>

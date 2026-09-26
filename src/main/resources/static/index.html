@@ -804,9 +804,11 @@
 
         <h3 class="card-title">Energia Cortada</h3>
 
-        <p class="card-value" id="card-energia">0 <small>MWh</small></p>
+        <p class="card-value" id="card-energia">0 <small>GWh</small></p>
 
         <p class="card-subtitle" id="label-energia">Em 2026</p>
+
+        <p class="card-subtitle" id="trend-energia" style="font-weight:600; font-size:13px; margin-top:4px;"></p>
 
       </div>
 
@@ -880,7 +882,7 @@
 
               <th>Risco 24h</th>
 
-              <th>Perda no Ano</th>
+              <th>Perda no Ano (GWh)</th>
 
               <th>Ação</th>
 
@@ -1094,7 +1096,7 @@
 
       const vento48 = u.vento48h || 'N/D';
 
-      const energiaCortada = u.energiaCortada !== undefined ? u.energiaCortada.toLocaleString('pt-BR', {maximumFractionDigits: 1}) + ' MWh' : '0 MWh';
+      const energiaCortada = u.energiaCortada !== undefined ? (u.energiaCortada / 1000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' GWh' : '0 GWh';
 
 
 
@@ -1309,7 +1311,7 @@
           }
 
           let energiaOdometro = data.energiaTotal;
-          const perdaPorSegundo = 0.23; 
+          const perdaPorSegundo = 0.23; // MWh/s (odometer is in MWh internally, displayed as GWh) 
           function renderOdometro() {
             document.getElementById('card-energia').innerHTML = `<span style="font-variant-numeric: tabular-nums; font-family: 'Courier New', Courier, monospace; font-size: 34px; letter-spacing: -1px; color: var(--crit); text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);">${energiaOdometro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <small>MWh</small> ${extraHtml}`;
           }
@@ -1381,6 +1383,26 @@
         }
 
 
+
+        
+          // Trend: buscar dados de evolução para comparação mês a mês
+          try {
+            const evolData = await fetchWithAuth(`${API_BASE}/api/cortes-ons/evolucao`);
+            if (evolData && evolData.length > 1) {
+              const mesAtual = new Date().getMonth();
+              const valAtual = evolData[mesAtual] ? evolData[mesAtual].total : 0;
+              const valAnterior = mesAtual > 0 && evolData[mesAtual-1] ? evolData[mesAtual-1].total : 0;
+              const trendEl = document.getElementById('trend-energia');
+              if (valAnterior > 0) {
+                const pctVar = ((valAtual - valAnterior) / valAnterior * 100).toFixed(1);
+                if (pctVar > 0) {
+                  trendEl.innerHTML = `<span style="color:var(--high);">&#9650; +${pctVar}% vs mês anterior</span>`;
+                } else {
+                  trendEl.innerHTML = `<span style="color:var(--ok);">&#9660; ${pctVar}% vs mês anterior</span>`;
+                }
+              }
+            }
+          } catch(e2) { /* silencioso */ }
 
         setApiStatus(true);
 

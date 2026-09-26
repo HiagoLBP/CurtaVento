@@ -37,6 +37,23 @@
     .header-left span { font-size:13px; color:var(--text-muted); }
     main { padding:32px; max-width:1280px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:24px; }
 
+    /* Filter Bar */
+    .filter-bar { display:flex; gap:16px; align-items:center; padding:16px 24px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); flex-wrap:wrap; }
+    .filter-bar label { font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .filter-bar select { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:var(--font); background:#fff; cursor:pointer; min-width:160px; }
+    .filter-bar select:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+    .filter-separator { width:1px; height:32px; background:var(--border); }
+
+    /* KPI Cards Row */
+    .kpi-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+    .kpi-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:20px 24px; }
+    .kpi-card .kpi-label { font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; }
+    .kpi-card .kpi-value { font-size:28px; font-weight:700; color:var(--text-main); margin-bottom:4px; }
+    .kpi-card .kpi-trend { font-size:13px; font-weight:600; display:flex; align-items:center; gap:4px; }
+    .kpi-card .kpi-trend.up { color:var(--high); }
+    .kpi-card .kpi-trend.down { color:var(--ok); }
+    .kpi-card .kpi-trend.neutral { color:var(--text-muted); }
+
     /* Cards & Grids */
     .dashboard-grid { display:grid; grid-template-columns:2fr 1fr; gap:24px; }
     .card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:24px; display:flex; flex-direction:column; }
@@ -51,6 +68,8 @@
     .ranking-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#FAFAFA; border:1px solid var(--border-light); border-radius:6px; }
     .ranking-item strong { font-size:14px; }
     .ranking-item .value { font-weight:600; color:var(--crit); }
+
+    footer { padding:16px 32px; font-size:12px; color:var(--text-faint); display:flex; justify-content:space-between; border-top:1px solid var(--border); background:var(--bg-surface); }
   </style>
 </head>
 <body>
@@ -58,11 +77,11 @@
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
   <nav class="nav-list">
-    <a href="index.html" class="nav-item">▣ Visão Geral</a>
-    <a href="usinas.html" class="nav-item">◫ Usinas</a>
-    <a href="cortes.html" class="nav-item active">◈ Cortes ONS</a>
-    <a href="clima.html" class="nav-item">☁ Clima</a>
-    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="index.html" class="nav-item">&#9635; Visão Geral</a>
+    <a href="usinas.html" class="nav-item">&#9707; Usinas</a>
+    <a href="cortes.html" class="nav-item active">&#9672; Cortes ONS</a>
+    <a href="clima.html" class="nav-item">&#9729; Clima</a>
+    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">&#9888; Risco</a>
     <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
   </nav>
 </aside>
@@ -76,9 +95,57 @@
   </header>
   
   <main>
+    <!-- FILTROS GLOBAIS -->
+    <div class="filter-bar">
+      <div>
+        <label>Período</label><br>
+        <select id="filter-ano">
+          <option value="2026" selected>2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+      </div>
+      <div class="filter-separator"></div>
+      <div>
+        <label>Operador</label><br>
+        <select id="filter-operador">
+          <option value="all">Todos os Operadores</option>
+        </select>
+      </div>
+      <div class="filter-separator"></div>
+      <div>
+        <label>Prod. Total Perdida</label><br>
+        <span id="kpi-inline-total" style="font-size:18px; font-weight:700; color:var(--crit);">— GWh</span>
+      </div>
+      <div class="filter-separator"></div>
+      <div>
+        <label>Total Usinas</label><br>
+        <span id="kpi-inline-usinas" style="font-size:18px; font-weight:700;">—</span>
+      </div>
+    </div>
+
+    <!-- KPI CARDS COM TENDÊNCIA -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Volume Cortado (Mês Atual)</div>
+        <div class="kpi-value" id="kpi-mes-atual">— GWh</div>
+        <div class="kpi-trend neutral" id="kpi-trend-mes">Calculando...</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Motivo Predominante</div>
+        <div class="kpi-value" id="kpi-motivo-top">—</div>
+        <div class="kpi-trend neutral" id="kpi-motivo-pct">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Usina Mais Afetada</div>
+        <div class="kpi-value" id="kpi-usina-top">—</div>
+        <div class="kpi-trend neutral" id="kpi-usina-valor">—</div>
+      </div>
+    </div>
+
     <div class="dashboard-grid">
       <div class="card">
-        <h2>Evolução Anual (Volume Cortado MWh)</h2>
+        <h2>Evolução Anual (Volume Cortado GWh)</h2>
         <div style="height:300px;"><canvas id="linhaChart"></canvas></div>
       </div>
       <div class="card">
@@ -115,6 +182,11 @@
       </div>
     </div>
   </main>
+
+  <footer>
+    <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
+    <span>Fontes: ONS · ANEEL REN 1030/2022</span>
+  </footer>
 </div>
 
 <script>
@@ -122,15 +194,17 @@
 
   async function fetchWithAuth(url) {
     const token = localStorage.getItem('jwt_token');
-    
     const res = await fetch(API_BASE + url, { headers: { 'Authorization': `Bearer ${token}` } });
-    
     if (!res.ok) throw new Error('Erro na API');
     return await res.json();
   }
 
+  function toGWh(mwh) { return (mwh / 1000); }
+  function fmtGWh(mwh) { return toGWh(mwh).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
   async function init() {
-    const [evolucao, motivos, rankingUsinas, ultimosCortes] = await Promise.all([
+    try {
+      const [evolucao, motivos, rankingUsinas, ultimosCortes] = await Promise.all([
         fetchWithAuth('/api/cortes-ons/evolucao'),
         fetchWithAuth('/api/cortes-ons/motivos'),
         fetchWithAuth('/api/cortes-ons/ranking'),
@@ -147,64 +221,132 @@
         ultimosCortes: ultimosCortes
       };
 
-    // Chart Linha
-    new Chart(document.getElementById('linhaChart'), {
-      type: 'line',
-      data: {
-        labels: data.evolucaoMeses,
-        datasets: [{
-          label: 'MWh Cortado',
-          data: data.evolucaoValores,
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59,130,246,0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+      // --- KPI: Total perdido no ano ---
+      const totalAno = data.evolucaoValores.reduce((a, b) => a + b, 0);
+      document.getElementById('kpi-inline-total').textContent = fmtGWh(totalAno) + ' GWh';
+      document.getElementById('kpi-inline-usinas').textContent = rankingUsinas.length;
 
-    // Chart Pizza
-    new Chart(document.getElementById('motivoChart'), {
-      type: 'doughnut',
-      data: {
-        labels: data.motivosLabels,
-        datasets: [{
-          data: data.motivosValores,
-          backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-    });
+      // --- KPI: Mês atual vs mês anterior (TREND) ---
+      const now = new Date();
+      const mesAtualIdx = now.getMonth(); // 0-based (Jan=0)
+      const mesAtualVal = data.evolucaoValores[mesAtualIdx] || 0;
+      const mesAnteriorVal = mesAtualIdx > 0 ? (data.evolucaoValores[mesAtualIdx - 1] || 0) : 0;
+      
+      document.getElementById('kpi-mes-atual').textContent = fmtGWh(mesAtualVal) + ' GWh';
+      
+      if (mesAnteriorVal > 0) {
+        const variacao = ((mesAtualVal - mesAnteriorVal) / mesAnteriorVal) * 100;
+        const trendEl = document.getElementById('kpi-trend-mes');
+        if (variacao > 0) {
+          trendEl.className = 'kpi-trend up';
+          trendEl.innerHTML = `&#9650; +${variacao.toFixed(1)}% vs ${data.evolucaoMeses[mesAtualIdx - 1]}`;
+        } else if (variacao < 0) {
+          trendEl.className = 'kpi-trend down';
+          trendEl.innerHTML = `&#9660; ${variacao.toFixed(1)}% vs ${data.evolucaoMeses[mesAtualIdx - 1]}`;
+        } else {
+          trendEl.className = 'kpi-trend neutral';
+          trendEl.textContent = `= Sem variação vs ${data.evolucaoMeses[mesAtualIdx - 1]}`;
+        }
+      }
 
-    // Ranking
-    const rankingDiv = document.getElementById('ranking-list');
-    data.rankingUsinas.forEach((u, i) => {
-      rankingDiv.innerHTML += `
-        <div class="ranking-item">
-          <div>
-            <strong>${i+1}. ${u.usina}</strong>
+      // --- KPI: Motivo predominante ---
+      let maxMotIdx = 0;
+      data.motivosValores.forEach((v, i) => { if (v > data.motivosValores[maxMotIdx]) maxMotIdx = i; });
+      const totalMotivos = data.motivosValores.reduce((a, b) => a + b, 0);
+      document.getElementById('kpi-motivo-top').textContent = data.motivosLabels[maxMotIdx] || '—';
+      document.getElementById('kpi-motivo-pct').textContent = totalMotivos > 0 
+        ? ((data.motivosValores[maxMotIdx] / totalMotivos) * 100).toFixed(1) + '% do total'
+        : '—';
+
+      // --- KPI: Usina mais afetada ---
+      if (rankingUsinas.length > 0) {
+        document.getElementById('kpi-usina-top').textContent = rankingUsinas[0].usina;
+        document.getElementById('kpi-usina-valor').textContent = fmtGWh(rankingUsinas[0].totalCortadoMwh) + ' GWh perdidos';
+      }
+
+      // --- Chart Linha (GWh) ---
+      new Chart(document.getElementById('linhaChart'), {
+        type: 'line',
+        data: {
+          labels: data.evolucaoMeses,
+          datasets: [{
+            label: 'GWh Cortado',
+            data: data.evolucaoValores.map(v => toGWh(v)),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(0) + ' GWh' } } }
+        }
+      });
+
+      // --- Chart Doughnut (Motivos) ---
+      new Chart(document.getElementById('motivoChart'), {
+        type: 'doughnut',
+        data: {
+          labels: data.motivosLabels,
+          datasets: [{
+            data: data.motivosValores.map(v => toGWh(v)),
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
+          }]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false, 
+          plugins: { 
+            legend: { position: 'bottom' },
+            tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed.toFixed(2) + ' GWh' } }
+          } 
+        }
+      });
+
+      // --- Ranking (GWh) ---
+      const rankingDiv = document.getElementById('ranking-list');
+      data.rankingUsinas.forEach((u, i) => {
+        rankingDiv.innerHTML += `
+          <div class="ranking-item">
+            <div>
+              <strong>${i+1}. ${u.usina}</strong>
+            </div>
+            <div class="value">${fmtGWh(u.totalCortadoMwh)} GWh</div>
           </div>
-          <div class="value">${u.totalCortadoMwh.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</div>
-        </div>
-      `;
-    });
+        `;
+      });
 
-    // Auditoria
-    const tbody = document.getElementById('audit-table');
-    data.ultimosCortes.forEach(c => {
-      const duracao = (c.duracaoMinutos / 60).toFixed(1);
-      tbody.innerHTML += `
-        <tr>
-          <td style="white-space:nowrap">${c.dataHora}</td>
-          <td><strong>${c.usina}</strong></td>
-          <td>${duracao}h</td>
-          <td style="color:var(--crit); font-weight:600;">${c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
-        </tr>
-      `;
-    });
+      // --- Auditoria (MWh mantido aqui pois são valores unitários pequenos) ---
+      const tbody = document.getElementById('audit-table');
+      data.ultimosCortes.forEach(c => {
+        const duracao = (c.duracaoMinutos / 60).toFixed(1);
+        tbody.innerHTML += `
+          <tr>
+            <td style="white-space:nowrap">${c.dataHora}</td>
+            <td><strong>${c.usina}</strong></td>
+            <td>${duracao}h</td>
+            <td style="color:var(--crit); font-weight:600;">${c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
+          </tr>
+        `;
+      });
+
+      // --- Populate operador filter ---
+      const operadores = [...new Set(rankingUsinas.map(u => u.usina.split(' ')[0] + ' ' + u.usina.split(' ')[1]))];
+      // For now, just show "All" since we don't have operator data per cut
+
+    } catch(e) {
+      console.error('Erro ao carregar dados:', e);
+    }
   }
+
+  // Re-init on filter change
+  document.getElementById('filter-ano').addEventListener('change', () => { init(); });
 
   init();
 </script>

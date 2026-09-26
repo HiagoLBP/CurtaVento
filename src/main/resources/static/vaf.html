@@ -90,7 +90,7 @@
       <h3>Metodologia de Cálculo</h3>
       <ul>
         <li><strong>Preço MADI:</strong> Adotado o valor fixo de <span class="formula">R$ 150,00 / MWh</span> conforme histórico de liquidação na CCEE para a fonte eólica no submercado NE.</li>
-        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (MWh) × Preço MADI</span>.</li>
+        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (GWh) × Preço MADI</span>.</li>
         <li><strong>ICMS (Estado):</strong> Alíquota média de <span class="formula">18%</span> sobre a Receita Bruta Perdida.</li>
         <li><strong>Impacto VAF (Município):</strong> <span class="formula">25%</span> da perda de ICMS retorna ao município via cota-parte do VAF (Valor Adicionado Fiscal).</li>
       </ul>
@@ -120,7 +120,7 @@
         <thead>
           <tr>
             <th>Município (Alto Sertão BA)</th>
-            <th class="num-col">Energia Cortada (MWh)</th>
+            <th class="num-col">Energia Cortada (GWh)</th>
             <th class="num-col">Receita Perdida</th>
             <th class="num-col">Impacto VAF (Municipal)</th>
           </tr>
@@ -168,7 +168,7 @@
       tbody.innerHTML += `
         <tr>
           <td><strong>${item.municipio}</strong></td>
-          <td class="num-col">${item.energiaCortadaMwh.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
+          <td class="num-col">${(item.energiaCortadaMwh/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} GWh</td>
           <td class="num-col val-warn">${formatMoney(item.faturamentoPerdidoRs)}</td>
           <td class="num-col" style="color:var(--ok); font-weight:600;">${formatMoney(item.arrecadacaoPerdidaVafRs)}</td>
         </tr>
