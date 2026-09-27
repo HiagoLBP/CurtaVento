@@ -23,19 +23,7 @@ public class BackfillOnsService {
     private static final String URL_BASE =
             "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_eolica_detail_tm/RESTRICAO_COFF_EOLICA_DETAIL_%d_%02d.csv";
 
-    // O delimitador real dos arquivos do ONS é o ponto e vírgula, não a vírgula
     private static final String DELIMITADOR = ";";
-
-    // Os nomes reais como aparecem nos ficheiros do ONS na coluna nom_conjuntousina
-    private static final List<String> NOMES_CONJUNTO_ALVO = List.of(
-            "Conj. Caetité",
-            "Conj. Caetité 123",
-            "Conj. Caetité A",
-            "Conj. Caetité Norte",
-            "Conj. Igaporã II",
-            "Conj. Igaporã III 500 kV",
-            "Conj. Pindaí II 230 kV"
-    );
 
     private final HistoricoCorteOnsService corteService;
     private final UsinaRepository usinaRepository;
@@ -50,13 +38,13 @@ public class BackfillOnsService {
         String url = String.format(URL_BASE, ano, mes);
         System.out.println("Baixando: " + url);
 
-        Map<String, double[]> agregadoPorInstante = new HashMap<>(); // Chave: nomeUsina|din_instante
+        Map<String, double[]> agregadoPorInstante = new HashMap<>(); // Chave: usinaId|din_instante
         Map<String, Usina> cacheUsinaPorNome = new HashMap<>();
 
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.execute(url, HttpMethod.GET, null, response -> {
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(response.getBody(), java.nio.charset.StandardCharsets.UTF_8))) {
+                    new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
 
                 String headerLine = reader.readLine();
                 if (headerLine == null) return null;
@@ -64,7 +52,6 @@ public class BackfillOnsService {
 
                 String linha;
                 long totalLinhas = 0;
-                long linhasCasadas = 0;
 
                 while ((linha = reader.readLine()) != null) {
                     totalLinhas++;
@@ -74,21 +61,19 @@ public class BackfillOnsService {
                     String estado = col[idx.get("id_estado")].trim();
                     if (!"BA".equalsIgnoreCase(estado)) continue;
 
-                    String nomeUsina = col[idx.get("nom_conjuntousina")].trim();
-                    if (!bateComAlvo(nomeUsina)) continue;
+                    // AGORA LÊ A USINA EXATA, E NÃO O CONJUNTO!
+                    String nomeUsina = col[idx.get("nom_usina")].trim();
 
                     String flgRestrita = col[idx.get("flg_geracaorestrita")].trim();
                     if (!"1".equals(flgRestrita)) continue;
-
-                    linhasCasadas++;
 
                     double estimada = parseDecimalBr(col[idx.get("val_geracaoestimada")]);
                     double verificada = parseDecimalBr(col[idx.get("val_geracaoverificada")]);
                     String instanteStr = col[idx.get("din_instante")].trim();
 
-                    // Agrupamento NÍVEL 1: Por Usina (ID do banco) e por Instante de 30 min
+                    // Agrupamento NÍVEL 1: Por Usina Exata
                     Usina usinaDb = cacheUsinaPorNome.computeIfAbsent(nomeUsina, this::resolverUsinaPorNome);
-                    if (usinaDb == null) continue; // Ignora se não for alvo
+                    if (usinaDb == null) continue;
 
                     String chaveInstante = usinaDb.getId() + "|" + instanteStr;
                     double[] valoresInstante = agregadoPorInstante.computeIfAbsent(chaveInstante, k -> new double[2]);
@@ -112,7 +97,6 @@ public class BackfillOnsService {
             double sumEstimada = entry.getValue()[0];
             double sumVerificada = entry.getValue()[1];
             
-            // Aqui aplicamos a regra do ONS (Submódulo 6.5-PR): max(0, somaEstimada - somaVerificada) no conjunto unificado
             double corteNoBloco = Math.max(0, sumEstimada - sumVerificada) * 0.5; // MWmed * 0.5h = MWh
             
             if (corteNoBloco > 0) {
@@ -139,7 +123,7 @@ public class BackfillOnsService {
             corte.setDataCorte(LocalDateTime.of(dia, LocalTime.NOON));
             corte.setDuracaoMinutos(blocos * 30);
             corte.setEnergiaCortadaMwh(BigDecimal.valueOf(somaCorteMwh));
-            corte.setMotivoOns("ONS_DETALHAMENTO_USINA_SEM_MOTIVO");
+            corte.setMotivoOns("ONS_USINA_INDIVIDUAL");
 
             corteService.registrarCorte(corte);
             registrosGravados++;
@@ -174,14 +158,6 @@ public class BackfillOnsService {
         return idx;
     }
 
-    private boolean bateComAlvo(String nomeUsina) {
-        String upper = nomeUsina.toUpperCase();
-        for (String alvo : NOMES_CONJUNTO_ALVO) {
-            if (upper.contains(alvo.toUpperCase())) return true;
-        }
-        return false;
-    }
-
     private double parseDecimalBr(String valor) {
         if (valor == null || valor.isBlank()) return 0.0;
         try {
@@ -191,21 +167,57 @@ public class BackfillOnsService {
         }
     }
 
-    // AQUI ESTÁ A LÓGICA CORRIGIDA QUE DIRECIONA PARA OS IDs 1, 2 E 3
+    private List<Usina> cacheTodasUsinas = null;
+
+    private String removerAcentos(String str) {
+        if (str == null) return "";
+        return java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+    }
+
     private Usina resolverUsinaPorNome(String nomeOns) {
-        String upper = nomeOns.toUpperCase();
-        
-        List<Usina> todasUsinas = usinaRepository.findAll();
-        
-        if (upper.contains("PINDA")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("PINDA")).findFirst().orElse(null);
-        } else if (upper.contains("IGAPOR") && upper.contains("III")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("IGAPORA III")).findFirst().orElse(null);
-        } else if (upper.contains("IGAPOR") && upper.contains("II")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("IGAPORA II")).findFirst().orElse(null);
-        } else if (upper.contains("CAETIT")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("CAETITE")).findFirst().orElse(null);
+        if (cacheTodasUsinas == null) {
+            cacheTodasUsinas = usinaRepository.findAll();
         }
-        return null;
+        
+        String cleanOns = removerAcentos(nomeOns.toUpperCase())
+                .replace("EOLICA", "")
+                .replace("CENTRAL", "")
+                .replace("GERADORA", "")
+                
+                .replace("KV", "")
+                .trim();
+        
+        String[] palavrasOns = cleanOns.split("\\s+");
+        
+        Usina melhorUsina = null;
+        int maxScore = 0;
+        
+        for (Usina u : cacheTodasUsinas) {
+            String cleanDb = removerAcentos(u.getNome().toUpperCase());
+            String cleanOp = removerAcentos(u.getOperador() != null ? u.getOperador().toUpperCase() : "");
+            
+            int score = 0;
+            for (String p : palavrasOns) {
+                if (p.length() <= 2) {
+                    // permite algarismos romanos ex: I, II, III, IV se forem exatos
+                    if (!p.matches("I|II|III|IV|V|VI|VII|VIII|IX|X|[0-9]+")) continue;
+                }
+                if (p.equals("DE") || p.equals("DA") || p.equals("DO") || p.equals("DOS") || p.equals("DAS")) continue;
+                
+                // Correspondência parcial ganha pontos básicos
+                if (cleanDb.contains(p)) score += 2;
+                
+                // Correspondência exata da palavra (usando regex \b) ganha mega bonus
+                if (cleanDb.matches(".*\\b" + p + "\\b.*")) score += 10;
+                if (cleanOp.matches(".*\\b" + p + "\\b.*")) score += 5;
+            }
+            
+            if (score > maxScore && score > 0) {
+                maxScore = score;
+                melhorUsina = u;
+            }
+        }
+        
+        return melhorUsina;
     }
 }

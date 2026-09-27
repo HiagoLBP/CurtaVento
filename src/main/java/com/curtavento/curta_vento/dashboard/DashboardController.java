@@ -62,7 +62,7 @@ public class DashboardController {
 
         // 1. Usinas e Riscos (Sempre mostra a previsão para as próximas 24h, independente do ano do histórico)
         
-                java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
+        java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
         java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
         List<Object[]> rankingCortes = corteRepository.findRankingCortesAno(start, end);
         Map<String, Double> cortesMap = new HashMap<>();
