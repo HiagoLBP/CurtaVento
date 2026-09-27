@@ -10,6 +10,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@ConditionalOnProperty(name = "ons.backfill.enabled", havingValue = "false", matchIfMissing = true)
 public class IngestaoDadosClimaticosJob {
 
     private static final Logger logger = LoggerFactory.getLogger(IngestaoDadosClimaticosJob.class);
@@ -92,22 +94,8 @@ public class IngestaoDadosClimaticosJob {
                 
 
             if (ventoAtual == null) {
-                LeituraClimatica ultima = leituraService.buscarUltimaLeitura(usina.getId());
-                if (ultima != null) {
-                    ventoAtual = ultima.getVelocidadeVentoMs();
-                    vento24h = ultima.getVentoPrevisao24hMs();
-                    vento48h = ultima.getVentoPrevisao48hMs();
-                    tempAtual = ultima.getTemperaturaC();
-                    fonte = "CACHE_ANTIGO";
-                } else {
-                    logger.error("Nenhuma leitura anterior encontrada para usina ID {}. Usando valores zerados.", usina.getId());
-                    ventoAtual = null;
-                    vento24h = null;
-                    vento48h = null;
-                    tempAtual = null;
-                    fonte = "SEM_DADOS";
-                    // Removendo a atribuição de zeros que distorcia o modelo.
-                }
+                logger.error("Falha na fonte climática para usina ID {}. A leitura anterior será preservada sem nova data de atualização.", usina.getId());
+                continue;
             }
 
             
@@ -124,7 +112,7 @@ public class IngestaoDadosClimaticosJob {
             leitura.setVelocidadeVentoMs(ventoAtual);
             leitura.setVentoPrevisao24hMs(vento24h);
             leitura.setVentoPrevisao48hMs(vento48h);
-            leitura.setTemperaturaC(tempAtual != null ? tempAtual : BigDecimal.ZERO);
+            leitura.setTemperaturaC(tempAtual);
             leitura.setDirecaoVentoGraus(direcaoVento);
             leitura.setFonte(fonte);
             leitura.setDataHora(agora);
@@ -154,14 +142,14 @@ public class IngestaoDadosClimaticosJob {
             Object currentTempObj = current.get("temperature_2m");
             Object currentDirObj = current.get("wind_direction_80m");
             
-            BigDecimal ventoAtual = currentWindObj != null ? new BigDecimal(currentWindObj.toString()) : BigDecimal.ZERO;
-            BigDecimal tempAtual = currentTempObj != null ? new BigDecimal(currentTempObj.toString()) : BigDecimal.ZERO;
+            BigDecimal ventoAtual = currentWindObj != null ? new BigDecimal(currentWindObj.toString()) : null;
+            BigDecimal tempAtual = currentTempObj != null ? new BigDecimal(currentTempObj.toString()) : null;
             BigDecimal direcaoVento = currentDirObj != null ? new BigDecimal(currentDirObj.toString()) : null;
             
             List<?> windList = (List<?>) hourly.get("wind_speed_80m");
             
-            BigDecimal max24h = BigDecimal.ZERO;
-            BigDecimal max48h = BigDecimal.ZERO;
+            BigDecimal max24h = null;
+            BigDecimal max48h = null;
             
             if (windList != null && windList.size() >= 48) {
                 // Primeira 24 horas
@@ -169,7 +157,7 @@ public class IngestaoDadosClimaticosJob {
                     Object wObj = windList.get(i);
                     if (wObj != null) {
                         BigDecimal v = new BigDecimal(wObj.toString());
-                        if (v.compareTo(max24h) > 0) max24h = v;
+                        if (max24h == null || v.compareTo(max24h) > 0) max24h = v;
                     }
                 }
                 // Próximas 24 horas (24 a 47)
@@ -177,7 +165,7 @@ public class IngestaoDadosClimaticosJob {
                     Object wObj = windList.get(i);
                     if (wObj != null) {
                         BigDecimal v = new BigDecimal(wObj.toString());
-                        if (v.compareTo(max48h) > 0) max48h = v;
+                        if (max48h == null || v.compareTo(max48h) > 0) max48h = v;
                     }
                 }
             }

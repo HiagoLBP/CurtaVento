@@ -26,4 +26,10 @@ public interface HistoricoCorteOnsRepository extends JpaRepository<HistoricoCort
 
     @org.springframework.data.jpa.repository.Query("SELECT c.usina.municipio.nome, COUNT(DISTINCT c.usina.id), SUM(c.energiaCortadaMwh) FROM HistoricoCorteOns c WHERE c.dataCorte >= :inicio AND c.dataCorte <= :fim GROUP BY c.usina.municipio.nome ORDER BY SUM(c.energiaCortadaMwh) DESC")
     List<Object[]> findImpactoPorMunicipio(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio, @org.springframework.data.repository.query.Param("fim") java.time.LocalDateTime fim);
+
+    @org.springframework.data.jpa.repository.Query("SELECT c.motivoOns, SUM(c.energiaCortadaMwh) FROM HistoricoCorteOns c WHERE c.dataCorte >= :inicio AND c.dataCorte <= :fim GROUP BY c.motivoOns ORDER BY SUM(c.energiaCortadaMwh) DESC")
+    List<Object[]> findDistribuicaoMotivos(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio, @org.springframework.data.repository.query.Param("fim") java.time.LocalDateTime fim);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT c.usina.id) FROM HistoricoCorteOns c WHERE c.dataCorte >= :inicio AND c.dataCorte <= :fim AND c.energiaCortadaMwh > 0")
+    long countUsinasComEnergiaCortada(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio, @org.springframework.data.repository.query.Param("fim") java.time.LocalDateTime fim);
 }

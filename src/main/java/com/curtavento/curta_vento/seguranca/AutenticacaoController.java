@@ -21,8 +21,16 @@ public class AutenticacaoController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> dados) {
+        String email = dados == null ? null : dados.get("email");
+        String senha = dados == null ? null : dados.get("senha");
+        if (email == null || email.isBlank() || senha == null || senha.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Dados de login inválidos",
+                    "message", "Informe email e senha."));
+        }
+
         // Valida as credenciais
-        var tokenLogin = new UsernamePasswordAuthenticationToken(dados.get("email"), dados.get("senha"));
+        var tokenLogin = new UsernamePasswordAuthenticationToken(email.trim(), senha);
         var autenticacao = authManager.authenticate(tokenLogin);
 
         // Puxa o usuário e gera o token longo

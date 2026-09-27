@@ -123,6 +123,7 @@
     }
 
   const API_BASE = '';
+  const RISK_LABEL = { INDETERMINADO: 'Indeterminado', BAIXO: 'Baixo', MEDIO: 'Médio', ALTO: 'Alto', CRITICO: 'Crítico' };
 
   const RISK_COLOR = {
     'BAIXO': 'var(--ok)',
@@ -190,8 +191,10 @@
           if(parts.length === 3) dataStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
         
-        const perdaFinanceira = u.prejuizoFinanceiro || 0;
-        const perdaText = perdaFinanceira > 1000000 
+        const perdaFinanceira = u.prejuizoFinanceiro;
+        const riscoLabel = RISK_LABEL[u.risco] || 'Indeterminado';
+        const fatorRisco = u.fatorRisco || 'N/D';
+        const perdaText = perdaFinanceira == null ? 'N/D' : perdaFinanceira > 1000000
             ? `R$ ${(perdaFinanceira/1000000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} milhões`
             : `R$ ${(perdaFinanceira/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} mil`;
 
@@ -212,10 +215,10 @@
               
                 <div class="u-stat-row">
                   <span>Risco Atual:</span>
-                  <strong style="color:${color}" title="${u.fatorRisco || 'Sem dados'}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
+                  <strong style="color:${color}" title="${escapeHTML(fatorRisco)}"><span class="status-dot" style="background:${color}"></span> ${riscoLabel}</strong>
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px; margin-bottom: 8px; font-style: italic;">
-                  ${u.fatorRisco || ''}
+                  ${escapeHTML(fatorRisco)}
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
                   <span>Fonte: ${u.fonteClima === 'CACHE_ANTIGO' || u.fonteClima === 'SEM_DADOS' ? '<strong style="color:var(--warn)">' + u.fonteClima + '</strong>' : u.fonteClima || 'Open-Meteo'}</span>
@@ -227,7 +230,7 @@
               </div>
               <div class="u-stat-row">
                 <span>Energia Cortada:</span>
-                <strong class="val-crit">${((u.energiaCortada || 0)/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} GWh</strong>
+                <strong class="val-crit">${u.energiaCortada == null ? 'N/D' : ((u.energiaCortada/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' GWh')}</strong>
               </div>
               <div class="u-stat-row">
                 <span>Receita Perdida:</span>

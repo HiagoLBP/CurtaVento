@@ -8,11 +8,11 @@ import java.util.List;
 @Repository
 public interface PrevisaoRiscoRepository extends JpaRepository<PrevisaoRisco, Long> {
 
-    @org.springframework.data.jpa.repository.Query(value = "SELECT p.* FROM previsao_risco p INNER JOIN (SELECT usina_id, MAX(data_referencia) as max_data FROM previsao_risco GROUP BY usina_id) grouped ON p.usina_id = grouped.usina_id AND p.data_referencia = grouped.max_data", nativeQuery = true)
+    @org.springframework.data.jpa.repository.Query(value = "SELECT p.* FROM previsao_risco p WHERE NOT EXISTS (SELECT 1 FROM previsao_risco newer WHERE newer.usina_id = p.usina_id AND (newer.data_referencia > p.data_referencia OR (newer.data_referencia = p.data_referencia AND newer.id > p.id)))", nativeQuery = true)
     java.util.List<PrevisaoRisco> findUltimosRiscosGeral();
 
 
     List<PrevisaoRisco> findByUsinaId(Long usinaId);
-    PrevisaoRisco findFirstByUsinaIdAndDataReferencia(Long usinaId, java.time.LocalDate dataReferencia);
+    PrevisaoRisco findFirstByUsinaIdAndDataReferenciaOrderByIdDesc(Long usinaId, java.time.LocalDate dataReferencia);
     PrevisaoRisco findFirstByUsinaIdOrderByDataReferenciaDesc(Long usinaId);
 }

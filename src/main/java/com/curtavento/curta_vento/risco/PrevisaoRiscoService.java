@@ -26,7 +26,7 @@ public class PrevisaoRiscoService {
 
     public PrevisaoRisco calcularRisco(Usina usina, LeituraClimatica ultimaLeitura, int horizonteHoras) {
         LocalDate hoje = LocalDate.now();
-        PrevisaoRisco previsao = repository.findFirstByUsinaIdAndDataReferencia(usina.getId(), hoje);
+        PrevisaoRisco previsao = repository.findFirstByUsinaIdAndDataReferenciaOrderByIdDesc(usina.getId(), hoje);
         
         if (previsao == null) {
             previsao = new PrevisaoRisco();
@@ -36,10 +36,18 @@ public class PrevisaoRiscoService {
         previsao.setHorizonteHoras(horizonteHoras);
         previsao.setCriadoEm(LocalDateTime.now());
 
+        if (!leituraAtualizada(ultimaLeitura) || ultimaLeitura.getVentoPrevisao24hMs() == null) {
+            previsao.setNivelRisco(NivelRisco.INDETERMINADO);
+            previsao.setPercentualCorteEstimado(null);
+            previsao.setFatoresJustificativa(
+                    "Sem dados climáticos suficientes para confirmar o risco nas próximas 24 horas.");
+            return repository.save(previsao);
+        }
+
         int scoreRisco = 0;
         StringBuilder justificativa = new StringBuilder();
 
-        if (ultimaLeitura != null && ultimaLeitura.getVentoPrevisao24hMs() != null) {
+        if (ultimaLeitura.getVentoPrevisao24hMs() != null) {
             double vento = ultimaLeitura.getVentoPrevisao24hMs().doubleValue();
 
             // Calibrado para vento a 80m de altura
@@ -102,5 +110,11 @@ public class PrevisaoRiscoService {
         previsao.setFatoresJustificativa(justificativa.toString());
 
         return repository.save(previsao);
+    }
+
+    private boolean leituraAtualizada(LeituraClimatica leitura) {
+        if (leitura == null || leitura.getDataHora() == null) return false;
+        if ("CACHE_ANTIGO".equalsIgnoreCase(leitura.getFonte())) return false;
+        return !leitura.getDataHora().isBefore(LocalDateTime.now().minusHours(2));
     }
 }

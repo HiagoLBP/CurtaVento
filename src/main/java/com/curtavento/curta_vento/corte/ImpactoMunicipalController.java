@@ -17,19 +17,17 @@ public class ImpactoMunicipalController {
 
     private final HistoricoCorteOnsRepository repository;
 
-    // Premissas contábeis simuladas para a região da Bahia
-     // Preço médio de liquidação R$/MWh
-    private static final double ALIQUOTA_ICMS = 0.18; // 18% ICMS
-    private static final double REPASSE_MUNICIPIO = 0.25; // 25% do ICMS vai para os municípios via VAF
-
     public ImpactoMunicipalController(HistoricoCorteOnsRepository repository) {
         this.repository = repository;
     }
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getImpactoPorMunicipio(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "2026", required = false) int ano) {
-        java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
-        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        java.time.LocalDate hoje = java.time.LocalDate.now();
+        java.time.LocalDate dataFim = ano == hoje.getYear() ? hoje
+                : (ano < hoje.getYear() ? java.time.LocalDate.of(ano, 12, 31) : java.time.LocalDate.of(ano, 1, 1).minusDays(1));
+        java.time.LocalDateTime start = java.time.LocalDate.of(ano, 1, 1).atStartOfDay();
+        java.time.LocalDateTime end = dataFim.atTime(23, 59, 59);
         List<Object[]> resultados = repository.findImpactoPorMunicipio(start, end);
         List<Map<String, Object>> impactos = new ArrayList<>();
 
@@ -39,21 +37,17 @@ public class ImpactoMunicipalController {
             Long qtdUsinas = (Long) linha[1];
             BigDecimal totalCortado = (BigDecimal) linha[2];
             
-            if (totalCortado == null) totalCortado = BigDecimal.ZERO;
-            
-            double mwh = totalCortado.doubleValue();
-            double faturamentoBrutoPerdido = mwh * com.curtavento.curta_vento.util.PrecoEnergia.PRECO_MWH;
-            double totalIcmsNaoGerado = faturamentoBrutoPerdido * ALIQUOTA_ICMS;
-            double arrecadacaoMunicipalPerdida = totalIcmsNaoGerado * REPASSE_MUNICIPIO; // Dinheiro que a prefeitura perde
+            Double mwh = totalCortado != null ? totalCortado.doubleValue() : null;
 
             Map<String, Object> map = new HashMap<>();
             map.put("municipio", municipio);
             map.put("estado", estado);
             map.put("qtdUsinas", qtdUsinas);
             map.put("energiaCortadaMwh", mwh);
-            map.put("faturamentoPerdidoRs", faturamentoBrutoPerdido);
-            map.put("icmsNaoGeradoRs", totalIcmsNaoGerado);
-            map.put("arrecadacaoPerdidaVafRs", arrecadacaoMunicipalPerdida);
+            map.put("faturamentoPerdidoRs", null);
+            map.put("icmsNaoGeradoRs", null);
+            map.put("arrecadacaoPerdidaVafRs", null);
+            map.put("financeiroDisponivel", false);
             
             impactos.add(map);
         }

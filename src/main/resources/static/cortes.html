@@ -243,10 +243,11 @@
 
   async function init() {
     try {
+      const ano = document.getElementById('filter-ano').value;
       const [evolucao, motivos, rankingUsinas, ultimosCortes] = await Promise.all([
-        fetchWithAuth('/api/cortes-ons/evolucao'),
-        fetchWithAuth('/api/cortes-ons/motivos'),
-        fetchWithAuth('/api/cortes-ons/ranking'),
+        fetchWithAuth(`/api/cortes-ons/evolucao?ano=${ano}`),
+        fetchWithAuth(`/api/cortes-ons/motivos?ano=${ano}`),
+        fetchWithAuth(`/api/cortes-ons/ranking?ano=${ano}`),
         fetchWithAuth('/api/cortes-ons/auditoria')
       ]);
       if (!evolucao || !motivos || !rankingUsinas || !ultimosCortes) return;
@@ -261,19 +262,22 @@
       };
 
       // --- KPI: Total perdido no ano ---
-      const totalAno = data.evolucaoValores.reduce((a, b) => a + b, 0);
+      const totalAno = data.evolucaoValores.reduce((a, b) => a + (b || 0), 0);
       document.getElementById('kpi-inline-total').textContent = fmtGWh(totalAno) + ' GWh';
       document.getElementById('kpi-inline-usinas').textContent = rankingUsinas.length;
 
       // --- KPI: Mês atual vs mês anterior (TREND) ---
-      const now = new Date();
-      const mesAtualIdx = now.getMonth(); // 0-based (Jan=0)
-      const mesAtualVal = data.evolucaoValores[mesAtualIdx] || 0;
-      const mesAnteriorVal = mesAtualIdx > 0 ? (data.evolucaoValores[mesAtualIdx - 1] || 0) : 0;
-      
-      document.getElementById('kpi-mes-atual').textContent = fmtGWh(mesAtualVal) + ' GWh';
-      
-      if (mesAnteriorVal > 0) {
+      const hoje = new Date();
+      const mesAtualIdx = Number(ano) === hoje.getFullYear() ? hoje.getMonth() : 11;
+      const mesAtualObservado = evolucao[mesAtualIdx] && evolucao[mesAtualIdx].observado;
+      const mesAtualVal = data.evolucaoValores[mesAtualIdx];
+      const mesAnteriorVal = mesAtualIdx > 0 ? data.evolucaoValores[mesAtualIdx - 1] : null;
+
+      document.getElementById('kpi-mes-atual').textContent = mesAtualObservado && mesAtualVal != null
+        ? fmtGWh(mesAtualVal) + ' GWh'
+        : 'N/D';
+
+      if (mesAtualObservado && mesAtualVal != null && mesAnteriorVal > 0) {
         const variacao = ((mesAtualVal - mesAnteriorVal) / mesAnteriorVal) * 100;
         const trendEl = document.getElementById('kpi-trend-mes');
         if (variacao > 0) {
@@ -300,7 +304,9 @@
       // --- KPI: Usina mais afetada ---
       if (rankingUsinas.length > 0) {
         document.getElementById('kpi-usina-top').textContent = rankingUsinas[0].usina;
-        document.getElementById('kpi-usina-valor').textContent = fmtGWh(rankingUsinas[0].totalCortadoMwh) + ' GWh perdidos';
+        document.getElementById('kpi-usina-valor').textContent = rankingUsinas[0].totalCortadoMwh == null
+          ? 'N/D'
+          : fmtGWh(rankingUsinas[0].totalCortadoMwh) + ' GWh perdidos';
       }
 
       // --- Chart Linha (GWh) ---
@@ -310,7 +316,7 @@
           labels: data.evolucaoMeses,
           datasets: [{
             label: 'GWh Cortado',
-            data: data.evolucaoValores.map(v => toGWh(v)),
+            data: data.evolucaoValores.map(v => v == null ? null : toGWh(v)),
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59,130,246,0.1)',
             borderWidth: 2,
@@ -356,7 +362,7 @@
             <div>
               <strong>${i+1}. ${u.usina}</strong>
             </div>
-            <div class="value">${fmtGWh(u.totalCortadoMwh)} GWh</div>
+            <div class="value">${u.totalCortadoMwh == null ? 'N/D' : fmtGWh(u.totalCortadoMwh) + ' GWh'}</div>
           </div>
         `;
       });
@@ -370,7 +376,7 @@
             <td style="white-space:nowrap">${c.dataHora}</td>
             <td><strong>${c.usina}</strong></td>
             <td>${duracao}h</td>
-            <td style="color:var(--crit); font-weight:600;">${c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
+            <td style="color:var(--crit); font-weight:600;">${c.energiaCortada == null ? 'N/D' : c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' MWh'}</td>
           </tr>
         `;
       });

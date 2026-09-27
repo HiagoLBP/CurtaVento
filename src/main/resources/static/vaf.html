@@ -91,10 +91,9 @@
     <div class="methodology-box">
       <h3>Metodologia de Cálculo</h3>
       <ul>
-        <li><strong>Preço MADI:</strong> Adotado o valor fixo de <span class="formula">R$ 200,00 / MWh</span> conforme histórico de liquidação na CCEE para a fonte eólica no submercado NE.</li>
-        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (GWh) × Preço MADI</span>.</li>
-        <li><strong>ICMS (Estado):</strong> Alíquota média de <span class="formula">18%</span> sobre a Receita Bruta Perdida.</li>
-        <li><strong>Impacto VAF (Município):</strong> <span class="formula">25%</span> da perda de ICMS retorna ao município via cota-parte do VAF (Valor Adicionado Fiscal).</li>
+        <li><strong>Preço da energia:</strong> indisponível; o sistema não possui série verificável de preço por período.</li>
+        <li><strong>Receita Bruta Perdida:</strong> não calculada enquanto não houver preço de energia com fonte e período.</li>
+        <li><strong>ICMS e VAF:</strong> não calculados; alíquotas e cota-parte dependem da regra fiscal oficial aplicável ao município e ao período.</li>
       </ul>
       <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--high);">* Os valores apresentados são uma simulação educacional e não representam laudo fiscal oficial.</p>
     </div>
@@ -106,12 +105,12 @@
         <p class="card-subtitle">Perda total faturamento (Usinas)</p>
       </div>
       <div class="card">
-        <h3 class="card-title">Perda de ICMS (18%)</h3>
+        <h3 class="card-title">Perda de ICMS</h3>
         <p class="card-value val-brand" id="kpi-icms">R$ 0,00</p>
         <p class="card-subtitle">Perda total de arrecadação (Estado)</p>
       </div>
       <div class="card">
-        <h3 class="card-title">Impacto VAF Municipal (25%)</h3>
+        <h3 class="card-title">Impacto VAF Municipal</h3>
         <p class="card-value val-ok" id="kpi-vaf">R$ 0,00</p>
         <p class="card-subtitle">Deixou de retornar aos municípios</p>
       </div>
@@ -199,23 +198,23 @@
     tbody.innerHTML = '';
 
     data.forEach(item => {
-      totalReceita += item.faturamentoPerdidoRs;
-      totalIcms += item.icmsNaoGeradoRs;
-      totalVaf += item.arrecadacaoPerdidaVafRs;
+      if (item.faturamentoPerdidoRs != null) totalReceita += item.faturamentoPerdidoRs;
+      if (item.icmsNaoGeradoRs != null) totalIcms += item.icmsNaoGeradoRs;
+      if (item.arrecadacaoPerdidaVafRs != null) totalVaf += item.arrecadacaoPerdidaVafRs;
 
       tbody.innerHTML += `
         <tr>
           <td><strong>${escapeHTML(item.municipio)}</strong></td>
-          <td class="num-col">${(item.energiaCortadaMwh/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} GWh</td>
-          <td class="num-col val-warn">${formatMoney(item.faturamentoPerdidoRs)}</td>
-          <td class="num-col" style="color:var(--ok); font-weight:600;">${formatMoney(item.arrecadacaoPerdidaVafRs)}</td>
+          <td class="num-col">${item.energiaCortadaMwh == null ? 'N/D' : (item.energiaCortadaMwh/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' GWh'}</td>
+          <td class="num-col val-warn">${item.faturamentoPerdidoRs == null ? 'N/D' : formatMoney(item.faturamentoPerdidoRs)}</td>
+          <td class="num-col" style="color:var(--ok); font-weight:600;">${item.arrecadacaoPerdidaVafRs == null ? 'N/D' : formatMoney(item.arrecadacaoPerdidaVafRs)}</td>
         </tr>
       `;
     });
 
-    document.getElementById('kpi-receita').innerHTML = formatMoney(totalReceita);
-    document.getElementById('kpi-icms').innerHTML = formatMoney(totalIcms);
-    document.getElementById('kpi-vaf').innerHTML = formatMoney(totalVaf);
+    document.getElementById('kpi-receita').innerHTML = data.some(item => item.faturamentoPerdidoRs != null) ? formatMoney(totalReceita) : 'N/D';
+    document.getElementById('kpi-icms').innerHTML = data.some(item => item.icmsNaoGeradoRs != null) ? formatMoney(totalIcms) : 'N/D';
+    document.getElementById('kpi-vaf').innerHTML = data.some(item => item.arrecadacaoPerdidaVafRs != null) ? formatMoney(totalVaf) : 'N/D';
   }
 
   init();

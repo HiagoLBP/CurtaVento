@@ -62,14 +62,21 @@ public class DashboardController {
 
         // 1. Usinas e Riscos (Sempre mostra a previsão para as próximas 24h, independente do ano do histórico)
         
-                java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
-        java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+                LocalDate hoje = LocalDate.now();
+                LocalDate dataInicio = LocalDate.of(ano, 1, 1);
+                LocalDate dataFim = ano == hoje.getYear()
+                        ? hoje
+                        : (ano < hoje.getYear() ? LocalDate.of(ano, 12, 31) : dataInicio.minusDays(1));
+                java.time.LocalDateTime start = dataInicio.atStartOfDay();
+                java.time.LocalDateTime end = dataFim.atTime(23, 59, 59);
         List<Object[]> rankingCortes = corteRepository.findRankingCortesAno(start, end);
         Map<String, Double> cortesMap = new HashMap<>();
         for (Object[] row : rankingCortes) {
             String uName = (String) row[0];
             java.math.BigDecimal val = (java.math.BigDecimal) row[1];
-            cortesMap.put(uName, val != null ? val.doubleValue() : 0.0);
+            if (val != null) {
+                cortesMap.put(uName, val.doubleValue());
+            }
         }
         
         List<com.curtavento.curta_vento.clima.LeituraClimatica> todasLeituras = leituraRepo.findUltimasLeiturasGeral();
@@ -85,8 +92,9 @@ public class DashboardController {
         }
 
         List<Map<String, Object>> usinasDTO = new ArrayList<>();
+        List<Usina> todasUsinas = usinaService.listarTodas();
 
-        for (Usina u : usinaService.listarTodas()) {
+        for (Usina u : todasUsinas) {
             Map<String, Object> dto = new HashMap<>();
             dto.put("nome", u.getNome());
             dto.put("operador", u.getOperador());
@@ -96,19 +104,22 @@ public class DashboardController {
             dto.put("municipio", u.getMunicipio() != null ? u.getMunicipio().getNome() : "N/D");
             dto.put("dataInicio", u.getDataInicioOperacao());
 
-            String riscoBase = "BAIXO";
+            String riscoBase = "INDETERMINADO";
             PrevisaoRisco ultima = riscoMap.get(u.getId());
-            if (ultima != null) {
+            LeituraClimatica ultimaLeitura = leituraMap.get(u.getId());
+            boolean climaDisponivel = leituraAtualizada(ultimaLeitura)
+                    && ultimaLeitura.getVentoPrevisao24hMs() != null;
+            if (ultima != null && climaDisponivel) {
                 riscoBase = ultima.getNivelRisco().name();
                 dto.put("risco", riscoBase);
-                  dto.put("fatorRisco", ultima.getFatoresJustificativa());
+                dto.put("fatorRisco", ultima.getFatoresJustificativa());
                 dto.put("corte", ultima.getPercentualCorteEstimado() + "%");
             } else {
-                dto.put("risco", "BAIXO");
-                dto.put("corte", "0%");
+                dto.put("risco", "INDETERMINADO");
+                dto.put("fatorRisco", "Sem dados climáticos suficientes para confirmar o risco.");
+                dto.put("corte", "N/D");
             }
 
-            LeituraClimatica ultimaLeitura = leituraMap.get(u.getId());
             if (ultimaLeitura != null) {
                 java.math.BigDecimal ventoBd = ultimaLeitura.getVelocidadeVentoMs();
                 Double ventoMs = ventoBd != null ? ventoBd.doubleValue() : null;
@@ -133,9 +144,9 @@ public class DashboardController {
                     }
                 } else {
                     dto.put("janelaManutencao", "N/D");
-                  dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
-                  dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
                 }
+                dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
+                dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
             } else {
                 dto.put("vento", "N/D");
                 dto.put("vento24h", "N/D");
@@ -144,14 +155,16 @@ public class DashboardController {
                 dto.put("risco24h", "N/D");
                 dto.put("risco48h", "N/D");
                 dto.put("janelaManutencao", "N/D");
-                  dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
-                  dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
+                dto.put("fonteClima", "N/D");
+                dto.put("dataClima", "N/D");
             }
 
             double somaCortesUsina = cortesMap.getOrDefault(u.getNome(), 0.0);
             
             dto.put("energiaCortada", somaCortesUsina);
-            dto.put("prejuizoFinanceiro", somaCortesUsina * 200.0);
+            dto.put("prejuizoFinanceiro", null);
+            dto.put("financeiroDisponivel", false);
+            dto.put("energiaCortadaDefinicao", "Soma dos registros ONS no período selecionado, em MWh.");
 
             usinasDTO.add(dto);
         }
@@ -159,7 +172,9 @@ public class DashboardController {
         
         
         // Ordena por maior prejuizo e aplica o limite
-        usinasDTO.sort((a, b) -> Double.compare((Double) b.get("prejuizoFinanceiro"), (Double) a.get("prejuizoFinanceiro")));
+        usinasDTO.sort((a, b) -> Double.compare(
+                (Double) b.get("energiaCortada"),
+                (Double) a.get("energiaCortada")));
         if (limite < usinasDTO.size()) {
             usinasDTO = usinasDTO.subList(0, limite);
         }
@@ -174,40 +189,67 @@ public class DashboardController {
         for (Object[] linha : impactosMun) {
             String nome = (String) linha[0];
             java.math.BigDecimal totalCortado = (java.math.BigDecimal) linha[2];
-            double mwh = totalCortado != null ? totalCortado.doubleValue() : 0.0;
-            
-            double perdaReceitaReal = mwh * 200.0;
-            double impactoReal = perdaReceitaReal * 0.18 * 0.25; // 18% ICMS, 25% repasse VAF
+            if (totalCortado == null) {
+                continue;
+            }
+            double mwh = totalCortado.doubleValue();
             
             Map<String, Object> dto = new HashMap<>();
             dto.put("nome", nome);
-            dto.put("valor", impactoReal);
-            dto.put("max", 50000000.0);
-            dto.put("trend", "Calculado");
+            dto.put("valor", null);
+            dto.put("max", null);
+            dto.put("trend", "Indisponível: faltam preço verificável e regra fiscal municipal.");
             
             somaEnergiaTotal += mwh;
-            somaImpactoTotal += impactoReal;
-            somaPerdaReceitaTotal += perdaReceitaReal;
             
             municipiosDTO.add(dto);
         }
 
-        // Injeção dos dados analisados da subestação BAIGT para o painel de impacto
         Map<String, Double> motivos = new HashMap<>();
-        motivos.put("ENE (Energética)", somaEnergiaTotal * 0.55);
-        motivos.put("REL (Rede Local - Estimado)", somaEnergiaTotal * 0.33);
-        motivos.put("CNF (Confiabilidade - Estimado)", somaEnergiaTotal * 0.12);
+        for (Object[] linha : corteRepository.findDistribuicaoMotivos(start, end)) {
+            String motivo = linha[0] != null && !linha[0].toString().isBlank()
+                    ? linha[0].toString()
+                    : "Não informado";
+            java.math.BigDecimal total = (java.math.BigDecimal) linha[1];
+            if (total != null) {
+                motivos.put(motivo, total.doubleValue());
+            }
+        }
 
         Map<String, Object> resposta = new HashMap<>();
         resposta.put("usinas", usinasDTO);
         resposta.put("municipios", municipiosDTO);
         resposta.put("energiaTotal", somaEnergiaTotal);
-        resposta.put("impactoTotal", somaImpactoTotal);
-        resposta.put("perdaReceitaTotal", somaPerdaReceitaTotal);
-        resposta.put("taxaDesperdicio", 31.9);
+        resposta.put("impactoTotal", null);
+        resposta.put("perdaReceitaTotal", null);
+        resposta.put("taxaDesperdicio", null);
         resposta.put("motivosCorte", motivos);
+        resposta.put("periodoInicio", dataInicio.toString());
+        resposta.put("periodoFim", dataFim.isBefore(dataInicio) ? null : dataFim.toString());
+        resposta.put("dadosDisponiveisAte", hoje.toString());
+        resposta.put("periodoCompleto", ano < hoje.getYear());
+        resposta.put("usinasConsideradas", todasUsinas.size());
+        resposta.put("usinasAfetadas", corteRepository.countUsinasComEnergiaCortada(start, end));
+        resposta.put("definicaoUsinaAfetada", "Usina com pelo menos um registro ONS de energia cortada maior que zero no período.");
+        long climaComDados = leituraMap.values().stream()
+                .filter(l -> l.getVentoPrevisao24hMs() != null)
+                .count();
+        resposta.put("coberturaClimatica", Map.of(
+                "comDados", climaComDados,
+                "semDados", Math.max(0, todasUsinas.size() - climaComDados),
+                "total", todasUsinas.size()));
+        resposta.put("financeiroDisponivel", false);
+        resposta.put("motivoIndisponibilidadeFinanceira", "Não há preço de energia verificável nem regra fiscal municipal parametrizada no banco.");
+        resposta.put("metodologiaFinanceira", "Não calculada: falta fonte verificável de preço por período.");
+        resposta.put("metodologiaImpactoMunicipal", "Não calculado: a relação entre ICMS, VAF e município não está parametrizada com fonte oficial.");
 
         return ResponseEntity.ok(resposta);
+    }
+
+    private boolean leituraAtualizada(LeituraClimatica leitura) {
+        if (leitura == null || leitura.getDataHora() == null) return false;
+        if ("CACHE_ANTIGO".equalsIgnoreCase(leitura.getFonte())) return false;
+        return !leitura.getDataHora().isBefore(java.time.LocalDateTime.now().minusHours(2));
     }
 
     private String calcularRiscoVisual(String riscoBase, Double vento) {

@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.text.Normalizer;
 import java.util.*;
 
 @Service
@@ -26,32 +27,36 @@ public class BackfillOnsService {
     // O delimitador real dos arquivos do ONS é o ponto e vírgula, não a vírgula
     private static final String DELIMITADOR = ";";
 
-    // Os nomes reais como aparecem nos ficheiros do ONS na coluna nom_conjuntousina
-    private static final List<String> NOMES_CONJUNTO_ALVO = List.of(
-            "Conj. Caetité",
-            "Conj. Caetité 123",
-            "Conj. Caetité A",
-            "Conj. Caetité Norte",
-            "Conj. Igaporã II",
-            "Conj. Igaporã III 500 kV",
-            "Conj. Pindaí II 230 kV"
-    );
-
     private final HistoricoCorteOnsService corteService;
     private final UsinaRepository usinaRepository;
+    private final HistoricoCorteOnsBlocoRepository blocoRepository;
 
     @Autowired
-    public BackfillOnsService(HistoricoCorteOnsService corteService, UsinaRepository usinaRepository) {
+    public BackfillOnsService(HistoricoCorteOnsService corteService, UsinaRepository usinaRepository,
+                              HistoricoCorteOnsBlocoRepository blocoRepository) {
         this.corteService = corteService;
         this.usinaRepository = usinaRepository;
+        this.blocoRepository = blocoRepository;
     }
 
     public int baixarEProcessarMes(int ano, int mes) {
         String url = String.format(URL_BASE, ano, mes);
         System.out.println("Baixando: " + url);
 
-        Map<String, double[]> agregadoPorInstante = new HashMap<>(); // Chave: nomeUsina|din_instante
+        Map<String, BigDecimal[]> agregadoPorInstante = new HashMap<>(); // Chave: usina|din_instante
         Map<String, Usina> cacheUsinaPorNome = new HashMap<>();
+        Map<String, String> motivoPorInstante = new HashMap<>();
+        Map<String, Usina> usinasPorNomeNormalizado = new HashMap<>();
+        Set<String> nomesAmbiguos = new HashSet<>();
+        for (Usina usina : usinaRepository.findAll()) {
+            String nomeNormalizado = normalizarNome(usina.getNome());
+            if (nomeNormalizado.isBlank()) continue;
+            if (usinasPorNomeNormalizado.containsKey(nomeNormalizado)) {
+                nomesAmbiguos.add(nomeNormalizado);
+            } else {
+                usinasPorNomeNormalizado.put(nomeNormalizado, usina);
+            }
+        }
 
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.execute(url, HttpMethod.GET, null, response -> {
@@ -74,62 +79,106 @@ public class BackfillOnsService {
                     String estado = col[idx.get("id_estado")].trim();
                     if (!"BA".equalsIgnoreCase(estado)) continue;
 
-                    String nomeUsina = col[idx.get("nom_conjuntousina")].trim();
-                    if (!bateComAlvo(nomeUsina)) continue;
-
-                    String flgRestrita = col[idx.get("flg_geracaorestrita")].trim();
-                    if (!"1".equals(flgRestrita)) continue;
+                    String nomeUsina = valor(col, idx, "nom_usina", "nom_conjuntousina");
+                    Integer minutosRestricao = inteiroOpcional(col, idx, "num_minutos_restricao");
+                    String limitada = valor(col, idx, "val_geracaolimitada");
+                    String flagRestrita = valor(col, idx, "flg_geracaorestrita");
+                    if ((minutosRestricao == null || minutosRestricao <= 0)
+                            && limitada.isBlank() && !"1".equals(flagRestrita)) continue;
 
                     linhasCasadas++;
 
-                    double estimada = parseDecimalBr(col[idx.get("val_geracaoestimada")]);
-                    double verificada = parseDecimalBr(col[idx.get("val_geracaoverificada")]);
+                    Double verificada = decimalOpcional(col, idx, "val_geracao", "val_geracaoverificada");
+                    Double referencia = decimalOpcional(col, idx, "val_geracaoreferencia", "val_geracaoestimada");
+                    Double gnra = decimalOpcional(col, idx, "val_geracaonaorealizadaapurada");
+                    if (verificada == null || referencia == null) {
+                        continue;
+                    }
+                    double energiaMwh = gnra != null
+                            ? gnra * (minutosRestricao != null && minutosRestricao > 0
+                            ? minutosRestricao / 60.0 : 0.5)
+                            : Math.max(0, referencia - verificada) * 0.5;
+                    if (energiaMwh <= 0) continue;
                     String instanteStr = col[idx.get("din_instante")].trim();
 
                     // Agrupamento NÍVEL 1: Por Usina (ID do banco) e por Instante de 30 min
-                    Usina usinaDb = cacheUsinaPorNome.computeIfAbsent(nomeUsina, this::resolverUsinaPorNome);
+                    Usina usinaDb = cacheUsinaPorNome.computeIfAbsent(nomeUsina,
+                            nome -> resolverUsinaPorNome(nome, usinasPorNomeNormalizado, nomesAmbiguos));
                     if (usinaDb == null) continue; // Ignora se não for alvo
 
                     String chaveInstante = usinaDb.getId() + "|" + instanteStr;
-                    double[] valoresInstante = agregadoPorInstante.computeIfAbsent(chaveInstante, k -> new double[2]);
-                    valoresInstante[0] += estimada;
-                    valoresInstante[1] += verificada;
+                    BigDecimal[] valoresInstante = agregadoPorInstante.computeIfAbsent(
+                            chaveInstante, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+                    valoresInstante[0] = valoresInstante[0].add(BigDecimal.valueOf(referencia));
+                    valoresInstante[1] = valoresInstante[1].add(BigDecimal.valueOf(verificada));
+                    valoresInstante[2] = valoresInstante[2].add(BigDecimal.valueOf(energiaMwh));
+                    motivoPorInstante.putIfAbsent(chaveInstante, motivoOns(col, idx));
                 }
             }
             return null;
         });
 
         // Agrupamento NÍVEL 2: Calcular o corte final por dia com a correção de Jensen
-        Map<String, double[]> agregadoPorUsinaEDia = new HashMap<>();
+        Map<String, BigDecimal[]> agregadoPorUsinaEDia = new HashMap<>();
+        List<HistoricoCorteOnsBloco> blocosParaSalvar = new ArrayList<>();
+        Map<Long, Usina> usinasPorId = new HashMap<>();
+        for (Usina usina : cacheUsinaPorNome.values()) {
+            if (usina != null) usinasPorId.put(usina.getId(), usina);
+        }
+        LocalDateTime inicioMes = LocalDateTime.of(ano, mes, 1, 0, 0);
+        LocalDateTime fimMes = inicioMes.plusMonths(1).minusNanos(1);
+        Map<String, HistoricoCorteOnsBloco> blocosExistentes = new HashMap<>();
+        for (HistoricoCorteOnsBloco existente : blocoRepository.findByInstanteBetween(inicioMes, fimMes)) {
+            blocosExistentes.put(chaveBloco(existente.getUsina().getId(), existente.getInstante()), existente);
+        }
         
-        for (Map.Entry<String, double[]> entry : agregadoPorInstante.entrySet()) {
+        for (Map.Entry<String, BigDecimal[]> entry : agregadoPorInstante.entrySet()) {
             String[] partes = entry.getKey().split("\\|");
             Long usinaId = Long.parseLong(partes[0]);
             
             LocalDateTime instante = LocalDateTime.parse(partes[1], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             LocalDate dia = instante.toLocalDate();
             
-            double sumEstimada = entry.getValue()[0];
-            double sumVerificada = entry.getValue()[1];
+            BigDecimal sumEstimada = entry.getValue()[0];
+            BigDecimal sumVerificada = entry.getValue()[1];
             
             // Aqui aplicamos a regra do ONS (Submódulo 6.5-PR): max(0, somaEstimada - somaVerificada) no conjunto unificado
-            double corteNoBloco = Math.max(0, sumEstimada - sumVerificada) * 0.5; // MWmed * 0.5h = MWh
+            BigDecimal corteNoBloco = entry.getValue()[2];
+
+            Usina usina = usinasPorId.get(usinaId);
+            if (usina != null) {
+                HistoricoCorteOnsBloco bloco = blocosExistentes.get(chaveBloco(usinaId, instante));
+                if (bloco == null) {
+                    bloco = new HistoricoCorteOnsBloco();
+                    bloco.setUsina(usina);
+                    bloco.setInstante(instante);
+                }
+                bloco.setGeracaoEstimadaMw(sumEstimada);
+                bloco.setGeracaoVerificadaMw(sumVerificada);
+                bloco.setEnergiaCortadaMwh(corteNoBloco);
+                bloco.setMotivoOns(motivoPorInstante.getOrDefault(
+                        entry.getKey(), "ONS_DETALHAMENTO_USINA_SEM_MOTIVO"));
+                blocosParaSalvar.add(bloco);
+            }
             
-            if (corteNoBloco > 0) {
+            if (corteNoBloco.signum() > 0) {
                 String chaveDia = usinaId + "|" + dia;
-                double[] acumulado = agregadoPorUsinaEDia.computeIfAbsent(chaveDia, k -> new double[2]);
-                acumulado[0] += corteNoBloco;
-                acumulado[1] += 1; // 1 bloco com corte
+                BigDecimal[] acumulado = agregadoPorUsinaEDia.computeIfAbsent(
+                        chaveDia, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+                acumulado[0] = acumulado[0].add(corteNoBloco);
+                acumulado[1] = acumulado[1].add(BigDecimal.ONE); // 1 bloco com corte
             }
         }
 
+        blocoRepository.saveAll(blocosParaSalvar);
+
         int registrosGravados = 0;
-        for (Map.Entry<String, double[]> entrada : agregadoPorUsinaEDia.entrySet()) {
+        for (Map.Entry<String, BigDecimal[]> entrada : agregadoPorUsinaEDia.entrySet()) {
             String[] partes = entrada.getKey().split("\\|");
             Long usinaId = Long.parseLong(partes[0]);
             LocalDate dia = LocalDate.parse(partes[1]);
-            double somaCorteMwh = entrada.getValue()[0];
-            int blocos = (int) entrada.getValue()[1];
+            BigDecimal somaCorteMwh = entrada.getValue()[0];
+            int blocos = entrada.getValue()[1].intValueExact();
 
             Usina usina = usinaRepository.findById(usinaId).orElse(null);
             if (usina == null) continue;
@@ -138,7 +187,7 @@ public class BackfillOnsService {
             corte.setUsina(usina);
             corte.setDataCorte(LocalDateTime.of(dia, LocalTime.NOON));
             corte.setDuracaoMinutos(blocos * 30);
-            corte.setEnergiaCortadaMwh(BigDecimal.valueOf(somaCorteMwh));
+            corte.setEnergiaCortadaMwh(somaCorteMwh);
             corte.setMotivoOns("ONS_DETALHAMENTO_USINA_SEM_MOTIVO");
 
             corteService.registrarCorte(corte);
@@ -147,6 +196,10 @@ public class BackfillOnsService {
 
         System.out.println("Backfill de " + mes + "/" + ano + " concluído: " + registrosGravados + " registros diários gravados.");
         return registrosGravados;
+    }
+
+    private String chaveBloco(Long usinaId, LocalDateTime instante) {
+        return usinaId + "|" + instante;
     }
 
     public int baixarEProcessarIntervalo(int anoInicio, int mesInicio, int anoFim, int mesFim) {
@@ -174,38 +227,82 @@ public class BackfillOnsService {
         return idx;
     }
 
-    private boolean bateComAlvo(String nomeUsina) {
-        String upper = nomeUsina.toUpperCase();
-        for (String alvo : NOMES_CONJUNTO_ALVO) {
-            if (upper.contains(alvo.toUpperCase())) return true;
-        }
-        return false;
-    }
-
-    private double parseDecimalBr(String valor) {
-        if (valor == null || valor.isBlank()) return 0.0;
+    private Double parseDecimalBr(String valor) {
+        if (valor == null || valor.isBlank()) return null;
         try {
             return Double.parseDouble(valor.trim().replace(",", "."));
         } catch (NumberFormatException e) {
-            return 0.0;
+            return null;
         }
     }
 
-    // AQUI ESTÁ A LÓGICA CORRIGIDA QUE DIRECIONA PARA OS IDs 1, 2 E 3
-    private Usina resolverUsinaPorNome(String nomeOns) {
-        String upper = nomeOns.toUpperCase();
-        
-        List<Usina> todasUsinas = usinaRepository.findAll();
-        
-        if (upper.contains("PINDA")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("PINDA")).findFirst().orElse(null);
-        } else if (upper.contains("IGAPOR") && upper.contains("III")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("IGAPORA III")).findFirst().orElse(null);
-        } else if (upper.contains("IGAPOR") && upper.contains("II")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("IGAPORA II")).findFirst().orElse(null);
-        } else if (upper.contains("CAETIT")) {
-            return todasUsinas.stream().filter(u -> u.getNome().toUpperCase().contains("CAETITE")).findFirst().orElse(null);
+    private String valor(String[] colunas, Map<String, Integer> indices, String... nomes) {
+        for (String nome : nomes) {
+            Integer indice = indices.get(nome);
+            if (indice != null && indice < colunas.length) {
+                return colunas[indice].trim();
+            }
         }
-        return null;
+        return "";
+    }
+
+    private Double decimalOpcional(String[] colunas, Map<String, Integer> indices, String... nomes) {
+        return parseDecimalBr(valor(colunas, indices, nomes));
+    }
+
+    private Integer inteiroOpcional(String[] colunas, Map<String, Integer> indices, String... nomes) {
+        String texto = valor(colunas, indices, nomes);
+        if (texto.isBlank()) return null;
+        try {
+            return Integer.valueOf(texto);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String motivoOns(String[] colunas, Map<String, Integer> indices) {
+        String detalhe = valor(colunas, indices, "dsc_restricao");
+        String razao = valor(colunas, indices, "cod_razaorestricao");
+        String origem = valor(colunas, indices, "cod_origemrestricao");
+        StringBuilder motivo = new StringBuilder();
+        if (!razao.isBlank()) motivo.append(razao);
+        if (!origem.isBlank()) {
+            if (motivo.length() > 0) motivo.append(" - ");
+            motivo.append(origem);
+        }
+        if (!detalhe.isBlank()) {
+            if (motivo.length() > 0) motivo.append(": ");
+            motivo.append(detalhe);
+        }
+        return motivo.length() == 0 ? "ONS_MOTIVO_NAO_INFORMADO" : motivo.toString();
+    }
+
+    // AQUI ESTÁ A LÓGICA CORRIGIDA QUE DIRECIONA PARA OS IDs 1, 2 E 3
+    private Usina resolverUsinaPorNome(String nomeOns, Map<String, Usina> usinasPorNomeNormalizado,
+                                       Set<String> nomesAmbiguos) {
+        String nomeNormalizado = normalizarNome(nomeOns);
+        if (nomesAmbiguos.contains(nomeNormalizado)) {
+            return null;
+        }
+        Usina exata = usinasPorNomeNormalizado.get(nomeNormalizado);
+        if (exata != null) return exata;
+
+        List<Usina> candidatas = usinasPorNomeNormalizado.entrySet().stream()
+                .filter(entry -> !nomesAmbiguos.contains(entry.getKey()))
+                .filter(entry -> entry.getKey().contains(nomeNormalizado)
+                        || nomeNormalizado.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .distinct()
+                .toList();
+        return candidatas.size() == 1 ? candidatas.get(0) : null;
+    }
+
+    private String normalizarNome(String nome) {
+        if (nome == null) return "";
+        String semAcentos = Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return semAcentos.toUpperCase(Locale.ROOT)
+                .replaceAll("\\bCONJUNTO\\b|\\bCONJ\\b", "")
+                .replaceAll("[^A-Z0-9]", "");
     }
 }

@@ -64,7 +64,8 @@ public class GeracaoAlertasJob {
             List<ImpactoVaf> impactos = impactoRepository.findByMunicipioIdAndAnoReferencia(m.getId(), anoAtual);
             ImpactoVaf impacto = !impactos.isEmpty() ? impactos.get(0) : null;
             
-            if (impacto != null && impacto.getImpactoVafEstimado() != null) {
+            if (impacto != null && impacto.isFinanceiroDisponivel()
+                    && impacto.getImpactoVafEstimado() != null) {
                 double perdaVaf = impacto.getImpactoVafEstimado().doubleValue();
                 
                 if (perdaVaf > 100000.0) { // Se a perda estimada no VAF for maior que 100 mil

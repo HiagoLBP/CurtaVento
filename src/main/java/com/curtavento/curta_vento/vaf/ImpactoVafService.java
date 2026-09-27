@@ -55,18 +55,6 @@ public class ImpactoVafService {
             }
         }
 
-        // 1. Perda de Receita Bruta
-        BigDecimal perdaReceita = energiaTotalCortada.multiply(BigDecimal.valueOf(com.curtavento.curta_vento.util.PrecoEnergia.PRECO_MWH));
-
-        // 2. O Impacto final (que vai pra tela)
-        BigDecimal ipmMunicipio = municipio.getVafAnoBase() != null ? municipio.getVafAnoBase() : new BigDecimal("0.02"); // Fallback para 2% caso nulo no banco
-        if (ipmMunicipio.compareTo(BigDecimal.ONE) > 0) {
-            // Se alguém preencheu 2.5 em vez de 0.025 no banco, dividimos por 100
-            ipmMunicipio = ipmMunicipio.divide(new BigDecimal("100"));
-        }
-        
-        BigDecimal impactoFinal = perdaReceita.multiply(ipmMunicipio);
-
         List<ImpactoVaf> impactosExistentes = impactoRepository.findByMunicipioIdAndAnoReferencia(municipioId, ano);
         ImpactoVaf relatorio;
         if (impactosExistentes != null && !impactosExistentes.isEmpty()) {
@@ -78,9 +66,11 @@ public class ImpactoVafService {
         }
 
         relatorio.setEnergiaTotalCortadaMwh(energiaTotalCortada);
-        // Salvando os novos valores ajustados
-        relatorio.setPerdaReceitaEstimada(perdaReceita);
-        relatorio.setImpactoVafEstimado(impactoFinal);
+        // Não há preço por período nem regra fiscal municipal verificável disponíveis.
+        // Persistir um número nesses campos transformaria uma estimativa em dado factual.
+        relatorio.setPerdaReceitaEstimada(null);
+        relatorio.setImpactoVafEstimado(null);
+        relatorio.setFinanceiroDisponivel(false);
         relatorio.setDataCalculo(LocalDateTime.now());
 
         return impactoRepository.save(relatorio);

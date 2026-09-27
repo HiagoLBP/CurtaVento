@@ -766,7 +766,7 @@
 
       <h1>Visão Geral</h1>
 
-      <span>Alto Sertão — BA</span>
+      <span id="periodo-relatorio">Alto Sertão — BA</span>
 
     </div>
 
@@ -800,11 +800,11 @@
 
       <div class="card">
 
-        <h3 class="card-title">Energia Cortada</h3>
+        <h3 class="card-title">Energia não injetada</h3>
 
         <p class="card-value" id="card-energia">0 <small>GWh</small></p>
 
-        <p class="card-subtitle" id="label-energia">Em 2026</p>
+        <p class="card-subtitle" id="label-energia">Apurada com dados ONS</p>
 
         <p class="card-subtitle" id="trend-energia" style="font-weight:600; font-size:13px; margin-top:4px;"></p>
 
@@ -816,17 +816,17 @@
 
         <p class="card-value val-warn" id="card-receita">R$ 0,0 <small>mi</small></p>
 
-        <p class="card-subtitle">Estimada (R$ 200/MWh)</p>
+        <p class="card-subtitle">Indisponível: falta preço verificável por período</p>
 
       </div>
 
       <div class="card">
 
-        <h3 class="card-title">Impacto VAF/ICMS</h3>
+        <h3 class="card-title">Impacto fiscal municipal</h3>
 
         <p class="card-value val-brand" id="card-impacto">R$ 0,0 <small>mi</small></p>
 
-        <p class="card-subtitle">Estimado nos municípios</p>
+        <p class="card-subtitle">Indisponível: regra fiscal municipal não parametrizada</p>
 
       </div>
 
@@ -873,10 +873,10 @@
               <th>Vento Agora</th>
               <th>Pico 24h</th>
               <th>Pico 48h</th>
-              <th>Risco 24h</th>
-              <th>Perda no Ano (GWh)</th>
-              <th>Prejuízo (R$)</th>
-              <th>Status VAF</th>
+              <th>Risco calculado 24h</th>
+              <th>Energia cortada — ONS (GWh)</th>
+              <th>Perda financeira — estimada (R$)</th>
+              <th>Impacto fiscal</th>
               <th>Ação</th>
             </tr>
 
@@ -987,6 +987,10 @@
             <span class="op-val" id="op-alto">0</span>
 
           </div>
+          <div class="op-row">
+            <span class="op-label"><span class="status-dot" style="background: var(--text-faint)"></span> Indeterminado</span>
+            <span class="op-val" id="op-indeterminado">0</span>
+          </div>
 
         </div>
 
@@ -1004,7 +1008,7 @@
 
             <h2>Impacto Econômico por Município</h2>
 
-            <p>Estimativa acumulada de VAF/ICMS no ano selecionado</p>
+            <p>Indisponível: falta regra fiscal oficial por município e período</p>
 
           </div>
 
@@ -1063,7 +1067,7 @@
 
   const RISK_COLOR = { BAIXO: 'var(--ok)', MEDIO: 'var(--warn)', ALTO: 'var(--high)', CRITICO: 'var(--crit)' };
 
-  const RISK_LABEL = { BAIXO: 'Baixo', MEDIO: 'Médio', ALTO: 'Alto', CRITICO: 'Crítico' };
+  const RISK_LABEL = { INDETERMINADO: 'Indeterminado', BAIXO: 'Baixo', MEDIO: 'Médio', ALTO: 'Alto', CRITICO: 'Crítico' };
 
 
 
@@ -1080,6 +1084,7 @@
     let contMedio = 0;
 
     let contAlto = 0;
+    let contIndeterminado = 0;
 
 
 
@@ -1099,18 +1104,21 @@
       if (u.risco === 'BAIXO') contBaixo++;
       else if (u.risco === 'MEDIO') contMedio++;
       else if (u.risco === 'ALTO' || u.risco === 'CRITICO') contAlto++;
+      else if (u.risco === 'INDETERMINADO') contIndeterminado++;
 
       const tr = document.createElement('tr');
       const perdaGwh = (u.energiaCortada / 1000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
-      const riscoClass = u.risco ? u.risco.toLowerCase() : 'baixo';
-      const riscoLabel = RISK_LABEL[u.risco] || 'Baixo';
+      const riscoClass = u.risco ? u.risco.toLowerCase() : 'indeterminado';
+      const riscoLabel = RISK_LABEL[u.risco] || 'Indeterminado';
+      const fatorRisco = u.fatorRisco || 'N/D';
       
-      const pR$ = (u.prejuizoFinanceiro || 0);
-      const preFormatado = pR$ > 1000000 ? 
+      const pR$ = u.prejuizoFinanceiro;
+      const preFormatado = pR$ == null ? 'N/D' : pR$ > 1000000 ?
           'R$ ' + (pR$/1000000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' mi' : 
           'R$ ' + (pR$/1000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' mil';
           
-      const statusVaf = pR$ > 1000000 ? '<span style="color:var(--crit); font-weight:bold;">Crítico</span>' : 
+      const statusVaf = pR$ == null ? '<span style="color:var(--text-muted);">Indisponível</span>' :
+                        pR$ > 1000000 ? '<span style="color:var(--crit); font-weight:bold;">Crítico</span>' :
                         pR$ > 100000 ? '<span style="color:var(--high); font-weight:bold;">Atenção</span>' : 
                         '<span style="color:var(--ok);">Normal</span>';
 
@@ -1123,7 +1131,7 @@
         <td style="font-weight: 500;">${u.vento24h}</td>
         <td style="color: var(--text-muted);">${u.vento48h}</td>
         <td>
-          <span class="risk-badge risk-${riscoClass}" title="${u.fatorRisco}"></span> <span title="${u.fatorRisco}">${riscoLabel}</span>
+          <span class="risk-badge risk-${riscoClass}" title="${escapeHTML(fatorRisco)}"></span> <span title="${escapeHTML(fatorRisco)}">${riscoLabel}</span>
         </td>
         <td style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
         <td style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
@@ -1147,6 +1155,8 @@
     document.getElementById('op-medio').textContent = contMedio;
 
     document.getElementById('op-alto').textContent = contAlto;
+    const indeterminadoEl = document.getElementById('op-indeterminado');
+    if (indeterminadoEl) indeterminadoEl.textContent = contIndeterminado;
 
 
 
@@ -1196,11 +1206,13 @@
 
     lista.forEach(m => {
 
-      const pct = Math.min(100, (m.valor / m.max) * 100);
+      const pct = m.valor != null && m.max != null ? Math.min(100, (m.valor / m.max) * 100) : 0;
 
       let valorFormatado = '';
 
-      if (m.valor >= 1000000) {
+      if (m.valor == null) {
+        valorFormatado = 'N/D';
+      } else if (m.valor >= 1000000) {
 
         valorFormatado = 'R$ ' + (m.valor / 1000000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' mi';
 
@@ -1309,7 +1321,7 @@
 
     const ano = document.getElementById('ano-selector').value;
 
-    document.getElementById('label-energia').textContent = `Em ${ano}`;
+    document.getElementById('label-energia').textContent = 'Apurada com dados ONS';
 
     
 
@@ -1331,8 +1343,12 @@
 
 
         if (data.usinas) renderUsinas(data.usinas);
-
         if (data.municipios) renderMunicipios(data.municipios);
+        if (data.periodoInicio) {
+          const fim = data.periodoFim || 'sem dados observados';
+          document.getElementById('periodo-relatorio').textContent =
+            `Dados observados: ${data.periodoInicio} a ${fim} · disponíveis até ${data.dadosDisponiveisAte}`;
+        }
 
 
 
@@ -1363,17 +1379,17 @@
 
         if (data.perdaReceitaTotal !== undefined) {
 
-          const fmt = formatarValor(data.perdaReceitaTotal);
-
-          document.getElementById('card-receita').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
+          document.getElementById('card-receita').innerHTML = data.perdaReceitaTotal == null
+            ? 'N/D'
+            : (() => { const fmt = formatarValor(data.perdaReceitaTotal); return `R$ ${fmt.val} <small>${fmt.suf}</small>`; })();
 
         }
 
         if (data.impactoTotal !== undefined) {
 
-          const fmt = formatarValor(data.impactoTotal);
-
-          document.getElementById('card-impacto').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
+          document.getElementById('card-impacto').innerHTML = data.impactoTotal == null
+            ? 'N/D'
+            : (() => { const fmt = formatarValor(data.impactoTotal); return `R$ ${fmt.val} <small>${fmt.suf}</small>`; })();
 
         }
 
