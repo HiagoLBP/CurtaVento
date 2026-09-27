@@ -130,9 +130,9 @@ public class DashboardController {
                 dto.put("vento24h", v24h != null ? v24h + " m/s" : "N/D");
                 dto.put("vento48h", v48h != null ? v48h + " m/s" : "N/D");
                 
-                dto.put("riscoAtual", riscoBase);
-                dto.put("risco24h", riscoBase);
-                dto.put("risco48h", riscoBase);
+                dto.put("riscoAtual", calcularRiscoVisual(riscoBase, ventoMs));
+                dto.put("risco24h", calcularRiscoVisual(riscoBase, v24h));
+                dto.put("risco48h", calcularRiscoVisual(riscoBase, v48h));
 
                 if (ventoMs != null) {
                     if (ventoMs <= 10.0) {
