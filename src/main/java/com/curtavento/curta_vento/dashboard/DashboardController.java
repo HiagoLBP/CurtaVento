@@ -12,6 +12,7 @@ import com.curtavento.curta_vento.vaf.ImpactoVaf;
 import com.curtavento.curta_vento.clima.LeituraClimaticaRepository;
 import com.curtavento.curta_vento.risco.PrevisaoRiscoRepository;
 import com.curtavento.curta_vento.vaf.ImpactoVafRepository;
+import com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +36,7 @@ public class DashboardController {
     private final LeituraClimaticaService leituraService;
     private final LeituraClimaticaRepository leituraRepo;
     private final PrevisaoRiscoRepository riscoRepo;
-    private final com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository corteRepository;
+    private final HistoricoCorteOnsRepository corteRepository;
 
     public DashboardController(UsinaService usinaService,
                                MunicipioService municipioService,
@@ -44,7 +45,7 @@ public class DashboardController {
                                LeituraClimaticaService leituraService,
                                  LeituraClimaticaRepository leituraRepo,
                                  PrevisaoRiscoRepository riscoRepo,
-                               com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository corteRepository) {
+                               HistoricoCorteOnsRepository corteRepository) {
         this.usinaService = usinaService;
         this.municipioService = municipioService;
         this.riscoService = riscoService;

@@ -201,11 +201,17 @@
         const graus = e.direcaoGraus;
         const dirTexto = direcaoTexto(graus);
         
-        let statusBadge = '<span class="badge liberado">✔ LIBERADO</span>';
-        let matrixBadge = '<span class="badge liberado">Liberado p/ O&M</span>';
-        if (e.ventoAtual > 10.0) {
-          statusBadge = '<span class="badge alerta">⚠ ALERTA</span>';
-          matrixBadge = '<span class="badge alerta">Atenção Redobrada</span>';
+        let statusBadge = '';
+        let matrixBadge = '';
+        if (e.janelaOM === 'LIBERADO') {
+            statusBadge = '<span class="badge liberado">✔ LIBERADO</span>';
+            matrixBadge = '<span class="badge liberado">Liberado p/ O&M</span>';
+        } else if (e.janelaOM === 'ALERTA') {
+            statusBadge = '<span class="badge alerta">⚠ ALERTA</span>';
+            matrixBadge = '<span class="badge alerta">Atenção Redobrada</span>';
+        } else {
+            statusBadge = '<span class="badge" style="background:#FEE2E2; color:#991B1B">🛑 BLOQUEADO</span>';
+            matrixBadge = '<span class="badge" style="background:#FEE2E2; color:#991B1B">Operação Suspensa</span>';
         }
 
         grid.innerHTML += `
@@ -213,7 +219,7 @@
             <div class="station-header">
               <div>
                 <h3>${escapeHTML(e.usina)}</h3>
-                <small>${escapeHTML(e.operador) || '$1'}</small>
+                <small>${escapeHTML(e.operadorUsina) || 'N/D'}</small>
               </div>
               ${statusBadge}
             </div>
