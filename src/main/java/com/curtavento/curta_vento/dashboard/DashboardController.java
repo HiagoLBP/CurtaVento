@@ -101,10 +101,11 @@ public class DashboardController {
             if (ultima != null) {
                 riscoBase = ultima.getNivelRisco().name();
                 dto.put("risco", riscoBase);
-                  dto.put("fatorRisco", ultima.getFatoresJustificativa());
+                dto.put("fatorRisco", ultima.getFatoresJustificativa());
                 dto.put("corte", ultima.getPercentualCorteEstimado() + "%");
             } else {
                 dto.put("risco", "BAIXO");
+                dto.put("fatorRisco", "Sem risco atípico.");
                 dto.put("corte", "0%");
             }
 
@@ -119,9 +120,26 @@ public class DashboardController {
                 dto.put("vento24h", v24h != null ? v24h + " m/s" : "N/D");
                 dto.put("vento48h", v48h != null ? v48h + " m/s" : "N/D");
                 
-                dto.put("riscoAtual", riscoBase);
-                dto.put("risco24h", riscoBase);
-                dto.put("risco48h", riscoBase);
+                String rAtual = calcularRiscoVisual(riscoBase, ventoMs);
+                String r24h = calcularRiscoVisual(riscoBase, v24h);
+                String r48h = calcularRiscoVisual(riscoBase, v48h);
+
+                dto.put("riscoAtual", rAtual);
+                dto.put("risco24h", r24h);
+                dto.put("risco48h", r48h);
+                dto.put("risco", r24h);
+
+                if (ultima == null || ultima.getFatoresJustificativa() == null) {
+                    if ("CRITICO".equals(r24h)) {
+                        dto.put("fatorRisco", "Rajadas previstas elevadas (>= 10 m/s), alto risco de restrição de rede.");
+                    } else if ("ALTO".equals(r24h)) {
+                        dto.put("fatorRisco", "Vento previsto forte (>= 7 m/s), atenção para corte programado.");
+                    } else if ("MEDIO".equals(r24h)) {
+                        dto.put("fatorRisco", "Vento moderado, monitoramento preventivo recomendado.");
+                    } else {
+                        dto.put("fatorRisco", "Sem risco atípico. Ventos dentro dos parâmetros operacionais.");
+                    }
+                }
 
                 if (ventoMs != null) {
                     if (ventoMs <= 10.0) {
@@ -133,9 +151,9 @@ public class DashboardController {
                     }
                 } else {
                     dto.put("janelaManutencao", "N/D");
-                  dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
-                  dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
                 }
+                dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
+                dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
             } else {
                 dto.put("vento", "N/D");
                 dto.put("vento24h", "N/D");
@@ -144,8 +162,9 @@ public class DashboardController {
                 dto.put("risco24h", "N/D");
                 dto.put("risco48h", "N/D");
                 dto.put("janelaManutencao", "N/D");
-                  dto.put("fonteClima", ultimaLeitura.getFonte() != null ? ultimaLeitura.getFonte() : "Open-Meteo");
-                  dto.put("dataClima", ultimaLeitura.getDataHora() != null ? ultimaLeitura.getDataHora().toString() : "N/D");
+                dto.put("fonteClima", "N/D");
+                dto.put("dataClima", "N/D");
+                dto.put("fatorRisco", "Sem dados climáticos em tempo real para avaliar o risco.");
             }
 
             double somaCortesUsina = cortesMap.getOrDefault(u.getNome(), 0.0);

@@ -18,6 +18,9 @@ public class Municipio {
     @Column(name = "codigo_ibge", nullable = false, unique = true)
     private String codigoIbge;
 
+    @Column(name = "ipm", precision = 10, scale = 7)
+    private BigDecimal ipm;
+
     @Column(name = "vaf_ano_base")
     private BigDecimal vafAnoBase;
 
@@ -66,4 +69,7 @@ public class Municipio {
     public void setAnoBase(Integer anoBase) {
         this.anoBase = anoBase;
     }
+
+    public BigDecimal getIpm() { return ipm; }
+    public void setIpm(BigDecimal ipm) { this.ipm = ipm; }
 }

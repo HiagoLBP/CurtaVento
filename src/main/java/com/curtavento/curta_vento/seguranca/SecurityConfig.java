@@ -34,12 +34,11 @@ public class SecurityConfig {
                         // Liberta a rota de Login e criação de utilizadores
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
+                        .requestMatchers("/api/pld/**").permitAll()
+                        .requestMatchers("/api/ons/**").permitAll()
                         // Liberta as rotas internas que geram a interface do Swagger
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/", "/index.html", "/*.html", "/*.css", "/*.js", "/favicon.ico").permitAll()
-                        // ---> NOVO: Liberta a leitura do Dashboard para o HTML <---
-                        // GET /api/** removido do permitAll para proteger a API
-                        // Qualquer outra rota exige autenticação JWT
                         .anyRequest().authenticated()
                 )
                 // Coloca o nosso filtro de JWT antes do filtro padrão do Spring Security

@@ -32,6 +32,9 @@ public class ImpactoVaf {
     @Column(name = "data_calculo", nullable = false)
     private LocalDateTime dataCalculo;
 
+    @Column(name = "financeiro_disponivel", nullable = false)
+    private boolean financeiroDisponivel;
+
     public ImpactoVaf() {
     }
 
@@ -55,4 +58,7 @@ public class ImpactoVaf {
 
     public LocalDateTime getDataCalculo() { return dataCalculo; }
     public void setDataCalculo(LocalDateTime dataCalculo) { this.dataCalculo = dataCalculo; }
+
+    public boolean isFinanceiroDisponivel() { return financeiroDisponivel; }
+    public void setFinanceiroDisponivel(boolean financeiroDisponivel) { this.financeiroDisponivel = financeiroDisponivel; }
 }

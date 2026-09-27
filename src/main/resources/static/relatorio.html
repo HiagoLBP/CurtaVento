@@ -525,9 +525,9 @@
         let rClass = u.riscoAtual === 'CRITICO' ? 'risco-critico' : u.riscoAtual === 'ALTO' ? 'risco-alto' : u.riscoAtual === 'MEDIO' ? 'risco-medio' : 'risco-baixo';
         tr.innerHTML = `
           <td>${i+1}</td>
-          <td><strong>${escapeHtml(u.nome)}</strong><br><span style="font-size:8px;color:#6B7280;">Fatores: ${escapeHtml(u.fatorRisco || 'Sem risco atípico')}</span></td>
+          <td><strong>${escapeHtml(u.nome)}</strong></td>
           <td>${escapeHtml(u.municipio)}</td>
-          <td class="${rClass}">${u.riscoAtual}</td>
+          <td class="${rClass}" title="${escapeHtml(u.fatorRisco || 'Sem risco atípico')}">${u.riscoAtual}</td>
           <td class="num">${formatN(u.energiaCortada)}</td>
           <td class="num">${formatM(u.prejuizoFinanceiro)}</td>
         `;
