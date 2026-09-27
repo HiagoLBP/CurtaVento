@@ -133,7 +133,7 @@ INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Cristópol
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Cruz das Almas', '2909802', 0.2419441, 0.2419441) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Curaçá', '2909901', 0.2364711, 0.2364711) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dário Meira', '2910008', 0.0539296, 0.0539296) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
-INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dias d'Ávila', '2910057', 0.4564911, 0.4564911) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
+INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dias d''Ávila', '2910057', 0.4564911, 0.4564911) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dom Basílio', '2910107', 0.0648278, 0.0648278) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dom Macedo Costa', '2910206', 0.0275934, 0.0275934) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Elísio Medrado', '2910305', 0.0354050, 0.0354050) ON DUPLICATE KEY UPDATE ipm = VALUES(ipm), vaf_ano_base = VALUES(vaf_ano_base);

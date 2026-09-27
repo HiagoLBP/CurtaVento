@@ -1,5 +1,3 @@
-ALTER TABLE municipio ADD COLUMN IF NOT EXISTS ipm DECIMAL(10,7);
-
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Abaíra', '2900108', 0.0378554, 0.0378554);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Abaré', '2900207', 0.0976386, 0.0976386);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Acajutiba', '2900306', 0.0527753, 0.0527753);
@@ -118,7 +116,7 @@ INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Cristópol
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Cruz das Almas', '2909802', 0.2419441, 0.2419441);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Curaçá', '2909901', 0.2364711, 0.2364711);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dário Meira', '2910008', 0.0539296, 0.0539296);
-INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dias d'Ávila', '2910057', 0.4564911, 0.4564911);
+INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dias d Ávila', '2910057', 0.4564911, 0.4564911);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dom Basílio', '2910107', 0.0648278, 0.0648278);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Dom Macedo Costa', '2910206', 0.0275934, 0.0275934);
 INSERT INTO municipio (nome, codigo_ibge, ipm, vaf_ano_base) VALUES ('Elísio Medrado', '2910305', 0.0354050, 0.0354050);
