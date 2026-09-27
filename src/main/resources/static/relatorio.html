@@ -1,0 +1,541 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>RelatÃ³rio Executivo - CurtaVento</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 1.5cm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #1E2329;
+      background: white;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      border-bottom: 2px solid #0061FF;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .header h1 {
+      color: #0061FF;
+      margin: 0 0 5px 0;
+      font-size: 24px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header h2 {
+      margin: 0;
+      font-size: 14px;
+      color: #6B7280;
+      font-weight: 500;
+    }
+    
+    .meta-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #4B5563;
+      margin-top: 10px;
+      background: #F9FAFB;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #E4E5E7;
+    }
+    .meta-column p { margin: 2px 0; }
+    
+    h3.section-title {
+      font-size: 16px;
+      color: #0061FF;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #E4E5E7;
+      padding-bottom: 4px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 9px;
+      font-weight: 600;
+      border-radius: 4px;
+      text-transform: uppercase;
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+    .badge-real { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+    .badge-prev { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+    .badge-est { background: #F3E8FF; color: #7E22CE; border: 1px solid #E9D5FF; }
+    .badge-sim { background: #FCE7F3; color: #BE185D; border: 1px solid #FBCFE8; }
+
+    /* Risco */
+    .risco-critico { color: #DC2626; font-weight: bold; }
+    .risco-alto { color: #EA580C; font-weight: bold; }
+    .risco-medio { color: #D97706; font-weight: bold; }
+    .risco-baixo { color: #059669; font-weight: bold; }
+
+    /* KPIs */
+    .kpi-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .kpi-box {
+      flex: 1;
+      min-width: 150px;
+      border: 1px solid #E4E5E7;
+      padding: 15px;
+      border-radius: 4px;
+      background: #F9FAFB;
+    }
+    .kpi-box h4 {
+      margin: 0 0 5px 0;
+      font-size: 12px;
+      color: #4B5563;
+    }
+    .kpi-box .val {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1E2329;
+      margin: 0;
+    }
+    .kpi-box .sub {
+      font-size: 10px;
+      color: #6B7280;
+      margin-top: 5px;
+    }
+
+    /* Tabelas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-bottom: 15px;
+    }
+    th, td {
+      padding: 6px 8px;
+      border: 1px solid #E4E5E7;
+      text-align: left;
+    }
+    th {
+      background-color: #F3F4F6;
+      font-weight: 600;
+      color: #374151;
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    
+    /* Flow VAF */
+    .vaf-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F9FAFB;
+      border: 1px solid #E4E5E7;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-bottom: 20px;
+    }
+    .vaf-step {
+      text-align: center;
+      flex: 1;
+    }
+    .vaf-step h5 { margin: 0 0 5px 0; color: #4B5563; font-size: 10px; }
+    .vaf-step p { margin: 0; font-weight: bold; font-size: 14px; color: #1E2329; }
+    .vaf-arrow { color: #9CA3AF; font-size: 16px; }
+
+    /* Bar Chart */
+    .chart-container {
+      border: 1px solid #E4E5E7;
+      padding: 15px;
+      border-radius: 4px;
+      height: 120px;
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+    }
+    .bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+    }
+    .bar {
+      width: 100%;
+      background: #0061FF;
+      border-radius: 2px 2px 0 0;
+      min-height: 1px;
+    }
+    .bar-lbl {
+      font-size: 9px;
+      color: #6B7280;
+      margin-top: 5px;
+    }
+    .bar-val {
+      font-size: 8px;
+      color: #1E2329;
+      margin-bottom: 2px;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 40px;
+      font-size: 9px;
+      color: #9CA3AF;
+      text-align: center;
+      border-top: 1px solid #E4E5E7;
+      padding-top: 10px;
+    }
+
+    .box-texto {
+      background: #F9FAFB;
+      border-left: 3px solid #0061FF;
+      padding: 10px;
+      font-size: 10px;
+      color: #374151;
+      margin-bottom: 15px;
+    }
+
+    .page-break { page-break-before: always; }
+    .avoid-break { page-break-inside: avoid; }
+
+    @media print {
+      body { margin: 0; }
+      .container { padding: 0; max-width: 100%; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="background: #1E2329; color: white; padding: 10px; text-align: center; margin-bottom: 20px;">
+    <button onclick="window.print()" style="padding: 8px 16px; background: #0061FF; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">ðŸ–¨ï¸ Imprimir / Salvar PDF</button>
+  </div>
+
+  <div class="container" id="report-content">
+    
+    <!-- HEADER -->
+    <div class="header">
+      <h1>CURTAVENTO</h1>
+      <h2>RELATÃ“RIO TÃ‰CNICO E EXECUTIVO DE CURTAILMENT</h2>
+      
+      <div class="meta-info">
+        <div class="meta-column">
+          <p><strong>PerÃ­odo:</strong> 01/01/<span id="lbl-ano1"></span> a 31/12/<span id="lbl-ano2"></span></p>
+          <p><strong>Gerado em:</strong> <span id="lbl-data"></span></p>
+          <p><strong>ID do RelatÃ³rio:</strong> CV-<span id="lbl-id"></span></p>
+        </div>
+        <div class="meta-column">
+          <p><strong>Fonte de Cortes:</strong> ONS <span class="badge badge-real">Real</span></p>
+          <p><strong>Fonte ClimÃ¡tica:</strong> Open-Meteo / Wttr.in</p>
+          <p><strong>Usinas Consideradas:</strong> <span id="lbl-usinas-total">0</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. RESUMO EXECUTIVO -->
+    <h3 class="section-title">1. Resumo Executivo e KPIs</h3>
+    <div class="kpi-grid">
+      <div class="kpi-box">
+        <h4>Energia Cortada <span class="badge badge-real">Real</span></h4>
+        <p class="val" id="kpi-mwh">0 MWh</p>
+        <p class="sub">Energia nÃ£o injetada</p>
+      </div>
+      <div class="kpi-box">
+        <h4>Usinas Afetadas <span class="badge badge-real">Real</span></h4>
+        <p class="val" id="kpi-usinas">0 de 0</p>
+        <p class="sub">Registraram cortes no perÃ­odo</p>
+      </div>
+      <div class="kpi-box">
+        <h4>Perda de Receita Bruta <span class="badge badge-sim">Simulado</span></h4>
+        <p class="val" id="kpi-rs">R$ 0,00</p>
+        <p class="sub">Base: R$ 200,00/MWh</p>
+      </div>
+      <div class="kpi-box">
+        <h4>Impacto VAF <span class="badge badge-est">Estimado</span></h4>
+        <p class="val" id="kpi-vaf">R$ 0,00</p>
+        <p class="sub">Repasse municipal afetado</p>
+      </div>
+    </div>
+
+    <!-- 2. QUALIDADE E COBERTURA -->
+    <h3 class="section-title">2. Qualidade e Cobertura dos Dados</h3>
+    <p style="font-size:11px; color:#4B5563;">O sistema rastreia ativamente a integridade dos dados climÃ¡ticos para evitar falsos-positivos na anÃ¡lise de risco.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>SituaÃ§Ã£o do Dado ClimÃ¡tico</th>
+          <th class="num">Quantidade de Usinas</th>
+          <th>Impacto na AnÃ¡lise</th>
+        </tr>
+      </thead>
+      <tbody id="tb-qualidade">
+      </tbody>
+    </table>
+
+    <!-- 3. DECOMPOSIÃ‡ÃƒO E VAF -->
+    <h3 class="section-title">3. O Caminho do PrejuÃ­zo (DecomposiÃ§Ã£o VAF)</h3>
+    <p style="font-size:11px; color:#4B5563;">DistinÃ§Ã£o clara entre a energia fÃ­sica nÃ£o gerada, a receita bruta da usina e o reflexo tributÃ¡rio (ICMS) repassado aos municÃ­pios (VAF).</p>
+    
+    <div class="vaf-flow">
+      <div class="vaf-step">
+        <h5>Energia Cortada <span class="badge badge-real">Real</span></h5>
+        <p id="flow-mwh">0 MWh</p>
+      </div>
+      <div class="vaf-arrow">âž”</div>
+      <div class="vaf-step">
+        <h5>Receita Perdida <span class="badge badge-sim">Sim.</span></h5>
+        <p id="flow-rec">R$ 0</p>
+      </div>
+      <div class="vaf-arrow">âž”</div>
+      <div class="vaf-step">
+        <h5>ICMS NÃ£o Gerado <span class="badge badge-sim">Sim.</span></h5>
+        <p id="flow-icms">R$ 0</p>
+      </div>
+      <div class="vaf-arrow">âž”</div>
+      <div class="vaf-step">
+        <h5>Impacto VAF <span class="badge badge-est">Est.</span></h5>
+        <p id="flow-vaf">R$ 0</p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Indicador</th>
+          <th class="num">Valor</th>
+          <th>InterpretaÃ§Ã£o / Premissa</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Energia Cortada</td>
+          <td class="num" id="t-mwh">0</td>
+          <td>Volume apurado pelo ONS que deixou de ser gerado.</td>
+        </tr>
+        <tr>
+          <td>Receita Bruta Perdida</td>
+          <td class="num" id="t-rec">0</td>
+          <td>Energia cortada Ã— PreÃ§o Premissa (R$ 200/MWh).</td>
+        </tr>
+        <tr>
+          <td>ICMS NÃ£o Gerado</td>
+          <td class="num" id="t-icms">0</td>
+          <td>Receita Bruta Ã— AlÃ­quota Premissa (18%).</td>
+        </tr>
+        <tr>
+          <td>Repasse VAF Estimado</td>
+          <td class="num" id="t-vaf">0</td>
+          <td>ICMS NÃ£o Gerado Ã— Fator de Repasse Constitucional (25%).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 4. EVOLUÃ‡ÃƒO MENSAL -->
+    <div class="avoid-break">
+      <h3 class="section-title">4. EvoluÃ§Ã£o Mensal do Curtailment <span class="badge badge-real">Real</span></h3>
+      <div class="chart-container" id="chart-mensal">
+        <!-- Preenchido via JS -->
+      </div>
+    </div>
+
+    <!-- PAGE BREAK -->
+    <div class="page-break"></div>
+
+    <!-- 5. PRIORIDADE OPERACIONAL -->
+    <h3 class="section-title">5. Ranking de Prioridade Operacional</h3>
+    <p style="font-size:11px; color:#4B5563;">Ordenado pelo impacto financeiro e agravado pelo Score de Risco atual. Apenas usinas afetadas.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Usina</th>
+          <th>MunicÃ­pio</th>
+          <th>Risco <span class="badge badge-est">Est.</span></th>
+          <th class="num">Corte (MWh) <span class="badge badge-real">Real</span></th>
+          <th class="num">Perda (R$) <span class="badge badge-sim">Sim.</span></th>
+        </tr>
+      </thead>
+      <tbody id="tb-ranking">
+      </tbody>
+    </table>
+
+    <!-- 6. METODOLOGIA E PREMISSAS -->
+    <div class="avoid-break">
+      <h3 class="section-title">6. Metodologia e Premissas</h3>
+      <div class="box-texto">
+        <strong>FÃ³rmulas e ComposiÃ§Ã£o:</strong><br><br>
+        â€¢ <strong>Energia Cortada:</strong> SomatÃ³rio da geraÃ§Ã£o de referÃªncia menos a geraÃ§Ã£o verificada (dados ONS).<br>
+        â€¢ <strong>Perda Financeira:</strong> <code>Energia Cortada Ã— R$ 200,00/MWh</code> (Premissa estÃ¡tica).<br>
+        â€¢ <strong>Impacto VAF:</strong> <code>Perda Financeira Ã— 18% (ICMS) Ã— 25% (Repasse)</code>.<br>
+        â€¢ <strong>Risco (Score HeurÃ­stico):</strong> CombinaÃ§Ã£o de vento previsto (>10m/s = CrÃ­tico), histÃ³rico recente e sazonalidade.<br>
+        â€¢ <strong>Motivos de Corte (ENE/REL/CNF):</strong> DistribuiÃ§Ã£o proporcional estimada baseada no comportamento macro do subsistema Nordeste (55% ENE, 33% REL, 12% CNF), nÃ£o representando a classificaÃ§Ã£o individual final por usina.
+      </div>
+    </div>
+
+    <!-- 7. LIMITAÃ‡Ã•ES -->
+    <div class="avoid-break">
+      <h3 class="section-title">7. LimitaÃ§Ãµes e Disclaimers</h3>
+      <ul style="font-size:10px; color:#4B5563; padding-left: 15px;">
+        <li>Os motivos de corte (ENE, REL, CNF) exibidos no Dashboard sÃ£o <strong>estimados</strong> pelo sistema.</li>
+        <li>A previsÃ£o climÃ¡tica depende do Open-Meteo e pode sofrer *fallback* para dados de cache em caso de indisponibilidade (Rate Limit 429).</li>
+        <li>O preÃ§o de energia Ã© uma <strong>premissa fixa simulada</strong> (R$ 200/MWh) e nÃ£o captura reajustes contratuais especÃ­ficos (CCEAR, ACL, PROINFA) ou o PLD horÃ¡rio exato de cada perÃ­odo.</li>
+        <li>O impacto VAF representa uma estimativa referencial acadÃªmica e <strong>nÃ£o</strong> uma apuraÃ§Ã£o fiscal oficial para repasse da SEFAZ.</li>
+        <li>O indicador de "Risco" Ã© um score heurÃ­stico do projeto CurtaVento, nÃ£o constituindo um modelo estatÃ­stico, preditivo ou regulatÃ³rio oficial do ONS.</li>
+      </ul>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      CurtaVento â€” RelatÃ³rio TÃ©cnico de Curtailment<br>
+      PerÃ­odo: <span id="foot-ano"></span> | Gerado em: <span id="foot-data"></span><br>
+      Fonte: ONS / Open-Meteo / Banco CurtaVento
+    </div>
+
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const ano = urlParams.get('ano') || '2026';
+    const d = new Date();
+    const strData = d.toLocaleDateString('pt-BR');
+    const strHora = d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+    const dataGeracao = `${strData} Ã s ${strHora}`;
+    const idRelatorio = `${ano}-${d.getMonth()+1}-${d.getDate()}-${d.getHours()}${d.getMinutes()}`;
+
+    // Fill Meta
+    document.getElementById('lbl-ano1').textContent = ano;
+    document.getElementById('lbl-ano2').textContent = ano;
+    document.getElementById('foot-ano').textContent = ano;
+    document.getElementById('lbl-data').textContent = dataGeracao;
+    document.getElementById('foot-data').textContent = dataGeracao;
+    document.getElementById('lbl-id').textContent = idRelatorio;
+
+    function formatM(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val); }
+    function formatN(val) { return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(val); }
+    function escapeHtml(str) {
+      if (!str) return 'N/D';
+      return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
+    }
+
+    async function loadData() {
+      try {
+        const token = localStorage.getItem('jwt_token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+        
+        // 1. Fetch Dashboard Resumo
+        const res = await fetch(`/api/dashboard/resumo-geral?ano=${ano}`, { headers });
+        if(!res.ok) throw new Error("Erro Resumo");
+        const data = await res.json();
+
+        // 2. Fetch Evolucao Mensal
+        let evolucao = [];
+        try {
+          const resEvo = await fetch(`/api/cortes-ons/evolucao?ano=${ano}`, { headers });
+          if(resEvo.ok) evolucao = await resEvo.json();
+        } catch(e) { console.error("Sem dados de evoluÃ§Ã£o"); }
+
+        render(data, evolucao);
+      } catch(e) {
+        alert("Erro ao carregar relatÃ³rio: " + e.message);
+      }
+    }
+
+    function render(data, evolucao) {
+      const usinas = data.usinas || [];
+      const totalUsinas = usinas.length;
+      const usinasComCorte = usinas.filter(u => u.energiaCortada > 0);
+      
+      document.getElementById('lbl-usinas-total').textContent = totalUsinas;
+      
+      // KPIs
+      document.getElementById('kpi-mwh').textContent = formatN(data.energiaTotal) + " MWh";
+      document.getElementById('kpi-usinas').textContent = `${usinasComCorte.length} de ${totalUsinas} (${((usinasComCorte.length/totalUsinas)*100).toFixed(1)}%)`;
+      document.getElementById('kpi-rs').textContent = formatM(data.perdaReceitaTotal);
+      document.getElementById('kpi-vaf').textContent = formatM(data.impactoTotal);
+
+      // Flow
+      document.getElementById('flow-mwh').textContent = formatN(data.energiaTotal) + " MWh";
+      document.getElementById('flow-rec').textContent = formatM(data.perdaReceitaTotal);
+      document.getElementById('flow-icms').textContent = formatM(data.perdaReceitaTotal * 0.18);
+      document.getElementById('flow-vaf').textContent = formatM(data.impactoTotal);
+
+      document.getElementById('t-mwh').textContent = formatN(data.energiaTotal) + " MWh";
+      document.getElementById('t-rec').textContent = formatM(data.perdaReceitaTotal);
+      document.getElementById('t-icms').textContent = formatM(data.perdaReceitaTotal * 0.18);
+      document.getElementById('t-vaf').textContent = formatM(data.impactoTotal);
+
+      // Qualidade Dados ClimÃ¡ticos
+      let fontsCount = { 'Wttr.in': 0, 'Open-Meteo': 0, 'Cache/Fallback': 0, 'Sem Dados': 0 };
+      usinas.forEach(u => {
+        let f = u.fonteClima || '';
+        if(f.toLowerCase().includes('wttr')) fontsCount['Wttr.in']++;
+        else if(f.toLowerCase().includes('open-meteo')) fontsCount['Open-Meteo']++;
+        else if(f.toLowerCase().includes('cache') || f.toLowerCase().includes('banco')) fontsCount['Cache/Fallback']++;
+        else fontsCount['Sem Dados']++;
+      });
+      
+      const tbQuali = document.getElementById('tb-qualidade');
+      Object.keys(fontsCount).forEach(k => {
+        if(fontsCount[k] > 0 || k === 'Sem Dados') {
+          let tr = document.createElement('tr');
+          let impacto = k === 'Sem Dados' ? 'AnÃ¡lise de risco impossibilitada.' : 
+                        k === 'Cache/Fallback' ? 'Risco baseado em leitura defasada.' : 'Risco de alta precisÃ£o (Atualizado).';
+          tr.innerHTML = `<td>${k}</td><td class="num">${fontsCount[k]}</td><td>${impacto}</td>`;
+          tbQuali.appendChild(tr);
+        }
+      });
+
+      // EvoluÃ§Ã£o Mensal GrÃ¡fico HTML
+      if(evolucao.length > 0) {
+        const maxEvo = Math.max(...evolucao.map(e => e.total));
+        const chartDiv = document.getElementById('chart-mensal');
+        evolucao.forEach(m => {
+          const pct = maxEvo > 0 ? (m.total / maxEvo) * 100 : 0;
+          chartDiv.innerHTML += `
+            <div class="bar-group">
+              <span class="bar-val">${formatN(m.total)}</span>
+              <div class="bar" style="height: ${pct}%"></div>
+              <span class="bar-lbl">${m.mes}</span>
+            </div>
+          `;
+        });
+      } else {
+        document.getElementById('chart-mensal').innerHTML = '<p style="margin:auto;font-size:11px;color:#999;">Sem dados mensais disponÃ­veis para este ano.</p>';
+      }
+
+      // Ranking de Prioridade
+      const tbRank = document.getElementById('tb-ranking');
+      // Sort by Prejuizo desc
+      usinasComCorte.sort((a,b) => b.prejuizoFinanceiro - a.prejuizoFinanceiro);
+      usinasComCorte.slice(0, 15).forEach((u, i) => { // Top 15 para caber na pÃ¡gina
+        let tr = document.createElement('tr');
+        let rClass = u.riscoAtual === 'CRITICO' ? 'risco-critico' : u.riscoAtual === 'ALTO' ? 'risco-alto' : u.riscoAtual === 'MEDIO' ? 'risco-medio' : 'risco-baixo';
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td><strong>${escapeHtml(u.nome)}</strong></td>
+          <td>${escapeHtml(u.municipio)}</td>
+          <td class="${rClass}" title="${escapeHtml(u.fatorRisco || 'Sem risco atípico')}">${u.riscoAtual}</td>
+          <td class="num">${formatN(u.energiaCortada)}</td>
+          <td class="num">${formatM(u.prejuizoFinanceiro)}</td>
+        `;
+        tbRank.appendChild(tr);
+      });
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
