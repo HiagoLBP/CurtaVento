@@ -17,8 +17,22 @@ public class PldHorarioController {
     }
 
     @PostMapping("/importar")
-    public ResponseEntity<Map<String, Object>> importar(@RequestParam("arquivo") MultipartFile arquivo) throws Exception {
-        PldHorarioService.ImportResult resultado = service.importar(arquivo);
+    public ResponseEntity<Map<String, Object>> importar(
+            @RequestParam(value = "arquivo", required = false) MultipartFile arquivo,
+            org.springframework.web.multipart.MultipartHttpServletRequest request) throws Exception {
+        
+        MultipartFile fileToImport = arquivo;
+        if (fileToImport == null || fileToImport.isEmpty()) {
+            var files = request.getFileMap();
+            if (!files.isEmpty()) {
+                fileToImport = files.values().iterator().next();
+            }
+        }
+        if (fileToImport == null || fileToImport.isEmpty()) {
+            throw new IllegalArgumentException("Nenhum arquivo enviado. Certifique-se de preencher a Key como 'arquivo' no Postman.");
+        }
+
+        PldHorarioService.ImportResult resultado = service.importar(fileToImport);
         return ResponseEntity.ok(Map.of(
                 "linhasLidas", resultado.lidas(),
                 "linhasImportadas", resultado.importadas(),
