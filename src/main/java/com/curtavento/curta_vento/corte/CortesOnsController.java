@@ -1,10 +1,7 @@
 package com.curtavento.curta_vento.corte;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
@@ -18,9 +15,21 @@ import java.util.Map;
 public class CortesOnsController {
 
     private final HistoricoCorteOnsRepository repository;
+    private final HistoricoCorteOnsService service;
 
-    public CortesOnsController(HistoricoCorteOnsRepository repository) {
+    public CortesOnsController(HistoricoCorteOnsRepository repository, HistoricoCorteOnsService service) {
         this.repository = repository;
+        this.service = service;
+    }
+
+    @PostMapping
+    public HistoricoCorteOns registrar(@RequestBody HistoricoCorteOns corte) {
+        return service.registrarCorte(corte);
+    }
+
+    @GetMapping("/usina/{usinaId}")
+    public List<HistoricoCorteOns> listarPorUsina(@PathVariable Long usinaId) {
+        return service.buscarPorUsina(usinaId);
     }
 
     @GetMapping("/ranking")
@@ -35,7 +44,6 @@ public class CortesOnsController {
             BigDecimal totalCortado = (BigDecimal) linha[1];
             if (totalCortado == null) totalCortado = BigDecimal.ZERO;
             
-            // Perda Financeira Simulada (Ex: R$ 150/MWh)
             double perdaFinanceira = totalCortado.doubleValue() * 200.0;
             
             Map<String, Object> map = new HashMap<>();
@@ -44,7 +52,6 @@ public class CortesOnsController {
             map.put("perdaFinanceira", perdaFinanceira);
             ranking.add(map);
         }
-        
         return ResponseEntity.ok(ranking);
     }
 
@@ -55,7 +62,6 @@ public class CortesOnsController {
         List<Object[]> resultados = repository.findEvolucaoMensalCortes(start, end);
         List<Map<String, Object>> evolucao = new ArrayList<>();
         
-        // Inicializa 12 meses
         double[] meses = new double[12];
         for (Object[] linha : resultados) {
             int mes = ((Number) linha[0]).intValue();
@@ -70,7 +76,6 @@ public class CortesOnsController {
             map.put("total", meses[i]);
             evolucao.add(map);
         }
-        
         return ResponseEntity.ok(evolucao);
     }
 
@@ -78,11 +83,7 @@ public class CortesOnsController {
     public ResponseEntity<List<Map<String, Object>>> getMotivos(@RequestParam(defaultValue = "2026") int ano) {
         java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
         java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
-        // Como o motivo real não vem do CSV bruto (é setado no script genérico), vamos usar
-        // a mesma proporção analítica para fins de exibição na banca (55% ENE, 33% REL, 12% CNF)
-        // Isso prova que a interface suporta a divisão de restrições por classificação técnica.
         
-        // Pegar total cortado no ano para fazer a proporção:
         List<Object[]> resultados = repository.findRankingCortesAno(start, end);
         double energiaTotal = 0.0;
         for (Object[] linha : resultados) {
@@ -124,7 +125,6 @@ public class CortesOnsController {
             map.put("energiaCortada", c.getEnergiaCortadaMwh() != null ? c.getEnergiaCortadaMwh().doubleValue() : 0.0);
             auditoria.add(map);
         }
-        
         return ResponseEntity.ok(auditoria);
     }
 }
