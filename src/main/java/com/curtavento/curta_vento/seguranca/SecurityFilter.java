@@ -19,11 +19,9 @@ import java.util.Collections;
 public class SecurityFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
-    private final UsuarioRepository usuarioRepository;
 
-    public SecurityFilter(TokenService tokenService, UsuarioRepository usuarioRepository) {
+    public SecurityFilter(TokenService tokenService) {
         this.tokenService = tokenService;
-        this.usuarioRepository = usuarioRepository;
     }
 
     // Este método é executado UMA VEZ a cada requisição (OncePerRequestFilter)
@@ -36,13 +34,32 @@ public class SecurityFilter extends OncePerRequestFilter {
         // 2. Se o token existir e for válido matematicamente...
         if (token != null && tokenService.isTokenValido(token)) {
 
-            // 3. Descobre quem é o dono do token
+            // 3. Descobre as claims do token (sem bater no banco de dados)
             String email = tokenService.extrairEmail(token);
-            Usuario usuario = usuarioRepository.findByEmail(email).orElse(null);
+            String perfil = tokenService.extrairPerfil(token);
+            Long usinaId = tokenService.extrairUsinaId(token);
+            Long municipioId = tokenService.extrairMunicipioId(token);
 
-            if (usuario != null) {
+            if (email != null && perfil != null) {
+                // Cria um usuário "dummy" apenas para passar adiante na requisição
+                Usuario usuario = new Usuario();
+                usuario.setEmail(email);
+                usuario.setPerfil(perfil);
+                
+                if (usinaId != null) {
+                    com.curtavento.curta_vento.usina.Usina u = new com.curtavento.curta_vento.usina.Usina();
+                    u.setId(usinaId);
+                    usuario.setUsina(u);
+                }
+                
+                if (municipioId != null) {
+                    com.curtavento.curta_vento.municipio.Municipio m = new com.curtavento.curta_vento.municipio.Municipio();
+                    m.setId(municipioId);
+                    usuario.setMunicipio(m);
+                }
+
                 // 4. Cria o objeto de autenticação nativo do Spring Security
-                var permissoes = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + usuario.getPerfil()));
+                var permissoes = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + perfil));
                 var autenticacao = new UsernamePasswordAuthenticationToken(usuario, null, permissoes);
 
                 // 5. Salva a autenticação no contexto. O "porteiro" libera a entrada!

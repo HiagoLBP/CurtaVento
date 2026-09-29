@@ -27,6 +27,8 @@ public class TokenService {
         return Jwts.builder()
                 .setSubject(usuario.getEmail()) // O "dono" do token
                 .claim("perfil", usuario.getPerfil()) // Guardamos o perfil (ex: ADMIN) dentro do token
+                .claim("usinaId", usuario.getUsina() != null ? usuario.getUsina().getId() : null)
+                .claim("municipioId", usuario.getMunicipio() != null ? usuario.getMunicipio().getId() : null)
                 .setIssuedAt(new Date()) // Data de criação
                 .setExpiration(new Date(System.currentTimeMillis() + TEMPO_VALIDADE)) // Data de validade
                 .signWith(CHAVE_SECRETA) // Carimbo criptográfico
@@ -41,6 +43,21 @@ public class TokenService {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    public String extrairPerfil(String token) {
+        return Jwts.parserBuilder().setSigningKey(CHAVE_SECRETA).build()
+                .parseClaimsJws(token).getBody().get("perfil", String.class);
+    }
+
+    public Long extrairUsinaId(String token) {
+        return Jwts.parserBuilder().setSigningKey(CHAVE_SECRETA).build()
+                .parseClaimsJws(token).getBody().get("usinaId", Long.class);
+    }
+
+    public Long extrairMunicipioId(String token) {
+        return Jwts.parserBuilder().setSigningKey(CHAVE_SECRETA).build()
+                .parseClaimsJws(token).getBody().get("municipioId", Long.class);
     }
 
     // Função para verificar se o token é verdadeiro e se ainda não expirou
