@@ -2,7 +2,7 @@
 
 -- 1. Inserir municipios faltantes
 INSERT INTO municipio (nome, codigo_ibge)
-SELECT 'Araci', '2902005'
+SELECT 'Araci', '2902104'
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM municipio WHERE nome = 'Araci');
 
 INSERT INTO municipio (nome, codigo_ibge)

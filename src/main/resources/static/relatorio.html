@@ -162,7 +162,7 @@
       border-radius: 4px;
       height: 120px;
       display: flex;
-      align-items: flex-end;
+      align-items: stretch;
       gap: 5px;
     }
     .bar-group {
@@ -213,6 +213,7 @@
     .avoid-break { page-break-inside: avoid; }
 
     @media print {
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { margin: 0; }
       .container { padding: 0; max-width: 100%; }
       .no-print { display: none; }

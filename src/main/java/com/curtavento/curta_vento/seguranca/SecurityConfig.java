@@ -46,7 +46,7 @@ public class SecurityConfig {
 
                         // Liberta as rotas internas que geram a interface do Swagger e frontend
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/", "/index.html", "/*.html", "/*.css", "/*.js", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/index.html", "/*.html", "/*.css", "/*.js", "/css/**", "/js/**", "/favicon.ico").permitAll()
                         
                         // Exige autenticação para qualquer outra requisição
                         .anyRequest().authenticated()

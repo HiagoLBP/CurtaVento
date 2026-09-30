@@ -44,7 +44,7 @@ class AlertaServiceTest {
         assertNotNull(alerta);
         assertEquals("VENTO_FORTE", alerta.getTipo());
         assertEquals("ALTO", alerta.getNivelSeveridade());
-        assertFalse(alerta.isLido());
+        assertFalse(alerta.getLido());
         verify(alertaRepository, times(1)).save(any(Alerta.class));
     }
 
@@ -68,7 +68,7 @@ class AlertaServiceTest {
 
         assertEquals(10L, alertaResult.getId());
         assertEquals("CRITICO", alertaResult.getNivelSeveridade());
-        assertFalse(alertaResult.isLido()); // Volta a ser não lido pois piorou/atualizou
+        assertFalse(alertaResult.getLido()); // Volta a ser não lido pois piorou/atualizou
         verify(alertaRepository, times(1)).save(any(Alerta.class));
     }
 

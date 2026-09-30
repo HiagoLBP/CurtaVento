@@ -61,18 +61,27 @@ public class BackfillOnsService {
                     String estado = col[idx.get("id_estado")].trim();
                     if (!"BA".equalsIgnoreCase(estado)) continue;
 
-                    // AGORA LÊ A USINA EXATA, E NÃO O CONJUNTO!
                     String nomeUsina = col[idx.get("nom_usina")].trim();
+                    Integer idxConjunto = idx.get("nom_conjuntousina");
+                    if (idxConjunto == null) idxConjunto = idx.get("nom_conjunto");
+                    String nomeConjunto = (idxConjunto != null && col.length > idxConjunto) ? col[idxConjunto].trim() : "";
+                    String chaveBusca = nomeUsina;
 
                     String flgRestrita = col[idx.get("flg_geracaorestrita")].trim();
                     if (!"1".equals(flgRestrita)) continue;
 
                     double estimada = parseDecimalBr(col[idx.get("val_geracaoestimada")]);
+                    if (estimada == 0.0) {
+                        Integer idxRef = idx.get("val_geracaoreferenciafinal");
+                        if (idxRef != null && col.length > idxRef && !col[idxRef].isBlank()) {
+                            estimada = parseDecimalBr(col[idxRef]);
+                        }
+                    }
                     double verificada = parseDecimalBr(col[idx.get("val_geracaoverificada")]);
                     String instanteStr = col[idx.get("din_instante")].trim();
 
-                    // Agrupamento NÍVEL 1: Por Usina Exata
-                    Usina usinaDb = cacheUsinaPorNome.computeIfAbsent(nomeUsina, this::resolverUsinaPorNome);
+                    // Agrupamento NÍVEL 1: Por Usina Exata (usando conjunto + usina para maior acerto)
+                    Usina usinaDb = cacheUsinaPorNome.computeIfAbsent(chaveBusca, k -> resolverUsinaPorNome(chaveBusca));
                     if (usinaDb == null) continue;
 
                     String chaveInstante = usinaDb.getId() + "|" + instanteStr;
@@ -168,10 +177,23 @@ public class BackfillOnsService {
     }
 
     private List<Usina> cacheTodasUsinas = null;
-
-    private String removerAcentos(String str) {
+    private String cleanName(String str) {
         if (str == null) return "";
-        return java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+        return java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "").toUpperCase()
+                .replace("S.A.", "SA")
+                .replace("S.A", "SA")
+                .replace("S/A", "SA")
+                .replace("S A", "SA")
+                .replace("LTDA.", "")
+                .replace("LTDA", "")
+                .replace("EOLICA", "")
+                .replace("CENTRAL", "")
+                .replace("GERADORA", "")
+                .replace("ENERGIA", "")
+                .replace("ENERGETICA", "")
+                .replace("PINDAI", "PINDA")
+                .replace("KV", "")
+                .trim();
     }
 
     private Usina resolverUsinaPorNome(String nomeOns) {
@@ -179,37 +201,31 @@ public class BackfillOnsService {
             cacheTodasUsinas = usinaRepository.findAll();
         }
         
-        String cleanOns = removerAcentos(nomeOns.toUpperCase())
-                .replace("EOLICA", "")
-                .replace("CENTRAL", "")
-                .replace("GERADORA", "")
-                
-                .replace("KV", "")
-                .trim();
-        
+        String cleanOns = cleanName(nomeOns);
         String[] palavrasOns = cleanOns.split("\\s+");
         
         Usina melhorUsina = null;
         int maxScore = 0;
         
         for (Usina u : cacheTodasUsinas) {
-            String cleanDb = removerAcentos(u.getNome().toUpperCase());
-            String cleanOp = removerAcentos(u.getOperador() != null ? u.getOperador().toUpperCase() : "");
+            String cleanDb = cleanName(u.getNome());
+            String cleanOp = cleanName(u.getOperador());
+            
+            if (cleanDb.equals(cleanOns)) {
+                return u;
+            }
             
             int score = 0;
             for (String p : palavrasOns) {
                 if (p.length() <= 2) {
-                    // permite algarismos romanos ex: I, II, III, IV se forem exatos
-                    if (!p.matches("I|II|III|IV|V|VI|VII|VIII|IX|X|[0-9]+")) continue;
+                    if (!p.matches("I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX|[A-Z]|[0-9]+")) continue;
                 }
                 if (p.equals("DE") || p.equals("DA") || p.equals("DO") || p.equals("DOS") || p.equals("DAS")) continue;
                 
-                // Correspondência parcial ganha pontos básicos
-                if (cleanDb.contains(p)) score += 2;
+                if (cleanDb.matches(".*\\b" + p + "\\b.*")) score += 100;
+                else if (cleanDb.contains(p)) score += 2;
                 
-                // Correspondência exata da palavra (usando regex \b) ganha mega bonus
-                if (cleanDb.matches(".*\\b" + p + "\\b.*")) score += 10;
-                if (cleanOp.matches(".*\\b" + p + "\\b.*")) score += 5;
+                if (cleanOp.matches(".*\\b" + p + "\\b.*")) score += 20;
             }
             
             if (score > maxScore && score > 0) {
@@ -217,7 +233,6 @@ public class BackfillOnsService {
                 melhorUsina = u;
             }
         }
-        
         return melhorUsina;
     }
 }

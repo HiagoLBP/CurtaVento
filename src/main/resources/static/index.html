@@ -16,721 +16,10 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <style>
+  
 
-    :root {
 
-      --bg-body: #F4F5F7;
-
-      --bg-sidebar: #1E2329;
-
-      --bg-surface: #FFFFFF;
-
-      --border: #E4E5E7;
-
-      --border-light: #F0F1F3;
-
-      
-
-      --text-main: #1A1D21;
-
-      --text-muted: #6B7280;
-
-      --text-faint: #9CA3AF;
-
-      --text-sidebar: #9CA3AF;
-
-      --text-sidebar-active: #FFFFFF;
-
-      
-
-      --brand: #2563EB;
-
-      --brand-soft: #DBEAFE;
-
-      
-
-      --ok: #10B981;
-
-      --warn: #F59E0B;
-
-      --high: #EF4444;
-
-      --crit: #991B1B;
-
-      
-
-      --font: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-
-      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-
-      --radius: 8px;
-
-    }
-
-    
-
-    * { box-sizing: border-box; }
-
-    body {
-
-      margin: 0;
-
-      background: var(--bg-body);
-
-      color: var(--text-main);
-
-      font-family: var(--font);
-
-      line-height: 1.5;
-
-      -webkit-font-smoothing: antialiased;
-
-      display: flex;
-
-      height: 100vh;
-
-      overflow: hidden;
-
-    }
-
-
-
-    /* ====== SIDEBAR ====== */
-
-    .sidebar {
-
-      width: 260px;
-
-      background: var(--bg-sidebar);
-
-      color: var(--text-sidebar);
-
-      display: flex;
-
-      flex-direction: column;
-
-      flex-shrink: 0;
-
-      transition: transform 0.3s ease;
-
-    }
-
-    .sidebar-header {
-
-      padding: 24px 20px;
-
-      font-size: 18px;
-
-      font-weight: 700;
-
-      color: #FFF;
-
-      letter-spacing: 1px;
-
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-
-    }
-
-    .nav-list {
-
-      display: flex;
-
-      flex-direction: column;
-
-      padding: 16px 12px;
-
-      gap: 4px;
-
-    }
-
-    .nav-item {
-
-      padding: 10px 16px;
-
-      border-radius: 6px;
-
-      color: var(--text-sidebar);
-
-      text-decoration: none;
-
-      font-size: 14px;
-
-      font-weight: 500;
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 12px;
-
-      transition: all 0.2s ease;
-
-    }
-
-    .nav-item:hover {
-
-      background: rgba(255,255,255,0.05);
-
-      color: #FFF;
-
-    }
-
-    .nav-item.active {
-
-      background: var(--brand);
-
-      color: #FFF;
-
-    }
-
-
-
-    /* ====== MAIN LAYOUT ====== */
-
-    .main-wrapper {
-
-      flex: 1;
-
-      display: flex;
-
-      flex-direction: column;
-
-      overflow-y: auto;
-
-    }
-
-
-
-    /* ====== HEADER ====== */
-
-    header {
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      padding: 20px 32px;
-
-      background: var(--bg-surface);
-
-      border-bottom: 1px solid var(--border);
-
-      position: sticky;
-
-      top: 0;
-
-      z-index: 10;
-
-    }
-
-    .header-left h1 {
-
-      margin: 0 0 2px 0;
-
-      font-size: 20px;
-
-      font-weight: 600;
-
-    }
-
-    .header-left span {
-
-      font-size: 13px;
-
-      color: var(--text-muted);
-
-    }
-
-    .header-controls {
-
-      display: flex;
-
-      align-items: center;
-
-      gap: 20px;
-
-    }
-
-
-
-    .year-select {
-
-      appearance: none;
-
-      background: var(--bg-body);
-
-      border: 1px solid var(--border);
-
-      padding: 6px 28px 6px 12px;
-
-      border-radius: 6px;
-
-      font-family: inherit;
-
-      font-size: 13px;
-
-      font-weight: 500;
-
-      color: var(--text-main);
-
-      cursor: pointer;
-
-      outline: none;
-
-      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%236B7280%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22%2F%3E%3C%2Fsvg%3E");
-
-      background-repeat: no-repeat;
-
-      background-position: right 8px center;
-
-    }
-
-
-
-    .status-chip {
-
-      display: inline-flex;
-
-      align-items: center;
-
-      gap: 6px;
-
-      background: var(--bg-body);
-
-      padding: 4px 12px;
-
-      border-radius: 12px;
-
-      font-size: 12px;
-
-      font-weight: 500;
-
-      color: var(--text-muted);
-
-      border: 1px solid var(--border);
-
-    }
-
-    .status-dot {
-
-      width: 8px;
-
-      height: 8px;
-
-      border-radius: 50%;
-
-      background: var(--text-muted);
-
-    }
-
-    .status-chip.connected .status-dot { background: var(--ok); }
-
-    .status-chip.error .status-dot { background: var(--crit); }
-
-
-
-    /* ====== CONTENT ====== */
-
-    main {
-
-      padding: 32px;
-
-      max-width: 1200px;
-
-      margin: 0 auto;
-
-      width: 100%;
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 24px;
-
-    }
-
-
-
-    /* ====== CARDS GRID ====== */
-
-    .kpi-grid {
-
-      display: grid;
-
-      grid-template-columns: repeat(4, 1fr);
-
-      gap: 16px;
-
-    }
-
-    .card {
-
-      background: var(--bg-surface);
-
-      border: 1px solid var(--border);
-
-      border-radius: var(--radius);
-
-      padding: 20px;
-
-      box-shadow: var(--shadow-sm);
-
-      display: flex;
-
-      flex-direction: column;
-
-    }
-
-    .card-title {
-
-      font-size: 12px;
-
-      font-weight: 600;
-
-      color: var(--text-muted);
-
-      text-transform: uppercase;
-
-      letter-spacing: 0.5px;
-
-      margin: 0 0 8px 0;
-
-    }
-
-    .card-value {
-
-      font-size: 28px;
-
-      font-weight: 700;
-
-      margin: 0;
-
-      line-height: 1.2;
-
-    }
-
-    .card-value small {
-
-      font-size: 14px;
-
-      font-weight: 500;
-
-      color: var(--text-muted);
-
-    }
-
-    .card-subtitle {
-
-      font-size: 12px;
-
-      color: var(--text-faint);
-
-      margin: 4px 0 0 0;
-
-    }
-
-    .val-brand { color: var(--brand); }
-
-    .val-warn { color: var(--warn); }
-
-
-
-    /* ====== SECTIONS ====== */
-
-    .section-card {
-
-      background: var(--bg-surface);
-
-      border: 1px solid var(--border);
-
-      border-radius: var(--radius);
-
-      box-shadow: var(--shadow-sm);
-
-      overflow: hidden;
-
-    }
-
-    .section-header {
-
-      padding: 20px 24px;
-
-      border-bottom: 1px solid var(--border-light);
-
-      display: flex;
-
-      justify-content: space-between;
-
-      align-items: center;
-
-      flex-wrap: wrap;
-
-      gap: 16px;
-
-    }
-
-    .section-header h2 {
-
-      margin: 0 0 4px 0;
-
-      font-size: 16px;
-
-      font-weight: 600;
-
-    }
-
-    .section-header p {
-
-      margin: 0;
-
-      font-size: 13px;
-
-      color: var(--text-muted);
-
-    }
-
-    
-
-    .search-input {
-
-      padding: 8px 12px 8px 32px;
-
-      border: 1px solid var(--border);
-
-      border-radius: 6px;
-
-      font-family: inherit;
-
-      font-size: 13px;
-
-      outline: none;
-
-      width: 240px;
-
-      background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%239CA3AF%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M15.5%2014h-.79l-.28-.27A6.471%206.471%200%200%200%2016%209.5%206.5%206.5%200%201%200%209.5%2016c1.61%200%203.09-.59%204.23-1.57l.27.28v.79l5%204.99L20.49%2019l-4.99-5zm-6%200C7.01%2014%205%2011.99%205%209.5S7.01%205%209.5%205%2014%207.01%2014%209.5%2011.99%2014%209.5%2014z%22%2F%3E%3C%2Fsvg%3E") no-repeat 10px center;
-
-    }
-
-
-
-    /* ====== TABLES ====== */
-
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-
-    thead th {
-
-      text-align: left;
-
-      font-weight: 500;
-
-      color: var(--text-muted);
-
-      font-size: 12px;
-
-      padding: 12px 24px;
-
-      border-bottom: 1px solid var(--border-light);
-
-      background: #FAFAFA;
-
-    }
-
-    tbody td {
-
-      padding: 14px 24px;
-
-      border-bottom: 1px solid var(--border-light);
-
-      vertical-align: middle;
-
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-
-    tbody tr:hover { background: #FAFAFA; }
-
-    
-
-    .usina-nome { font-weight: 600; display: block; margin-bottom: 2px;}
-
-    .usina-op { font-size: 11.5px; color: var(--text-faint); }
-
-    .num-col { font-variant-numeric: tabular-nums; }
-
-    .action-link { color: var(--brand); text-decoration: none; font-weight: 500; cursor: pointer; }
-
-    .action-link:hover { text-decoration: underline; }
-
-
-
-    /* ====== RISK TAGS ====== */
-
-    .risk-tag {
-
-      display: inline-flex;
-
-      align-items: center;
-
-      gap: 6px;
-
-      font-weight: 500;
-
-    }
-
-    .risk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--ok)); }
-
-
-
-    /* ====== 2 COLUMN BOTTOM ====== */
-
-    .bottom-grid {
-
-      display: grid;
-
-      grid-template-columns: 1fr 2fr;
-
-      gap: 24px;
-
-    }
-
-
-
-    /* ====== SITUAÇÃO OPERACIONAL ====== */
-
-    .op-status-list {
-
-      padding: 24px;
-
-      display: flex;
-
-      flex-direction: column;
-
-      gap: 16px;
-
-    }
-
-    .op-row {
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      font-size: 13px;
-
-      font-weight: 500;
-
-    }
-
-    .op-label { display: flex; align-items: center; gap: 8px; color: var(--text-main); }
-
-    .op-val { font-variant-numeric: tabular-nums; }
-
-
-
-    /* ====== IMPACTO MUNICIPAL ====== */
-
-    .muni-list-container {
-
-      padding: 0 24px 24px;
-
-    }
-
-    .muni-row {
-
-      display: grid;
-
-      grid-template-columns: 120px 1fr 100px;
-
-      align-items: center;
-
-      gap: 16px;
-
-      padding: 14px 0;
-
-      border-bottom: 1px solid var(--border-light);
-
-      font-size: 13px;
-
-    }
-
-    .muni-row:last-child { border-bottom: none; }
-
-    .muni-name { font-weight: 500; }
-
-    .muni-track { height: 8px; background: var(--bg-body); border-radius: 4px; overflow: hidden; }
-
-    .muni-fill { height: 100%; background: var(--brand); border-radius: 4px; transition: width 0.4s ease; }
-
-    .muni-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
-
-
-
-    /* ====== FOOTER ====== */
-
-    footer {
-
-      padding: 24px 32px;
-
-      font-size: 12px;
-
-      color: var(--text-faint);
-
-      display: flex;
-
-      justify-content: space-between;
-
-      border-top: 1px solid var(--border);
-
-      background: var(--bg-surface);
-
-    }
-
-
-
-    /* ====== RESPONSIVE ====== */
-
-    @media (max-width: 1024px) {
-
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-
-      .bottom-grid { grid-template-columns: 1fr; }
-
-    }
-
-    @media (max-width: 768px) {
-
-      body { flex-direction: column; }
-
-      .sidebar { width: 100%; height: auto; flex-direction: row; padding: 0; align-items: center; overflow-x: auto; }
-
-      .sidebar-header { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.05); padding: 16px; }
-
-      .nav-list { flex-direction: row; padding: 0 16px; }
-
-      .nav-item { white-space: nowrap; }
-
-      header { flex-direction: column; align-items: flex-start; gap: 16px; }
-
-      main { padding: 16px; }
-
-      .kpi-grid { grid-template-columns: 1fr; }
-
-      .muni-row { grid-template-columns: 90px 1fr 80px; }
-
-      thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
-
-    }
-
-  </style>
-
-<style>#error-banner { display:none; background:var(--high); color:#fff; padding:12px; text-align:center; position:fixed; top:0; width:100%; z-index:9999; font-weight:600; }</style>
+  <link rel="stylesheet" href="/css/global.css">
 </head>
 
 <body>
@@ -749,7 +38,8 @@
     <a href="clima.html" class="nav-item">☁ Clima</a>
     <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
     <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
-  </nav>
+  <a href="#" class="nav-item" onclick="if(typeof logout === 'function') logout(); else { localStorage.removeItem('jwt_token'); window.location.href='/login.html'; }" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
+    </nav>
 </aside>
 
 
@@ -773,7 +63,8 @@
     <div class="header-controls" style="display: flex; gap: 12px; align-items: center;">
         <button onclick="exportarCSV()" style="padding: 6px 12px; background: #0061FF; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📥 Exportar CSV</button>
         <button onclick="gerarRelatorio()" style="padding: 6px 12px; background: #1E2329; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📄 Gerar Relatório</button>
-        <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
+        <label for="ano-selector" class="sr-only" style="display:none;">Ano</label>
+          <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
           <option value="2026">2026 ▼</option>
           <option value="2023">2023 ▼</option>
         </select>
@@ -817,7 +108,7 @@
 
         <p class="card-value val-warn" id="card-receita">R$ 0,0 <small>mi</small></p>
 
-        <p class="card-subtitle">Estimada (R$ 200/MWh)</p>
+        <p class="card-subtitle">Baseada no PLD Horário dinâmico</p>
 
       </div>
 
@@ -859,7 +150,8 @@
 
         </div>
 
-        <input type="text" id="usina-search" class="search-input" placeholder="Buscar usina..." onkeyup="filtrarUsinas()">
+        <label for="usina-search" class="sr-only" style="display:none;">Buscar Usina</label>
+          <input type="text" id="usina-search" class="search-input" placeholder="Buscar usina..." onkeyup="filtrarUsinas()">
 
       </div>
 
@@ -1043,6 +335,7 @@
 
 
 
+<script src="/js/global.js"></script>
 <script>
     function escapeHTML(str) {
       if (typeof str !== 'string') return str;
@@ -1058,7 +351,7 @@
     }
 
 
-  const API_BASE = '';
+  
 
 
 
@@ -1120,16 +413,16 @@
           <div style="font-weight: 500;">${escapeHTML(u.nome)}</div>
           <div style="font-size: 12px; color: var(--text-muted);">${escapeHTML(u.operador)}</div>
         </td>
-        <td style="font-variant-numeric: tabular-nums;">${u.vento}</td>
-        <td style="font-weight: 500;">${u.vento24h}</td>
+        <td data-label="Vento Agora" style="font-variant-numeric: tabular-nums;">${u.vento}</td>
+        <td data-label="Pico 24h" style="font-weight: 500;">${u.vento24h}</td>
         <td style="color: var(--text-muted);">${u.vento48h}</td>
         <td>
           <span class="risk-badge risk-${riscoClass}" title="${escapeHTML(u.fatorRisco)}"></span> <span title="${escapeHTML(u.fatorRisco)}">${riscoLabel}</span>
         </td>
-        <td style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
-        <td style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
-        <td>${statusVaf}</td>
-        <td><a href="#" style="color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 500;">Ver detalhes</a></td>
+        <td data-label="Perda no Ano" style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
+        <td data-label="Prejuízo (R$)" style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
+        <td data-label="Status VAF">${statusVaf}</td>
+        <td data-label="Ação"><a href="#" style="color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 500;">Ver detalhes</a></td>
       `;
       tbody.appendChild(tr);
     });
@@ -1274,36 +567,7 @@
 
 
   
-  async function fetchWithAuth(url, options = {}) {
-    const token = localStorage.getItem('jwt_token');
-    
-    // Se não tiver token e não for a tela de login, redireciona
-    if (!token && !window.location.href.includes('login.html') && !window.location.href.includes('cadastro.html')) {
-      window.location.href = '/login.html';
-      return null;
-    }
-
-    const headers = options.headers || {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    options.headers = headers;
-
-    const res = await fetch(url, options);
-
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem('jwt_token');
-      window.location.href = '/login.html';
-      return null;
-    }
-
-    if (!res.ok) {
-      const banner = document.getElementById('error-banner');
-      if(banner) banner.style.display = 'block';
-      throw new Error('Erro na API');
-    }
-    return await res.json();
-  }
+  
 
   async function carregarDadosReais() {
 
