@@ -1,8 +1,13 @@
 package com.curtavento.curta_vento.risco;
 
-import com.curtavento.curta_vento.clima.LeituraClimatica;
-import com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository;
-import com.curtavento.curta_vento.usina.Usina;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.PrevisaoRiscoEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.NivelRisco;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataPrevisaoRiscoRepository;
+import com.curtavento.curta_vento.application.usecase.PrevisaoRiscoService;
+
+import com.curtavento.curta_vento.infrastructure.persistence.entity.LeituraClimaticaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,23 +28,23 @@ import static org.mockito.Mockito.*;
 class PrevisaoRiscoServiceTest {
 
     @Mock
-    private PrevisaoRiscoRepository repository;
+    private SpringDataPrevisaoRiscoRepository repository;
 
     @Mock
-    private HistoricoCorteOnsRepository corteRepository;
+    private SpringDataHistoricoCorteOnsRepository corteRepository;
 
     @InjectMocks
     private PrevisaoRiscoService previsaoRiscoService;
 
-    private Usina usinaMock;
-    private LeituraClimatica leituraMock;
+    private UsinaEntity usinaMock;
+    private LeituraClimaticaEntity leituraMock;
 
     @BeforeEach
     void setUp() {
-        usinaMock = new Usina();
+        usinaMock = new UsinaEntity();
         usinaMock.setId(10L);
 
-        leituraMock = new LeituraClimatica();
+        leituraMock = new LeituraClimaticaEntity();
         leituraMock.setId(1L);
     }
 
@@ -50,7 +55,7 @@ class PrevisaoRiscoServiceTest {
         when(repository.findFirstByUsinaIdAndDataReferencia(eq(10L), any(LocalDate.class))).thenReturn(null);
         when(corteRepository.findByUsinaIdAndDataCorteBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(new java.util.ArrayList<>());
 
-        PrevisaoRisco previsao = previsaoRiscoService.calcularRisco(usinaMock, leituraMock, 24);
+        PrevisaoRiscoEntity previsao = previsaoRiscoService.calcularRisco(usinaMock, leituraMock, 24);
 
         assertNotNull(previsao);
         assertEquals("CRITICO", previsao.getNivelRisco().name());
@@ -63,7 +68,7 @@ class PrevisaoRiscoServiceTest {
         when(repository.findFirstByUsinaIdAndDataReferencia(eq(10L), any(LocalDate.class))).thenReturn(null);
         when(corteRepository.findByUsinaIdAndDataCorteBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(new java.util.ArrayList<>());
 
-        PrevisaoRisco previsao = previsaoRiscoService.calcularRisco(usinaMock, leituraMock, 24);
+        PrevisaoRiscoEntity previsao = previsaoRiscoService.calcularRisco(usinaMock, leituraMock, 24);
 
         assertNotNull(previsao);
         assertEquals("ALERTA", previsao.getNivelRisco().name()); // Assuming score > 0 but not CRITICO
@@ -76,7 +81,7 @@ class PrevisaoRiscoServiceTest {
         when(repository.findFirstByUsinaIdAndDataReferencia(eq(10L), any(LocalDate.class))).thenReturn(null);
         when(corteRepository.findByUsinaIdAndDataCorteBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(new java.util.ArrayList<>());
 
-        PrevisaoRisco previsao = previsaoRiscoService.calcularRisco(usinaMock, leituraMock, 24);
+        PrevisaoRiscoEntity previsao = previsaoRiscoService.calcularRisco(usinaMock, leituraMock, 24);
 
         assertNotNull(previsao);
         assertEquals("BAIXO", previsao.getNivelRisco().name()); 

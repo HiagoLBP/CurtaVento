@@ -1,11 +1,15 @@
 package com.curtavento.curta_vento.vaf;
 
-import com.curtavento.curta_vento.corte.HistoricoCorteOns;
-import com.curtavento.curta_vento.corte.HistoricoCorteOnsRepository;
-import com.curtavento.curta_vento.municipio.Municipio;
-import com.curtavento.curta_vento.municipio.MunicipioRepository;
-import com.curtavento.curta_vento.usina.Usina;
-import com.curtavento.curta_vento.usina.UsinaRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.ImpactoVafEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataImpactoVafRepository;
+import com.curtavento.curta_vento.application.usecase.ImpactoVafService;
+
+import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.MunicipioEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataMunicipioRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataUsinaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,50 +35,50 @@ import static org.mockito.Mockito.*;
 class ImpactoVafServiceTest {
 
     @Mock
-    private ImpactoVafRepository impactoRepository;
+    private SpringDataImpactoVafRepository impactoRepository;
 
     @Mock
-    private MunicipioRepository municipioRepository;
+    private SpringDataMunicipioRepository SpringDataMunicipioRepository;
 
     @Mock
-    private UsinaRepository usinaRepository;
+    private SpringDataUsinaRepository usinaRepository;
 
     @Mock
-    private HistoricoCorteOnsRepository corteRepository;
+    private SpringDataHistoricoCorteOnsRepository corteRepository;
 
     @InjectMocks
     private ImpactoVafService impactoVafService;
 
-    private Municipio municipioMock;
-    private Usina usinaMock;
+    private MunicipioEntity municipioMock;
+    private UsinaEntity usinaMock;
 
     @BeforeEach
     void setUp() {
-        municipioMock = new Municipio();
+        municipioMock = new MunicipioEntity();
         municipioMock.setId(1L);
         municipioMock.setNome("Guanambi");
         // IPM de 5% (0.05)
         municipioMock.setVafAnoBase(new BigDecimal("0.05"));
 
-        usinaMock = new Usina();
+        usinaMock = new UsinaEntity();
         usinaMock.setId(10L);
-        usinaMock.setNome("Usina Eolica 1");
+        usinaMock.setNome("UsinaEntity Eolica 1");
         usinaMock.setMunicipio(municipioMock);
     }
 
     @Test
     void deveCalcularImpactoComSucessoParaMunicipioValido() {
         // Arrange
-        when(municipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
+        when(SpringDataMunicipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
         when(usinaRepository.findAll()).thenReturn(Collections.singletonList(usinaMock));
 
-        HistoricoCorteOns corte1 = new HistoricoCorteOns();
+        HistoricoCorteOnsEntity corte1 = new HistoricoCorteOnsEntity();
         corte1.setEnergiaCortadaMwh(new BigDecimal("50.0")); // 50 MWh
         
-        HistoricoCorteOns corte2 = new HistoricoCorteOns();
+        HistoricoCorteOnsEntity corte2 = new HistoricoCorteOnsEntity();
         corte2.setEnergiaCortadaMwh(new BigDecimal("100.0")); // 100 MWh
         
-        List<HistoricoCorteOns> cortes = List.of(corte1, corte2);
+        List<HistoricoCorteOnsEntity> cortes = List.of(corte1, corte2);
         
         // Mock the cut history search between Jan 1st and Dec 31st
         when(corteRepository.findByUsinaIdAndDataCorteBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class)))
@@ -83,10 +87,10 @@ class ImpactoVafServiceTest {
         when(impactoRepository.findByMunicipioIdAndAnoReferencia(1L, 2026))
                 .thenReturn(new ArrayList<>());
                 
-        when(impactoRepository.save(any(ImpactoVaf.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(impactoRepository.save(any(ImpactoVafEntity.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        ImpactoVaf impacto = impactoVafService.calcularImpacto(1L, 2026);
+        ImpactoVafEntity impacto = impactoVafService.calcularImpacto(1L, 2026);
 
         // Assert
         // Energia Total = 150 MWh
@@ -99,23 +103,23 @@ class ImpactoVafServiceTest {
         // Impacto Final = 30000 * 0.05 (IPM) = 1500
         assertEquals(0, new BigDecimal("1500.0").compareTo(impacto.getImpactoVafEstimado()));
         
-        verify(impactoRepository, times(1)).save(any(ImpactoVaf.class));
+        verify(impactoRepository, times(1)).save(any(ImpactoVafEntity.class));
     }
 
     @Test
     void deveAplicarFallbackSeIpmForNulo() {
         // Arrange
         municipioMock.setVafAnoBase(null); // Vai usar o fallback de 0.02
-        when(municipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
+        when(SpringDataMunicipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
         when(usinaRepository.findAll()).thenReturn(Collections.singletonList(usinaMock));
 
-        HistoricoCorteOns corte = new HistoricoCorteOns();
+        HistoricoCorteOnsEntity corte = new HistoricoCorteOnsEntity();
         corte.setEnergiaCortadaMwh(new BigDecimal("100.0")); // 100 MWh
         when(corteRepository.findByUsinaIdAndDataCorteBetween(any(), any(), any())).thenReturn(List.of(corte));
-        when(impactoRepository.save(any(ImpactoVaf.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(impactoRepository.save(any(ImpactoVafEntity.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        ImpactoVaf impacto = impactoVafService.calcularImpacto(1L, 2026);
+        ImpactoVafEntity impacto = impactoVafService.calcularImpacto(1L, 2026);
 
         // Assert
         // Perda = 100 * 200 = 20000
@@ -126,7 +130,7 @@ class ImpactoVafServiceTest {
     @Test
     void deveLancarExcecaoSeMunicipioNaoExistir() {
         // Arrange
-        when(municipioRepository.findById(999L)).thenReturn(Optional.empty());
+        when(SpringDataMunicipioRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {

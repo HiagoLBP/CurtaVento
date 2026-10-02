@@ -1,5 +1,8 @@
 package com.curtavento.curta_vento.seguranca;
 
+import com.curtavento.curta_vento.interfaces.http.controller.AutenticacaoController;
+import com.curtavento.curta_vento.infrastructure.security.TokenService;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

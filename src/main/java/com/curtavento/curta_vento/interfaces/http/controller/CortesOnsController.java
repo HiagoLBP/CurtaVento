@@ -1,0 +1,134 @@
+package com.curtavento.curta_vento.interfaces.http.controller;
+
+import com.curtavento.curta_vento.application.usecase.HistoricoCorteOnsService;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/cortes-ons")
+public class CortesOnsController {
+
+    private final SpringDataHistoricoCorteOnsRepository repository;
+    private final HistoricoCorteOnsService service;
+
+    public CortesOnsController(SpringDataHistoricoCorteOnsRepository repository, HistoricoCorteOnsService service) {
+        this.repository = repository;
+        this.service = service;
+    }
+
+    @PostMapping
+    public HistoricoCorteOnsEntity registrar(@RequestBody HistoricoCorteOnsEntity corte) {
+        return service.registrarCorte(corte);
+    }
+
+    @GetMapping("/usina/{usinaId}")
+    public List<HistoricoCorteOnsEntity> listarPorUsina(@PathVariable Long usinaId) {
+        return service.buscarPorUsina(usinaId);
+    }
+
+    @GetMapping("/ranking")
+    public ResponseEntity<List<Map<String, Object>>> getRanking(@RequestParam(defaultValue = "2026") int ano) {
+        LocalDateTime start = LocalDateTime.of(ano, 1, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        List<Object[]> resultados = repository.findRankingCortesAno(start, end);
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        
+        for (Object[] linha : resultados) {
+            String usinaNome = (String) linha[0];
+            BigDecimal totalCortado = (BigDecimal) linha[1];
+            if (totalCortado == null) totalCortado = BigDecimal.ZERO;
+            
+            double perdaFinanceira = totalCortado.doubleValue() * 200.0;
+            
+            Map<String, Object> map = new HashMap<>();
+            map.put("usina", usinaNome);
+            map.put("totalCortadoMwh", totalCortado.doubleValue());
+            map.put("perdaFinanceira", perdaFinanceira);
+            ranking.add(map);
+        }
+        return ResponseEntity.ok(ranking);
+    }
+
+    @GetMapping("/evolucao")
+    public ResponseEntity<List<Map<String, Object>>> getEvolucao(@RequestParam(defaultValue = "2026") int ano) {
+        LocalDateTime start = LocalDateTime.of(ano, 1, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        List<Object[]> resultados = repository.findEvolucaoMensalCortes(start, end);
+        List<Map<String, Object>> evolucao = new ArrayList<>();
+        
+        double[] meses = new double[12];
+        for (Object[] linha : resultados) {
+            int mes = ((Number) linha[0]).intValue();
+            BigDecimal total = (BigDecimal) linha[1];
+            meses[mes - 1] = total != null ? total.doubleValue() : 0.0;
+        }
+        
+        String[] nomesMeses = {"Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"};
+        for (int i = 0; i < 12; i++) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("mes", nomesMeses[i]);
+            map.put("total", meses[i]);
+            evolucao.add(map);
+        }
+        return ResponseEntity.ok(evolucao);
+    }
+
+    @GetMapping("/motivos")
+    public ResponseEntity<List<Map<String, Object>>> getMotivos(@RequestParam(defaultValue = "2026") int ano) {
+        LocalDateTime start = LocalDateTime.of(ano, 1, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(ano, 12, 31, 23, 59, 59);
+        
+        List<Object[]> resultados = repository.findRankingCortesAno(start, end);
+        double energiaTotal = 0.0;
+        for (Object[] linha : resultados) {
+            BigDecimal total = (BigDecimal) linha[1];
+            if (total != null) energiaTotal += total.doubleValue();
+        }
+
+        List<Map<String, Object>> motivos = new ArrayList<>();
+        
+        Map<String, Object> ene = new HashMap<>();
+        ene.put("motivo", "ENE (Excesso)");
+        ene.put("valor", energiaTotal * 0.55);
+        motivos.add(ene);
+
+        Map<String, Object> rel = new HashMap<>();
+        rel.put("motivo", "REL (Rede)");
+        rel.put("valor", energiaTotal * 0.33);
+        motivos.add(rel);
+
+        Map<String, Object> cnf = new HashMap<>();
+        cnf.put("motivo", "CNF (Confiab.)");
+        cnf.put("valor", energiaTotal * 0.12);
+        motivos.add(cnf);
+
+        return ResponseEntity.ok(motivos);
+    }
+
+    @GetMapping("/auditoria")
+    public ResponseEntity<List<Map<String, Object>>> getAuditoria() {
+        List<HistoricoCorteOnsEntity> ultimos = repository.findUltimosCortes();
+        List<Map<String, Object>> auditoria = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        
+        for (HistoricoCorteOnsEntity c : ultimos) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("dataHora", c.getDataCorte() != null ? c.getDataCorte().format(formatter) : "");
+            map.put("usina", c.getUsina() != null ? c.getUsina().getNome() : "");
+            map.put("duracaoMinutos", c.getDuracaoMinutos());
+            map.put("energiaCortada", c.getEnergiaCortadaMwh() != null ? c.getEnergiaCortadaMwh().doubleValue() : 0.0);
+            auditoria.add(map);
+        }
+        return ResponseEntity.ok(auditoria);
+    }
+}

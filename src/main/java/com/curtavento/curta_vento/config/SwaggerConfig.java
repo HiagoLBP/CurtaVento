@@ -1,4 +1,4 @@
-package com.curtavento.curta_vento.seguranca;
+package com.curtavento.curta_vento.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -20,7 +20,6 @@ public class SwaggerConfig {
                         .title("CurtaVento API")
                         .version("1.0")
                         .description("Plataforma de previsão de risco de curtailment eólico e impacto no VAF municipal."))
-                // Adiciona o botão de "Authorize" global na interface
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName,

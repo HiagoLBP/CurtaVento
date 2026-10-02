@@ -1,9 +1,11 @@
 package com.curtavento.curta_vento.corte;
 
-import com.curtavento.curta_vento.municipio.Municipio;
-import com.curtavento.curta_vento.municipio.MunicipioRepository;
-import com.curtavento.curta_vento.usina.Usina;
-import com.curtavento.curta_vento.usina.UsinaRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository;
+
+import com.curtavento.curta_vento.infrastructure.persistence.entity.MunicipioEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataMunicipioRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -19,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class HistoricoCorteOnsRepositoryTest {
 
     @Autowired
-    private HistoricoCorteOnsRepository repository;
+    private SpringDataHistoricoCorteOnsRepository repository;
 
     @Autowired
     private TestEntityManager entityManager;
@@ -27,33 +29,33 @@ class HistoricoCorteOnsRepositoryTest {
     @Test
     void deveAgruparRankingCortesAnoCorretamente() {
         // Arrange
-        Municipio mun = new Municipio();
+        MunicipioEntity mun = new MunicipioEntity();
         mun.setNome("Caetite");
         entityManager.persist(mun);
 
-        Usina usinaA = new Usina();
-        usinaA.setNome("Usina Eolica A");
+        UsinaEntity usinaA = new UsinaEntity();
+        usinaA.setNome("UsinaEntity Eolica A");
         usinaA.setMunicipio(mun);
         entityManager.persist(usinaA);
 
-        Usina usinaB = new Usina();
-        usinaB.setNome("Usina Eolica B");
+        UsinaEntity usinaB = new UsinaEntity();
+        usinaB.setNome("UsinaEntity Eolica B");
         usinaB.setMunicipio(mun);
         entityManager.persist(usinaB);
 
-        HistoricoCorteOns corte1 = new HistoricoCorteOns();
+        HistoricoCorteOnsEntity corte1 = new HistoricoCorteOnsEntity();
         corte1.setUsina(usinaA);
         corte1.setDataCorte(LocalDateTime.of(2026, 5, 10, 12, 0));
         corte1.setEnergiaCortadaMwh(new BigDecimal("150.0"));
         entityManager.persist(corte1);
 
-        HistoricoCorteOns corte2 = new HistoricoCorteOns();
+        HistoricoCorteOnsEntity corte2 = new HistoricoCorteOnsEntity();
         corte2.setUsina(usinaA);
         corte2.setDataCorte(LocalDateTime.of(2026, 6, 12, 12, 0));
         corte2.setEnergiaCortadaMwh(new BigDecimal("50.0"));
         entityManager.persist(corte2);
 
-        HistoricoCorteOns corte3 = new HistoricoCorteOns();
+        HistoricoCorteOnsEntity corte3 = new HistoricoCorteOnsEntity();
         corte3.setUsina(usinaB);
         corte3.setDataCorte(LocalDateTime.of(2026, 5, 11, 12, 0));
         corte3.setEnergiaCortadaMwh(new BigDecimal("300.0"));
@@ -69,12 +71,12 @@ class HistoricoCorteOnsRepositoryTest {
         // Assert
         assertEquals(2, ranking.size());
         
-        // Deve vir ordenado de forma decrescente: Usina B (300), depois Usina A (200)
-        assertEquals("Usina Eolica B", ranking.get(0)[0]);
+        // Deve vir ordenado de forma decrescente: UsinaEntity B (300), depois UsinaEntity A (200)
+        assertEquals("UsinaEntity Eolica B", ranking.get(0)[0]);
         // Hibernate converte SUM para BigDecimal ou Double dependendo da coluna, usando toString para seguranca
         assertEquals(0, new BigDecimal("300.0").compareTo(new BigDecimal(ranking.get(0)[1].toString())));
 
-        assertEquals("Usina Eolica A", ranking.get(1)[0]);
+        assertEquals("UsinaEntity Eolica A", ranking.get(1)[0]);
         assertEquals(0, new BigDecimal("200.0").compareTo(new BigDecimal(ranking.get(1)[1].toString())));
     }
 }

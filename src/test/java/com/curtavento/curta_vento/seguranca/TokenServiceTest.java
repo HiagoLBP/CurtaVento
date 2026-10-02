@@ -1,8 +1,10 @@
 package com.curtavento.curta_vento.seguranca;
 
-import com.curtavento.curta_vento.usina.Usina;
-import com.curtavento.curta_vento.municipio.Municipio;
-import com.curtavento.curta_vento.usuario.Usuario;
+import com.curtavento.curta_vento.infrastructure.security.TokenService;
+
+import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.MunicipioEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.UsuarioEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,17 +22,17 @@ class TokenServiceTest {
 
     @Test
     void deveGerarEExtrairTokenComSucesso() {
-        Usuario usuario = new Usuario();
+        UsuarioEntity usuario = new UsuarioEntity();
         usuario.setEmail("admin@curtavento.com");
         usuario.setPerfil("ADMIN");
         
-        Usina usina = new Usina();
+        UsinaEntity usina = new UsinaEntity();
         usina.setId(10L);
         usuario.setUsina(usina);
         
-        Municipio municipio = new Municipio();
-        municipio.setId(5L);
-        usuario.setMunicipio(municipio);
+        MunicipioEntity MunicipioEntity = new MunicipioEntity();
+        MunicipioEntity.setId(5L);
+        usuario.setMunicipio(MunicipioEntity);
 
         String token = tokenService.gerarToken(usuario);
 
