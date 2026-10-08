@@ -1,6 +1,7 @@
 package com.curtavento.curta_vento.infrastructure.batch;
 
 import com.curtavento.curta_vento.infrastructure.persistence.entity.LeituraClimaticaEntity;
+import com.curtavento.curta_vento.infrastructure.client.OpenMeteoClient;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataLeituraClimaticaRepository;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataUsinaRepository;
@@ -27,26 +28,22 @@ public class IngestaoDadosClimaticosJob {
 
     private final SpringDataLeituraClimaticaRepository springDataLeituraClimaticaRepository;
     private final SpringDataUsinaRepository springDataUsinaRepository;
-    private final RestTemplate restTemplate;
-
-    public IngestaoDadosClimaticosJob(SpringDataLeituraClimaticaRepository springDataLeituraClimaticaRepository, SpringDataUsinaRepository springDataUsinaRepository) {
+    private final OpenMeteoClient openMeteoClient;
+    
+    public IngestaoDadosClimaticosJob(SpringDataLeituraClimaticaRepository springDataLeituraClimaticaRepository, SpringDataUsinaRepository springDataUsinaRepository, com.curtavento.curta_vento.infrastructure.client.OpenMeteoClient openMeteoClient) {
         this.springDataLeituraClimaticaRepository = springDataLeituraClimaticaRepository;
         this.springDataUsinaRepository = springDataUsinaRepository;
-        
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000); // 5 segundos
-        factory.setReadTimeout(5000);    // 5 segundos
-        this.restTemplate = new RestTemplate(factory);
+        this.openMeteoClient = openMeteoClient;
     }
 
-    // Para testes/apresentação: roda 4 segundos após iniciar a aplicação, e depois a cada 10 minutos.
+    // Para testes/apresentaÃƒÂ§ÃƒÂ£o: roda 4 segundos apÃƒÂ³s iniciar a aplicaÃƒÂ§ÃƒÂ£o, e depois a cada 10 minutos.
     @Scheduled(initialDelay = 4000, fixedDelay = 600000)
     public void buscarPrevisaoClimatica() {
-        logger.info("JOB ATIVO: Buscando PREVISÃO climática (próximas 48h) no Open-Meteo...");
+        logger.info("JOB ATIVO: Buscando PREVISÃƒÆ’O climÃƒÂ¡tica (prÃƒÂ³ximas 48h) no Open-Meteo...");
 
         List<UsinaEntity> usinas = springDataUsinaRepository.findAll();
         
-        // CACHE GEOGRÁFICO: Reduz as chamadas da API de 381 para ~10 chamadas (usinas na mesma latitude/longitude não chamam a API novamente)
+        // CACHE GEOGRÃƒÂFICO: Reduz as chamadas da API de 381 para ~10 chamadas (usinas na mesma latitude/longitude nÃƒÂ£o chamam a API novamente)
         Map<String, Map<String, BigDecimal>> cacheCoordenadas = new HashMap<>();
         
         for (UsinaEntity usina : usinas) {
@@ -63,24 +60,11 @@ public class IngestaoDadosClimaticosJob {
             if (cacheCoordenadas.containsKey(coordKey)) {
                 dadosOpenMeteo = cacheCoordenadas.get(coordKey);
             } else {
-                int tentativas = 0;
-                while(tentativas < 3) {
-                    try {
-                        dadosOpenMeteo = fetchOpenMeteoForecast(usina);
-                        cacheCoordenadas.put(coordKey, dadosOpenMeteo);
-                        // Pausa gentil para não bater no rate-limit (apenas quando vai realmente chamar a API)
-                        try { Thread.sleep(200); } catch(InterruptedException ie) {}
-                        break;
-                    } catch (Exception ex) {
-                        tentativas++;
-                        if(tentativas >= 3) {
-                            logger.error("Falha no Open-Meteo para usina ID " + usina.getId() + ". Erro: " + ex.getMessage());
-                            // Salva um cache vazio para não metralhar a API de novo nessa mesma coordenada quebrada (Ex: Erro 429)
-                            cacheCoordenadas.put(coordKey, null);
-                        } else {
-                            try { Thread.sleep(2000); } catch(InterruptedException ie) {}
-                        }
-                    }
+                try {
+                    dadosOpenMeteo = openMeteoClient.fetchOpenMeteoForecast(usina);
+                    cacheCoordenadas.put(coordKey, dadosOpenMeteo);
+                } catch (Exception ex) {
+                    logger.error("Falha no Open-Meteo para usina ID " + usina.getId() + " apos retentativas. Erro: " + ex.getMessage());
                 }
             }
             if (dadosOpenMeteo != null) {
@@ -100,7 +84,7 @@ public class IngestaoDadosClimaticosJob {
                     vento24h = ultima.getVentoPrevisao24hMs();
                     vento48h = ultima.getVentoPrevisao48hMs();
                     tempAtual = ultima.getTemperaturaC();
-                    direcaoVento = ultima.getDirecaoVentoGraus(); // Correção: restaurando a direção
+                    direcaoVento = ultima.getDirecaoVentoGraus(); // CorreÃƒÂ§ÃƒÂ£o: restaurando a direÃƒÂ§ÃƒÂ£o
                     fonte = "CACHE_ANTIGO";
                 } else {
                     logger.error("Nenhuma leitura anterior encontrada para usina ID {}. Usando valores zerados.", usina.getId());
@@ -109,7 +93,7 @@ public class IngestaoDadosClimaticosJob {
                     vento48h = null;
                     tempAtual = null;
                     fonte = "SEM_DADOS";
-                    // Removendo a atribuição de zeros que distorcia o modelo.
+                    // Removendo a atribuiÃƒÂ§ÃƒÂ£o de zeros que distorcia o modelo.
                 }
             }
 
@@ -117,7 +101,7 @@ public class IngestaoDadosClimaticosJob {
             LocalDateTime agora = LocalDateTime.now();
             LocalDateTime inicioHora = agora.withMinute(0).withSecond(0).withNano(0);
             
-            // Lógica de idempotência (simplificada): se a última leitura for da mesma hora, atualize-a em vez de duplicar.
+            // LÃƒÂ³gica de idempotÃƒÂªncia (simplificada): se a ÃƒÂºltima leitura for da mesma hora, atualize-a em vez de duplicar.
             LeituraClimaticaEntity leitura = springDataLeituraClimaticaRepository.findFirstByUsinaIdOrderByDataHoraDesc(usina.getId());
             if (leitura == null || leitura.getDataHora().isBefore(inicioHora)) {
                 leitura = new LeituraClimaticaEntity();
@@ -137,62 +121,5 @@ public class IngestaoDadosClimaticosJob {
             logger.info("Clima atualizado: UsinaEntity {} - Atual: {} m/s - 24h: {} - 48h: {}", usina.getId(), ventoAtual, vento24h, vento48h);
         }
     }
-
-    
-    private Map<String, BigDecimal> fetchOpenMeteoForecast(UsinaEntity usina) {
-        if (usina.getLatitude() == null || usina.getLongitude() == null) {
-            throw new RuntimeException("UsinaEntity sem coordenadas para buscar no Open-Meteo.");
-        }
-
-        // Busca o 'current' e a 'hourly' para 2 dias
-        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_80m,wind_direction_80m&hourly=wind_speed_80m&wind_speed_unit=ms&forecast_days=2",
-                usina.getLatitude(), usina.getLongitude());
-
-        Map<?, ?> response = restTemplate.getForObject(url, Map.class);
-        if (response != null && response.containsKey("hourly") && response.containsKey("current")) {
-            Map<?, ?> current = (Map<?, ?>) response.get("current");
-            Map<?, ?> hourly = (Map<?, ?>) response.get("hourly");
-            
-            Object currentWindObj = current.get("wind_speed_80m");
-            Object currentTempObj = current.get("temperature_2m");
-            Object currentDirObj = current.get("wind_direction_80m");
-            
-            BigDecimal ventoAtual = currentWindObj != null ? new BigDecimal(currentWindObj.toString()) : BigDecimal.ZERO;
-            BigDecimal tempAtual = currentTempObj != null ? new BigDecimal(currentTempObj.toString()) : BigDecimal.ZERO;
-            BigDecimal direcaoVento = currentDirObj != null ? new BigDecimal(currentDirObj.toString()) : null;
-            
-            List<?> windList = (List<?>) hourly.get("wind_speed_80m");
-            
-            BigDecimal max24h = BigDecimal.ZERO;
-            BigDecimal max48h = BigDecimal.ZERO;
-            
-            if (windList != null && windList.size() >= 48) {
-                // Primeira 24 horas
-                for (int i = 0; i < 24; i++) {
-                    Object wObj = windList.get(i);
-                    if (wObj != null) {
-                        BigDecimal v = new BigDecimal(wObj.toString());
-                        if (v.compareTo(max24h) > 0) max24h = v;
-                    }
-                }
-                // Próximas 24 horas (24 a 47)
-                for (int i = 24; i < 48; i++) {
-                    Object wObj = windList.get(i);
-                    if (wObj != null) {
-                        BigDecimal v = new BigDecimal(wObj.toString());
-                        if (v.compareTo(max48h) > 0) max48h = v;
-                    }
-                }
-            }
-            
-            Map<String, BigDecimal> result = new HashMap<>();
-            result.put("vento_atual", ventoAtual);
-            result.put("vento_24h", max24h);
-            result.put("vento_48h", max48h);
-            result.put("temperatura", tempAtual);
-            result.put("direcao_vento", direcaoVento);
-            return result;
-        }
-        throw new RuntimeException("Dados do Open-Meteo inválidos ou lista horária vazia.");
-    }
 }
+

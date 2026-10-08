@@ -40,8 +40,9 @@ public class BackfillOnsService {
         String url = String.format(URL_BASE, ano, mes);
         System.out.println("Baixando: " + url);
 
-        Map<String, double[]> agregadoPorInstante = new HashMap<>();
+        Map<String, double[]> agregadoPorDia = new HashMap<>();
         Map<String, UsinaEntity> cacheUsinaPorNome = new HashMap<>();
+        final DateTimeFormatter parserInstante = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.execute(url, HttpMethod.GET, null, response -> {
@@ -55,11 +56,11 @@ public class BackfillOnsService {
                 int idxEstado = colunas.getOrDefault("id_estado", -1);
                 int idxUsina = colunas.getOrDefault("nom_usina", -1);
                 int idxInstante = colunas.getOrDefault("din_instante", -1);
-                int idxGeracao = colunas.getOrDefault("val_geracao", -1);
-                int idxCorte = colunas.getOrDefault("val_geracaolimitada", -1);
+                int idxEstimada = colunas.getOrDefault("val_geracaoestimada", -1);
+                int idxVerificada = colunas.getOrDefault("val_geracaoverificada", -1);
 
-                if (idxUsina == -1 || idxCorte == -1) {
-                    System.err.println("Colunas obrigatórias não encontradas no CSV do ONS.");
+                if (idxUsina == -1 || idxEstimada == -1 || idxVerificada == -1) {
+                    System.err.println("Colunas obrigatÃƒÂ³rias nÃƒÂ£o encontradas no CSV do ONS.");
                     return null;
                 }
 
@@ -77,53 +78,37 @@ public class BackfillOnsService {
                     UsinaEntity usina = cacheUsinaPorNome.computeIfAbsent(nomeUsinaCsv, this::buscarUsinaPorNome);
                     if (usina == null) continue;
 
+                    double valEstimada = idxEstimada < campos.length ? parseDecimalBr(campos[idxEstimada]) : 0.0;
+                    double valVerificada = idxVerificada < campos.length ? parseDecimalBr(campos[idxVerificada]) : 0.0;
+                    double valCorte = valEstimada - valVerificada;
+                    if (valCorte <= 0.0) continue;
+
                     String instante = idxInstante >= 0 && idxInstante < campos.length
                             ? campos[idxInstante].trim().replace("\"", "") : "";
 
-                    double valCorte = idxCorte < campos.length ? parseDecimalBr(campos[idxCorte]) : 0.0;
-                    double valGeracao = (idxGeracao >= 0 && idxGeracao < campos.length)
-                            ? parseDecimalBr(campos[idxGeracao]) : 0.0;
+                    LocalDate data;
+                    try {
+                        data = LocalDateTime.parse(instante, parserInstante).toLocalDate();
+                    } catch (Exception e) {
+                        try {
+                            data = LocalDate.parse(instante.substring(0, 10));
+                        } catch (Exception e2) {
+                            continue;
+                        }
+                    }
 
-                    if (valCorte <= 0.0) continue;
+                    double corteEnergiaMwh = valCorte * 0.5;
 
-                    String chaveInstante = usina.getId() + "|" + instante;
-                    agregadoPorInstante.merge(chaveInstante,
-                            new double[]{valCorte, valGeracao},
+                    String chaveDia = usina.getId() + "|" + data;
+                    agregadoPorDia.merge(chaveDia,
+                            new double[]{corteEnergiaMwh, 1.0},
                             (a, b) -> new double[]{a[0] + b[0], a[1] + b[1]});
                 }
             }
             return null;
         });
 
-        System.out.println("Processamento concluído. Agregando por dia para salvar no banco...");
-
-        Map<String, double[]> agregadoPorDia = new HashMap<>();
-        DateTimeFormatter parserInstante = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        for (Map.Entry<String, double[]> entry : agregadoPorInstante.entrySet()) {
-            String[] partes = entry.getKey().split("\\|");
-            Long usinaId = Long.parseLong(partes[0]);
-            String instanteStr = partes[1];
-
-            LocalDate data;
-            try {
-                data = LocalDateTime.parse(instanteStr, parserInstante).toLocalDate();
-            } catch (Exception e) {
-                try {
-                    data = LocalDate.parse(instanteStr.substring(0, 10));
-                } catch (Exception e2) {
-                    continue;
-                }
-            }
-
-            double cortePotenciaMw = entry.getValue()[0];
-            double corteEnergiaMwh = cortePotenciaMw * 0.5;
-
-            String chaveDia = usinaId + "|" + data;
-            agregadoPorDia.merge(chaveDia,
-                    new double[]{corteEnergiaMwh, 1.0},
-                    (a, b) -> new double[]{a[0] + b[0], a[1] + b[1]});
-        }
+        System.out.println("Processamento concluÃƒÂ­do. Salvando no banco...");
 
         int registrosGravados = 0;
         for (Map.Entry<String, double[]> entry : agregadoPorDia.entrySet()) {
@@ -147,7 +132,7 @@ public class BackfillOnsService {
             registrosGravados++;
         }
 
-        System.out.println("Backfill de " + mes + "/" + ano + " concluído: " + registrosGravados + " registros diários gravados.");
+        System.out.println("Backfill de " + mes + "/" + ano + " concluÃƒÆ’Ã‚Â­do: " + registrosGravados + " registros diÃƒÆ’Ã‚Â¡rios gravados.");
         return registrosGravados;
     }
 
@@ -189,7 +174,7 @@ public class BackfillOnsService {
     private String cleanName(String str) {
         if (str == null) return "";
         return java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD)
-                .replaceAll("\\\\p{M}", "")
+                .replaceAll("\\p{M}", "")
                 .toUpperCase()
                 .replaceAll("[^A-Z0-9]", "");
     }
@@ -209,3 +194,7 @@ public class BackfillOnsService {
         return null;
     }
 }
+
+
+
+

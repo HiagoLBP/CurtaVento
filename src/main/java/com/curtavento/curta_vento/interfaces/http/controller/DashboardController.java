@@ -61,7 +61,7 @@ public class DashboardController {
         if (limite < 1) limite = 1000;
         if (limite > 2000) limite = 2000;
 
-        // 1. Usinas e Riscos (Sempre mostra a previsão para as próximas 24h, independente do ano do histórico)
+        // 1. Usinas e Riscos (Sempre mostra a previsÃ£o para as prÃ³ximas 24h, independente do ano do histÃ³rico)
         
         java.time.LocalDateTime start = java.time.LocalDateTime.of(ano, 1, 1, 0, 0);
         java.time.LocalDateTime end = java.time.LocalDateTime.of(ano, 12, 31, 23, 59, 59);
@@ -106,7 +106,7 @@ public class DashboardController {
                 dto.put("corte", ultima.getPercentualCorteEstimado() + "%");
             } else {
                 dto.put("risco", "BAIXO");
-                dto.put("fatorRisco", "Sem risco atípico.");
+                dto.put("fatorRisco", "Sem risco atÃ­pico.");
                 dto.put("corte", "0%");
             }
 
@@ -132,13 +132,13 @@ public class DashboardController {
 
                 if (ultima == null || ultima.getFatoresJustificativa() == null) {
                     if ("CRITICO".equals(r24h)) {
-                        dto.put("fatorRisco", "Rajadas previstas elevadas (>= 10 m/s), alto risco de restrição de rede.");
+                        dto.put("fatorRisco", "Rajadas previstas elevadas (>= 10 m/s), alto risco de restriÃ§Ã£o de rede.");
                     } else if ("ALTO".equals(r24h)) {
-                        dto.put("fatorRisco", "Vento previsto forte (>= 7 m/s), atenção para corte programado.");
+                        dto.put("fatorRisco", "Vento previsto forte (>= 7 m/s), atenÃ§Ã£o para corte programado.");
                     } else if ("MEDIO".equals(r24h)) {
                         dto.put("fatorRisco", "Vento moderado, monitoramento preventivo recomendado.");
                     } else {
-                        dto.put("fatorRisco", "Sem risco atípico. Ventos dentro dos parâmetros operacionais.");
+                        dto.put("fatorRisco", "Sem risco atÃ­pico. Ventos dentro dos parÃ¢metros operacionais.");
                     }
                 }
 
@@ -165,7 +165,7 @@ public class DashboardController {
                 dto.put("janelaManutencao", "N/D");
                 dto.put("fonteClima", "N/D");
                 dto.put("dataClima", "N/D");
-                dto.put("fatorRisco", "Sem dados climáticos em tempo real para avaliar o risco.");
+                dto.put("fatorRisco", "Sem dados climÃ¡ticos em tempo real para avaliar o risco.");
             }
 
             double somaCortesUsina = cortesMap.getOrDefault(u.getNome(), 0.0);
@@ -184,26 +184,24 @@ public class DashboardController {
             usinasDTO = usinasDTO.subList(0, limite);
         }
 
-        // 2. Municípios e Totais do VAF baseados no ANO selecionado no Dropdown
+        // 2. MunicÃ­pios e Totais do VAF baseados no ANO selecionado no Dropdown
         List<Map<String, Object>> municipiosDTO = new ArrayList<>();
         double somaEnergiaTotal = 0.0;
         double somaImpactoTotal = 0.0;
         double somaPerdaReceitaTotal = 0.0;
 
-        List<Object[]> impactosMun = corteRepository.findImpactoPorMunicipio(start, end);
-        for (Object[] linha : impactosMun) {
-            String nome = (String) linha[0];
-            java.math.BigDecimal totalCortado = (java.math.BigDecimal) linha[2];
-            double mwh = totalCortado != null ? totalCortado.doubleValue() : 0.0;
-            
-            double perdaReceitaReal = mwh * com.curtavento.curta_vento.domain.model.PrecoEnergia.PRECO_MWH;
-            double impactoReal = perdaReceitaReal * 0.18 * 0.25; // 18% ICMS, 25% repasse VAF
+        List<com.curtavento.curta_vento.infrastructure.persistence.entity.ImpactoVafEntity> impactosDb = impactoRepository.findByAnoReferencia(ano);
+        for (com.curtavento.curta_vento.infrastructure.persistence.entity.ImpactoVafEntity impacto : impactosDb) {
+            String nome = impacto.getMunicipio().getNome();
+            double mwh = impacto.getEnergiaTotalCortadaMwh() != null ? impacto.getEnergiaTotalCortadaMwh().doubleValue() : 0.0;
+            double perdaReceitaReal = impacto.getPerdaReceitaEstimada() != null ? impacto.getPerdaReceitaEstimada().doubleValue() : 0.0;
+            double impactoReal = impacto.getImpactoVafEstimado() != null ? impacto.getImpactoVafEstimado().doubleValue() : 0.0;
             
             Map<String, Object> dto = new HashMap<>();
             dto.put("nome", nome);
             dto.put("valor", impactoReal);
             dto.put("max", 50000000.0);
-            dto.put("trend", "Calculado");
+            dto.put("trend", "Oficial");
             
             somaEnergiaTotal += mwh;
             somaImpactoTotal += impactoReal;
@@ -212,11 +210,14 @@ public class DashboardController {
             municipiosDTO.add(dto);
         }
 
-        // Injeção dos dados analisados da subestação BAIGT para o painel de impacto
+        // InjeÃ§Ã£o dos dados analisados da subestaÃ§Ã£o BAIGT para o painel de impacto
         Map<String, Double> motivos = new HashMap<>();
-        motivos.put("ENE (Energética)", somaEnergiaTotal * 0.55);
-        motivos.put("REL (Rede Local - Estimado)", somaEnergiaTotal * 0.33);
-        motivos.put("CNF (Confiabilidade - Estimado)", somaEnergiaTotal * 0.12);
+        List<Object[]> motivosDb = corteRepository.findMotivosCorte(start, end);
+        for (Object[] linha : motivosDb) {
+            String motivoNome = (String) linha[0];
+            java.math.BigDecimal val = (java.math.BigDecimal) linha[1];
+            motivos.put(motivoNome != null ? motivoNome : "Não Informado", val != null ? val.doubleValue() : 0.0);
+        }
 
         Map<String, Object> resposta = new HashMap<>();
         resposta.put("usinas", usinasDTO);
@@ -238,3 +239,4 @@ public class DashboardController {
         return "BAIXO";
     }
 }
+

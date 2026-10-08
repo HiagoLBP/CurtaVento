@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,4 +31,10 @@ public interface SpringDataHistoricoCorteOnsRepository extends JpaRepository<His
 
     @Query("SELECT c.usina.municipio.nome, COUNT(DISTINCT c.usina.id), SUM(c.energiaCortadaMwh) FROM HistoricoCorteOnsEntity c WHERE c.dataCorte >= :inicio AND c.dataCorte <= :fim GROUP BY c.usina.municipio.nome ORDER BY SUM(c.energiaCortadaMwh) DESC")
     List<Object[]> findImpactoPorMunicipio(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
+
+    @Query("SELECT c.motivoOns, SUM(c.energiaCortadaMwh) FROM HistoricoCorteOnsEntity c WHERE c.dataCorte >= :inicio AND c.dataCorte <= :fim GROUP BY c.motivoOns")
+    List<Object[]> findMotivosCorte(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
+
+    @Query("SELECT SUM(c.energiaCortadaMwh) FROM HistoricoCorteOnsEntity c WHERE c.usina.municipio.id = :municipioId AND c.dataCorte >= :inicio AND c.dataCorte <= :fim")
+    BigDecimal sumEnergiaCortadaPorMunicipioEAno(@Param("municipioId") Long municipioId, @Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
 }

@@ -70,19 +70,10 @@ class ImpactoVafServiceTest {
     void deveCalcularImpactoComSucessoParaMunicipioValido() {
         // Arrange
         when(SpringDataMunicipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
-        when(usinaRepository.findAll()).thenReturn(Collections.singletonList(usinaMock));
 
-        HistoricoCorteOnsEntity corte1 = new HistoricoCorteOnsEntity();
-        corte1.setEnergiaCortadaMwh(new BigDecimal("50.0")); // 50 MWh
-        
-        HistoricoCorteOnsEntity corte2 = new HistoricoCorteOnsEntity();
-        corte2.setEnergiaCortadaMwh(new BigDecimal("100.0")); // 100 MWh
-        
-        List<HistoricoCorteOnsEntity> cortes = List.of(corte1, corte2);
-        
-        // Mock the cut history search between Jan 1st and Dec 31st
-        when(corteRepository.findByUsinaIdAndDataCorteBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .thenReturn(cortes);
+        // Mock the cut history sum
+        when(corteRepository.sumEnergiaCortadaPorMunicipioEAno(eq(1L), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(new BigDecimal("150.0"));
                 
         when(impactoRepository.findByMunicipioIdAndAnoReferencia(1L, 2026))
                 .thenReturn(new ArrayList<>());
@@ -97,7 +88,6 @@ class ImpactoVafServiceTest {
         assertEquals(0, new BigDecimal("150.0").compareTo(impacto.getEnergiaTotalCortadaMwh()));
         
         // Perda Receita = 150 MWh * 200.0 (PrecoEnergia.PRECO_MWH) = 30000
-        // No BD de VAF não tem o campo de perdaReceita direto no modelo salvo, mas o serviço calcula e salva faturamentoPerdidoRs
         assertEquals(0, new BigDecimal("30000.0").compareTo(impacto.getPerdaReceitaEstimada()));
         
         // Impacto Final = 30000 * 0.05 (IPM) = 1500
@@ -111,11 +101,11 @@ class ImpactoVafServiceTest {
         // Arrange
         municipioMock.setVafAnoBase(null); // Vai usar o fallback de 0.02
         when(SpringDataMunicipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
-        when(usinaRepository.findAll()).thenReturn(Collections.singletonList(usinaMock));
 
-        HistoricoCorteOnsEntity corte = new HistoricoCorteOnsEntity();
-        corte.setEnergiaCortadaMwh(new BigDecimal("100.0")); // 100 MWh
-        when(corteRepository.findByUsinaIdAndDataCorteBetween(any(), any(), any())).thenReturn(List.of(corte));
+        // Mock the cut history sum
+        when(corteRepository.sumEnergiaCortadaPorMunicipioEAno(eq(1L), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(new BigDecimal("100.0"));
+
         when(impactoRepository.save(any(ImpactoVafEntity.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
@@ -140,3 +130,4 @@ class ImpactoVafServiceTest {
         assertTrue(exception.getMessage().contains("999"));
     }
 }
+
