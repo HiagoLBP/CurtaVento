@@ -33,7 +33,6 @@ public class OpenMeteoClient {
             throw new RuntimeException("UsinaEntity sem coordenadas para buscar no Open-Meteo.");
         }
 
-        // Busca o 'current' e a 'hourly' para 2 dias
         String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m,wind_speed_80m,wind_direction_80m&hourly=wind_speed_80m&wind_speed_unit=ms&forecast_days=2",
                 usina.getLatitude(), usina.getLongitude());
 

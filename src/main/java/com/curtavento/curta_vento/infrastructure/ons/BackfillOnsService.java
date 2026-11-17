@@ -60,7 +60,7 @@ public class BackfillOnsService {
                 int idxVerificada = colunas.getOrDefault("val_geracaoverificada", -1);
 
                 if (idxUsina == -1 || idxEstimada == -1 || idxVerificada == -1) {
-                    System.err.println("Colunas obrigatÃƒÂ³rias nÃƒÂ£o encontradas no CSV do ONS.");
+                    System.err.println("Colunas obrigatórias não encontradas no CSV do ONS.");
                     return null;
                 }
 
