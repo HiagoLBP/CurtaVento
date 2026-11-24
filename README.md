@@ -24,15 +24,19 @@ O sistema foi concebido e expandido a partir da pesquisa acadêmica de Pré-TCC:
 ### Modelagem Fiscal e Regulatória Validada
 
 1. **Impacto no Valor Adicionado Fiscal (Equação 5.1):**
-   $$\Delta \text{VAF}_m = \Delta E_{\text{cortada},m} \times P_{\text{ref}}$$
-   Onde a perda de VAF municipal ($\Delta \text{VAF}_m$) resulta do produto da energia cortada pela usina no município pelo preço de referência da energia ($P_{\text{ref}}$ em R$/MWh).
+
+   > **ΔVAF<sub>m</sub> = ΔE<sub>cortada,m</sub> &times; P<sub>ref</sub>**
+
+   Onde a perda de VAF municipal (**ΔVAF<sub>m</sub>**) resulta do produto da energia cortada pela usina no município pelo preço de referência da energia (**P<sub>ref</sub>** em R$/MWh).
 
 2. **Perda Arrecadatória Municipal de ICMS (Equação 5.2):**
-   $$\Delta \text{ICMS}_m = \left( \frac{\Delta \text{VAF}_m}{\text{VAF}_{\text{total, BA}}} \right) \times \left( \text{ICMS}_{\text{total, BA}} \times 0{,}25 \times 0{,}65 \right)$$
+
+   > **ΔICMS<sub>m</sub> = (ΔVAF<sub>m</sub> / VAF<sub>total,BA</sub>) &times; (ICMS<sub>total,BA</sub> &times; 0,25 &times; 0,65)**
+
    Onde 25% da arrecadação estadual de ICMS é constitucionalmente repassada aos municípios (CF/88 e LC nº 63/1990) e a Lei Complementar Estadual da Bahia nº 53/2022 fixa a cota do VAF em 65% do Índice de Participação dos Municípios (IPM).
 
 3. **Defasagem Bienal na Arrecadação:**
-   De acordo com a LC nº 63/1990, o VAF gerado no ano $t$ compõe o índice de rateio com reflexos orçamentários distribuídos nos exercícios $t+2$ (50%) e $t+3$ (50%).
+   De acordo com a LC nº 63/1990, o VAF gerado no ano *t* compõe o índice de rateio com reflexos orçamentários distribuídos nos exercícios *t+2* (50%) e *t+3* (50%).
 
 4. **Marco Regulatório ANEEL & ONS:**
    * **REN ANEEL nº 1.030/2022:** Apuração de restrição por confiabilidade elétrica (`REL`), constrained-off (`CNF`) e razões energéticas (`ENE`).
@@ -46,11 +50,11 @@ O sistema foi concebido e expandido a partir da pesquisa acadêmica de Pré-TCC:
 * **Dashboard Executivo & Mapa GIS:** Indicadores consolidados de energia cortada, perda bruta, impacto VAF/ICMS, taxa de desperdício, filtro por subestação coletora e mapa geoespacial interativo (Leaflet) dos complexos eólicos da Bahia.
 * **Previsão de Risco com Machine Learning (6h e 12h):** Microsserviço dedicado em Python/PyTorch com codificação temporal treinável `Time2Vec` aplicada a três arquiteturas neurais (`MLP + Time2Vec`, `LSTM + Time2Vec`, `DLinear + Time2Vec`), retornando probabilidade horária de corte e estimativa de MWh cortado.
 * **Benchmark de Modelos de ML:** Comparativo experimental automatizado avaliando nMAE, nRMSE, correlação de Pearson e acurácia de classificação binária sobre os dados históricos reais do ONS.
-* **Reanálise Climática NASA POWER & Open-Meteo:** Ingestão de séries meteorológicas horárias históricas e previsão climática, com cisalhamento vertical de vento a 80m via Power Law Wind Shear ($v(z) = v(z_0) (z / z_0)^\alpha$).
+* **Reanálise Climática NASA POWER & Open-Meteo:** Ingestão de séries meteorológicas horárias históricas e previsão climática, com cisalhamento vertical de vento a 80m via Power Law Wind Shear (*v(z) = v(z<sub>0</sub>) &middot; (z / z<sub>0</sub>)<sup>&alpha;</sup>*).
 * **Segurança O&M em Altura (NR-35):** Avaliação de janelas seguras de trabalho em torres eólicas cruzando velocidade de vento a 80m e rajadas (`LIBERADO`, `ALERTA`, `BLOQUEADO`).
 * **Auditoria Regulatória ANEEL (REN 1.030/2022, NT 183/2026 & REN 1.170/2026):** Classificação de cortes por `REL`, `CNF` e `ENE`, simulador de descontos da NT 183/2026 e compartilhamento gradual de perdas hidrelétricas da REN 1.170/2026.
 * **Simulador de Armazenamento BESS:** Dimensionamento técnico-econômico de sistemas de baterias LFP para mitigação de curtailment e arbitragem com PLD horário.
-* **Impacto Fiscal Municipal (VAF) & Arrendamento Rural:** Projeção plurianual nos exercícios $t+1$, $t+2$ e $t+3$ dos repasses de ICMS aos municípios produtores e auditoria de royalties fundiários para proprietários rurais (1,0% a 2,5%).
+* **Impacto Fiscal Municipal (VAF) & Arrendamento Rural:** Projeção plurianual nos exercícios *t+1*, *t+2* e *t+3* dos repasses de ICMS aos municípios produtores e auditoria de royalties fundiários para proprietários rurais (1,0% a 2,5%).
 * **Sincronização & Backfill ONS:** Processamento em lote de datasets oficiais do ONS (arquivos CSV com granularidade semi-horária e diária).
 
 ---
@@ -123,7 +127,7 @@ O microsserviço de ML implementa embeddings temporais treináveis baseados no a
 ### Métricas de Validação (Horizontes de 6h e 12h)
 * **nMAE (Normalized Mean Absolute Error):** Erro médio absoluto normalizado pela amplitude da série.
 * **nRMSE (Normalized Root Mean Squared Error):** Raiz do erro quadrático médio normalizada, penalizando grandes desvios.
-* **Correlação de Pearson ($r$):** Coeficiente de correlação linear entre a curva real e a curva predita.
+* **Correlação de Pearson (*r*):** Coeficiente de correlação linear entre a curva real e a curva predita.
 * **Acurácia de Risco:** Exatidão na detecção binária de eventos de corte iminentes.
 
 ---
@@ -153,7 +157,7 @@ O microsserviço de ML implementa embeddings temporais treináveis baseados no a
 | **Previsões** | `GET` | `/api/previsoes/benchmark-ml` | Relatório consolidado de métricas dos modelos Time2Vec |
 | **Simulador** | `GET` | `/api/simulador/bess` | Estudo de viabilidade técnico-financeira de baterias BESS |
 | **Impacto VAF** | `GET` | `/api/impacto-vaf` | Relatório de impacto municipal (Equações 5.1 e 5.2) |
-| **Impacto VAF** | `GET` | `/api/impacto-vaf/projecao-plurianual` | Projeção bienal $t+1$, $t+2$ e $t+3$ por município |
+| **Impacto VAF** | `GET` | `/api/impacto-vaf/projecao-plurianual` | Projeção bienal `t+1`, `t+2` e `t+3` por município |
 | **Impacto VAF** | `GET` | `/api/impacto-vaf/arrendamento-rural` | Perda de receitas de royalties fundiários rurais |
 | **Alertas** | `GET` | `/api/alertas` | Listagem de alertas operacionais da conta |
 | **Alertas** | `PUT` | `/api/alertas/{id}/marcar-lido` | Confirmação de leitura de alertas |
