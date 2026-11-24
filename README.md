@@ -1,44 +1,47 @@
-# 🍃 CurtaVento — Sistema de Inteligência & Monitoramento de Curtailment Eólico
+# CurtaVento — Sistema de Inteligência & Monitoramento de Curtailment Eólico
 
-Plataforma analítica e operacional projetada para o monitoramento, previsão de risco e avaliação de impactos econômicos decorrentes do ***curtailment*** (cortes de geração e restrições operacionais) em parques eólicos no Brasil.
-
----
-
-## 📌 Visão Geral
-
-O **CurtaVento** integra dados meteorológicos de alta resolução em tempo real com as bases públicas do **ONS (Operador Nacional do Sistema Elétrico)** e os dados de liquidação da **CCEE (PLD - Preço de Liquidação das Diferenças)**.
-
-A plataforma permite que operadores, gestores de usinas e administrações municipais tenham clareza sobre perdas financeiras, previsibilidade de interrupções na rede e reflexos fiscais diretos na arrecadação municipal (VAF - Valor Adicionado Fiscal).
+Plataforma analítica e operacional projetada para o monitoramento, previsão de risco, auditoria regulatória e avaliação de impactos econômicos decorrentes do ***curtailment*** (cortes de geração e restrições operacionais) em parques eólicos na Bahia.
 
 ---
 
-## ✨ Principais Funcionalidades
+## Visão Geral
 
-* 📊 **Dashboard Executivo:** Indicadores consolidados de geração estimada, geração verificada e taxas históricas de restrição.
-* ⚡ **Sincronização & Backfill ONS:** Mecanismo de carga histórica e processamento de arquivos CSV oficiais do ONS, categorizando os motivos operacionais de cada restrição.
-* 🌦️ **Monitoramento Meteorológico:** Conexão direta com a API **Open-Meteo** para monitoramento contínuo de velocidade do vento a 80m, direção, previsão de rajadas e projeção da Rosa dos Ventos.
-* 🔮 **Previsão de Risco:** Algoritmos para estimativa de risco de corte por usina, cruzando dados climáticos com limites de despacho da rede.
-* 💰 **Impacto Fiscal Municipal (VAF):** Cálculo transparente das perdas de arrecadação do Valor Adicionado Fiscal nos municípios onde as usinas estão instaladas.
-* 🔔 **Sistema de Alertas:** Notificações automáticas para operadores sobre condições meteorológicas críticas e desvios de geração.
-* 🔒 **Segurança & Controle de Acesso:** Autenticação stateless via **JWT**, com isolamento de permissões entre operadores, gestores e administradores.
+O **CurtaVento** integra dados meteorológicos em tempo real com as bases públicas do **ONS (Operador Nacional do Sistema Elétrico)** e os dados de liquidação da **CCEE (PLD - Preço de Liquidação das Diferenças)**.
+
+A plataforma permite que operadores, gestores de usinas e administrações municipais acompanhem perdas financeiras, elegibilidade a ressarcimento regulatório, previsibilidade de restrições na rede, viabilidade de armazenamento (BESS) e reflexos fiscais na arrecadação municipal (VAF - Valor Adicionado Fiscal).
 
 ---
 
-## 🏗️ Arquitetura de Software
+## Principais Funcionalidades
 
-O projeto foi construído seguindo os princípios de **Clean Architecture (Arquitetura Hexagonal)**, garantindo baixo acoplamento entre regras de negócio e tecnologias externas:
+* **Dashboard Executivo & Mapa GIS:** Indicadores consolidados de energia cortada, perda bruta, impacto VAF/ICMS, taxa de desperdício, filtro por subestação coletora e mapa geoespacial interativo (Leaflet) dos parques monitorados.
+* **Auditoria Regulatória ANEEL (REN 1.030/2022 & NT 183/2026):** Classificação dos cortes por razão de restrição (`REL`, `CNF`, `ENE`), cálculo de ressarcimento líquido via ESS com franquia regulatória configurável (h/ano), simulador de impacto da NT 183/2026, ranking de usinas com busca e tabela de auditoria das últimas inserções.
+* **Previsão de Risco 48h & Segurança O&M (NR-35):** Curva horária de risco de curtailment para as próximas 48 horas cruzando vento a 80m, rajadas e radiação solar (Open-Meteo), com classificação de janela de manutenção em altura (`LIBERADO`, `ALERTA`, `BLOQUEADO`).
+* **Simulador de Armazenamento BESS:** Modelagem técnica e financeira para sistemas de baterias LFP (CAPEX, eficiência round-trip, arbitragem com PLD, receita anual recuperada, payback e ROI).
+* **Impacto Fiscal Municipal (VAF) & Arrendamento Rural:** Projeção orçamentária plurianual (`t+1` e `t+2`) baseada no IPM municipal (LC 63/1990) e auditoria de perda de royalties fundiários para proprietários de terras.
+* **Monitoramento Meteorológico:** Integração com a API **Open-Meteo** para acompanhamento contínuo de vento, rajadas, radiação solar e Rosa dos Ventos.
+* **Sincronização & Backfill ONS:** Processamento dos CSVs oficiais do ONS (nível conjunto e detalhe por usina em blocos de 30 minutos e agregado diário), com execução via API administrativa ou linha de comando (CLI).
+* **Relatório Executivo & Exportação:** Geração de relatório consolidado para impressão/PDF e exportação de dados em CSV.
+* **Segurança & Controle de Acesso:** Autenticação stateless via **JWT**, com isolamento de permissões entre perfis (`ADMIN` e `VISUALIZADOR`).
+
+---
+
+## Arquitetura de Software
+
+O projeto segue os princípios de **Clean Architecture (Arquitetura Hexagonal)**, separando regras de negócio, infraestrutura e adaptadores de entrada:
 
 ```
 src/main/java/com/curtavento/curta_vento/
-├── domain/                    # Entidades puras e portas (interfaces)
+├── domain/                    # Entidades de domínio e portas (interfaces)
 │   ├── model/
 │   └── port/
-├── application/               # Casos de uso e lógica de negócio
+├── application/               # Casos de uso e regras de negócio
 │   └── usecase/
+├── config/                    # Configurações da aplicação (Flyway, etc.)
 ├── infrastructure/            # Implementações externas, banco e integrações
-│   ├── batch/                 # Jobs e rotinas agendadas
+│   ├── batch/                 # Jobs agendados (clima, risco, impacto municipal)
 │   ├── client/                # Cliente HTTP Open-Meteo
-│   ├── ons/                   # Processamento e parsing de dados do ONS
+│   ├── ons/                   # Processamento e backfill de datasets do ONS
 │   ├── persistence/           # Entidades JPA, Migrations e Repositories
 │   └── security/              # Filtros de autenticação e provedor JWT
 └── interfaces/                # Adaptadores de entrada (REST API)
@@ -50,43 +53,53 @@ src/main/java/com/curtavento/curta_vento/
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 * **Linguagem:** Java 21 LTS
 * **Framework:** Spring Boot 4.x
-  * Spring Data JPA
+  * Spring Data JPA (com batching JDBC habilitado)
   * Spring Security (JWT)
   * Flyway Migration
-  * Validation
+  * Spring Retry & Scheduling
 * **Banco de Dados:** MySQL 8.x
-* **Integrações Externas:** API Open-Meteo & Repositório de Dados ONS
-* **Deploy & Container:** Docker (Multi-stage build com imagem JRE Alpine otimizada para baixo consumo de memória)
-* **Gerenciador de Dependências:** Maven
+* **Frontend:** HTML5, CSS3, JavaScript (Vanilla), Chart.js e Leaflet.js
+* **Integrações Externas:** API Open-Meteo & Repositório Open Data do ONS (AWS S3)
+* **Deploy & Container:** Docker (Multi-stage build com imagem JRE Alpine)
+* **Gerenciador de Dependências:** Maven Wrapper (`mvnw` / `mvnw.cmd`)
 
 ---
 
-## 🌐 Endpoints da API REST
+## Endpoints da API REST
 
 | Módulo | Método | Rota | Descrição |
 | :--- | :---: | :--- | :--- |
 | **Auth** | `POST` | `/api/auth/login` | Autenticação e emissão de token JWT |
-| **Dashboard** | `GET` | `/api/dashboard/resumo-geral` | Métricas e KPIs globais |
+| **Usuários** | `POST` | `/api/usuarios` | Cadastro de novos usuários |
+| **Dashboard** | `GET` | `/api/dashboard/resumo-geral` | Métricas globais, mapa, subestações e municípios |
 | **Usinas** | `GET` / `POST` | `/api/usinas` | Listagem e cadastro de usinas eólicas |
 | **Cortes ONS** | `GET` | `/api/cortes-ons/usina/{usinaId}` | Histórico de cortes de uma usina |
 | **Cortes ONS** | `GET` | `/api/cortes-ons/ranking` | Ranking das usinas com maiores perdas |
-| **Cortes ONS** | `GET` | `/api/cortes-ons/motivos` | Agrupamento por motivos de restrição |
-| **Clima** | `GET` | `/api/clima/usinas/{id}/historico`| Dados meteorológicos históricos da usina |
+| **Cortes ONS** | `GET` | `/api/cortes-ons/motivos` | Agrupamento por motivos de restrição (`REL`, `CNF`, `ENE`) |
+| **Cortes ONS** | `GET` | `/api/cortes-ons/evolucao` | Evolução mensal dos cortes no ano |
+| **Cortes ONS** | `GET` | `/api/cortes-ons/auditoria` | Últimas 100 inserções registradas |
+| **Cortes ONS** | `GET` | `/api/cortes-ons/ressarcimento` | Apuração ANEEL REN 1.030/2022 e simulação NT 183/2026 |
+| **Clima** | `GET` | `/api/clima/usinas/{id}/historico` | Dados meteorológicos históricos da usina |
 | **Clima** | `GET` | `/api/clima/previsao-rajadas` | Previsão de rajadas de vento |
 | **Clima** | `GET` | `/api/clima/rosa-ventos` | Distribuição direcional e intensidade do vento |
 | **Previsões** | `GET` | `/api/previsoes/usina/{usinaId}` | Previsão calculada de risco de corte |
+| **Previsões** | `GET` | `/api/previsoes/curva-48h/{usinaId}` | Curva horária de risco 48h e janela NR-35 |
+| **Simulador** | `GET` | `/api/simulador/bess` | Simulação financeira de armazenamento BESS (LFP) |
+| **Impacto VAF** | `GET` | `/api/impacto-vaf` | Relatório de impacto financeiro municipal |
+| **Impacto VAF** | `GET` | `/api/impacto-vaf/projecao-plurianual` | Projeção fiscal `t+1` e `t+2` por município |
+| **Impacto VAF** | `GET` | `/api/impacto-vaf/arrendamento-rural` | Auditoria de perda de royalties fundiários |
 | **Alertas** | `GET` | `/api/alertas` | Alertas gerados para a conta autenticada |
 | **Alertas** | `PUT` | `/api/alertas/{id}/marcar-lido` | Confirmação de leitura do alerta |
-| **Impacto VAF**| `GET` | `/api/impacto-vaf` | Relatório de impacto financeiro municipal |
-| **Backfill** | `POST` | `/api/admin/backfill-ons` | Disparo manual de carga histórica do ONS |
+| **Backfill** | `POST` | `/api/admin/backfill-ons` | Disparo de carga histórica mensal do ONS (Admin) |
+| **Backfill** | `POST` | `/api/admin/backfill-ons/intervalo` | Disparo de carga histórica por intervalo de meses (Admin) |
 
 ---
 
-## 🚀 Como Executar o Projeto
+## Como Executar o Projeto
 
 ### Pré-requisitos
 * Java 21 JDK instalado
@@ -109,7 +122,7 @@ As migrações do schema e tabelas iniciais são executadas automaticamente pelo
 
 ### 3. Variáveis de Ambiente (Opcional)
 Você pode sobrescrever as credenciais padrão definindo as variáveis:
-* `SPRING_DATASOURCE_URL` (padrão: `jdbc:mysql://localhost:3306/curtavento?serverTimezone=UTC`)
+* `SPRING_DATASOURCE_URL` (padrão: `jdbc:mysql://localhost:3306/curtavento?serverTimezone=UTC&rewriteBatchedStatements=true`)
 * `SPRING_DATASOURCE_USERNAME` (padrão: `root`)
 * `SPRING_DATASOURCE_PASSWORD` (padrão: `admin123`)
 * `JWT_SECRET` (chave de segurança do token)
@@ -124,9 +137,28 @@ Você pode sobrescrever as credenciais padrão definindo as variáveis:
 ./mvnw spring-boot:run
 ```
 
-A API estará disponível em: `http://localhost:8080`.
+A aplicação estará disponível em: `http://localhost:8080`.
 
-### 5. Executar com Docker
+### 5. Executar Backfill Histórico via CLI (Opcional)
+Para importar um intervalo de meses do ONS diretamente pela linha de comando sem subir o servidor web:
+```bash
+# Windows
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--backfill=2026-01:2026-11 --spring.main.web-application-type=none"
+
+# Linux / macOS
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--backfill=2026-01:2026-11 --spring.main.web-application-type=none"
+```
+
+### 6. Executar Testes
+```bash
+# Windows
+.\mvnw.cmd test
+
+# Linux / macOS
+./mvnw test
+```
+
+### 7. Executar com Docker
 ```bash
 # Construir a imagem otimizada
 docker build -t curtavento-api .
@@ -137,6 +169,6 @@ docker run -p 8080:8080 --name curtavento curtavento-api
 
 ---
 
-## 👨‍💻 Autor
+## Autor
 
 Desenvolvido por **[Hiago L. B. P.](https://github.com/HiagoLBP)**.
