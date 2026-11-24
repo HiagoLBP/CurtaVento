@@ -18,8 +18,10 @@ import java.util.*;
 public class SimularImpactoGovTechUseCase {
 
     private static final double ALIQUOTA_ICMS = 0.18;
-    private static final double COTA_PARTE_MUNICIPAL_ICMS = 0.25;
-    private static final double PESO_VAF_NA_COTA_PARTE = 0.75; // LC 63/1990 (75% via VAF)
+    private static final double COTA_PARTE_MUNICIPAL_ICMS = 0.25; // CF Art. 158, IV (25% aos municípios)
+    private static final double PESO_VAF_NA_COTA_PARTE = 0.65; // EC 108/2020, LC 227/2026 e LC Estadual BA 53/2022 (65% via VAF)
+    private static final double VAF_TOTAL_BA_PADRAO = 320_000_000_000.0; // Referência estadual VAF Bahia (R$ 320 bi)
+    private static final double ICMS_TOTAL_BA_PADRAO = 42_000_000_000.0; // Referência estadual arrecadação ICMS Bahia (R$ 42 bi)
     private static final double FATOR_CAPACIDADE_MEDIO_BA = 0.42;
 
     private final SpringDataHistoricoCorteOnsRepository corteRepository;
@@ -38,8 +40,22 @@ public class SimularImpactoGovTechUseCase {
     }
 
     public Map<String, Object> calcularProjecaoPlurianualVaf(int anoBase) {
+        return calcularProjecaoPlurianualVaf(anoBase, null, null, null);
+    }
+
+    public Map<String, Object> calcularProjecaoPlurianualVaf(int anoBase,
+                                                             BigDecimal precoReferenciaMwh,
+                                                             BigDecimal vafTotalBaParam,
+                                                             BigDecimal icmsTotalBaParam) {
         LocalDateTime inicio = LocalDateTime.of(anoBase, 1, 1, 0, 0);
         LocalDateTime fim = LocalDateTime.of(anoBase, 12, 31, 23, 59, 59);
+
+        double precoRef = (precoReferenciaMwh != null && precoReferenciaMwh.doubleValue() > 0)
+                ? precoReferenciaMwh.doubleValue() : PrecoEnergia.PRECO_MWH;
+        double vafTotalBa = (vafTotalBaParam != null && vafTotalBaParam.doubleValue() > 0)
+                ? vafTotalBaParam.doubleValue() : VAF_TOTAL_BA_PADRAO;
+        double icmsTotalBa = (icmsTotalBaParam != null && icmsTotalBaParam.doubleValue() > 0)
+                ? icmsTotalBaParam.doubleValue() : ICMS_TOTAL_BA_PADRAO;
 
         List<Object[]> resultados = corteRepository.findImpactoPorMunicipio(inicio, fim);
         Map<String, MunicipioEntity> municipiosPorNome = new HashMap<>();
@@ -52,6 +68,9 @@ public class SimularImpactoGovTechUseCase {
         double totalPerdaFaturamentoRs = 0.0;
         double totalImpactoT1Rs = 0.0;
         double totalImpactoT2Rs = 0.0;
+        double totalDeltaIcmsEq52Rs = 0.0;
+        double totalImpactoT2BienalRs = 0.0;
+        double totalImpactoT3BienalRs = 0.0;
 
         for (Object[] row : resultados) {
             String nomeMunicipio = (String) row[0];
@@ -62,20 +81,29 @@ public class SimularImpactoGovTechUseCase {
             MunicipioEntity mun = municipiosPorNome.get(nomeMunicipio);
             double ipm = resolverIpm(mun);
 
-            double faturamentoPerdido = energiaMwh * PrecoEnergia.PRECO_MWH;
-            double icmsEstadualPerdido = faturamentoPerdido * ALIQUOTA_ICMS;
+            // Equação 5.1 (Pré-TCC): ΔVAF_m = ΔE_cortada,m * P_ref
+            double deltaVafRs = energiaMwh * precoRef;
+            double icmsEstadualPerdido = deltaVafRs * ALIQUOTA_ICMS;
             double cotaParteBruta = icmsEstadualPerdido * COTA_PARTE_MUNICIPAL_ICMS * PESO_VAF_NA_COTA_PARTE;
-            double impactoVafReal = faturamentoPerdido * ipm;
 
-            // Efeito defasado constitucional (LC 63/1990): média bienal impacta t+1 (50%) e consolida em t+2 (100%)
+            // Equação 5.2 (Pré-TCC): ΔICMS_m = (ΔVAF_m / VAF_total,BA) * (ICMS_total,BA * 0,25 * 0,65)
+            double deltaIcmsEq52Rs = (deltaVafRs / vafTotalBa) * (icmsTotalBa * COTA_PARTE_MUNICIPAL_ICMS * PESO_VAF_NA_COTA_PARTE);
+            // LC 63/1990 art. 3º § 4º: média bienal divide o impacto de um ano-base t em 50% em t+2 e 50% em t+3
+            double impactoT2Bienal = deltaIcmsEq52Rs * 0.50;
+            double impactoT3Bienal = deltaIcmsEq52Rs * 0.50;
+
+            double impactoVafReal = deltaVafRs * ipm;
             double impactoT1 = impactoVafReal * 0.50;
             double impactoT2 = impactoVafReal;
             double impactoAcumulado = impactoT1 + impactoT2;
 
             totalEnergiaCortadaMwh += energiaMwh;
-            totalPerdaFaturamentoRs += faturamentoPerdido;
+            totalPerdaFaturamentoRs += deltaVafRs;
             totalImpactoT1Rs += impactoT1;
             totalImpactoT2Rs += impactoT2;
+            totalDeltaIcmsEq52Rs += deltaIcmsEq52Rs;
+            totalImpactoT2BienalRs += impactoT2Bienal;
+            totalImpactoT3BienalRs += impactoT3Bienal;
 
             Map<String, Object> item = new HashMap<>();
             item.put("municipio", nomeMunicipio);
@@ -83,9 +111,13 @@ public class SimularImpactoGovTechUseCase {
             item.put("qtdUsinas", qtdUsinas);
             item.put("ipmPercentual", arredondar(ipm * 100.0, 4));
             item.put("energiaCortadaMwh", arredondar(energiaMwh, 2));
-            item.put("faturamentoPerdidoRs", arredondar(faturamentoPerdido, 2));
+            item.put("faturamentoPerdidoRs", arredondar(deltaVafRs, 2));
+            item.put("deltaVafRs", arredondar(deltaVafRs, 2));
             item.put("icmsEstadualNaoGeradoRs", arredondar(icmsEstadualPerdido, 2));
             item.put("cotaParteTeoricaRs", arredondar(cotaParteBruta, 2));
+            item.put("deltaIcmsTotalEq52Rs", arredondar(deltaIcmsEq52Rs, 2));
+            item.put("impactoAnoT2Bienal", arredondar(impactoT2Bienal, 2));
+            item.put("impactoAnoT3Bienal", arredondar(impactoT3Bienal, 2));
             item.put("impactoAnoT1", arredondar(impactoT1, 2));
             item.put("impactoAnoT2", arredondar(impactoT2, 2));
             item.put("impactoAcumuladoBienioRs", arredondar(impactoAcumulado, 2));
@@ -96,8 +128,18 @@ public class SimularImpactoGovTechUseCase {
         resp.put("anoBase", anoBase);
         resp.put("anoImpactoT1", anoBase + 1);
         resp.put("anoImpactoT2", anoBase + 2);
+        resp.put("anoImpactoT2Bienal", anoBase + 2);
+        resp.put("anoImpactoT3Bienal", anoBase + 3);
+        resp.put("precoReferenciaMwh", arredondar(precoRef, 2));
+        resp.put("vafTotalBa", arredondar(vafTotalBa, 2));
+        resp.put("icmsTotalBa", arredondar(icmsTotalBa, 2));
+        resp.put("pesoVafCotaParte", PESO_VAF_NA_COTA_PARTE);
         resp.put("totalEnergiaCortadaMwh", arredondar(totalEnergiaCortadaMwh, 2));
         resp.put("totalPerdaFaturamentoRs", arredondar(totalPerdaFaturamentoRs, 2));
+        resp.put("totalDeltaVafRs", arredondar(totalPerdaFaturamentoRs, 2));
+        resp.put("totalDeltaIcmsEq52Rs", arredondar(totalDeltaIcmsEq52Rs, 2));
+        resp.put("totalImpactoT2BienalRs", arredondar(totalImpactoT2BienalRs, 2));
+        resp.put("totalImpactoT3BienalRs", arredondar(totalImpactoT3BienalRs, 2));
         resp.put("totalImpactoT1Rs", arredondar(totalImpactoT1Rs, 2));
         resp.put("totalImpactoT2Rs", arredondar(totalImpactoT2Rs, 2));
         resp.put("totalImpactoBienioRs", arredondar(totalImpactoT1Rs + totalImpactoT2Rs, 2));

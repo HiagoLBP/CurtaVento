@@ -49,6 +49,17 @@ public class CalcularRessarcimentoAneelUseCase {
                                         double franquiaHorasAnual,
                                         boolean aplicarNotaTecnica183,
                                         BigDecimal precoReferenciaMwh) {
+        return executar(ano, usinaId, franquiaHorasAnual, aplicarNotaTecnica183, precoReferenciaMwh, 0.0);
+    }
+
+    public Map<String, Object> executar(int ano,
+                                        Long usinaId,
+                                        double franquiaHorasAnual,
+                                        boolean aplicarNotaTecnica183,
+                                        BigDecimal precoReferenciaMwh,
+                                        double percentualRateioRen1170) {
+        double pctRen1170 = Math.max(0.0, Math.min(100.0, percentualRateioRen1170));
+        double fatorRateioRen1170 = pctRen1170 / 100.0;
         LocalDateTime inicio = LocalDateTime.of(ano, 1, 1, 0, 0);
         LocalDateTime fim = LocalDateTime.of(ano, 12, 31, 23, 59, 59);
 
@@ -119,6 +130,8 @@ public class CalcularRessarcimentoAneelUseCase {
         double totalRessarcivelLiquidoRs = 0.0;
         double totalNaoRessarcivelRs = 0.0;
         double totalFranquiaAbsorvidaRs = 0.0;
+        double totalCompensavelRen1170Mwh = 0.0;
+        double totalCompensavelRen1170Rs = 0.0;
 
         List<Map<String, Object>> listaUsinas = new ArrayList<>();
         double franquiaAjustada = Math.max(0.0, franquiaHorasAnual);
@@ -154,8 +167,11 @@ public class CalcularRessarcimentoAneelUseCase {
             double franquiaMwh = relCnfMwh - ressarcivelLiquidoMwh;
             double franquiaRs = relCnfRs - ressarcivelLiquidoRs;
 
-            double naoRessarcivelMwh = eneMwh + acc.mwhOutros;
-            double naoRessarcivelRs = eneRs + acc.valorOutrosRs;
+            // REN ANEEL nº 1.170/2026: rateio gradual de ENE com hidrelétricas com EVT (25%, 50%, 75%, 100%)
+            double compensavelRen1170Mwh = eneMwh * fatorRateioRen1170;
+            double compensavelRen1170Rs = eneRs * fatorRateioRen1170;
+            double naoRessarcivelMwh = (eneMwh - compensavelRen1170Mwh) + acc.mwhOutros;
+            double naoRessarcivelRs = (eneRs - compensavelRen1170Rs) + acc.valorOutrosRs;
 
             totalRelMwh += acc.mwhRel;
             totalCnfMwh += acc.mwhCnf;
@@ -168,6 +184,8 @@ public class CalcularRessarcimentoAneelUseCase {
             totalRessarcivelLiquidoRs += ressarcivelLiquidoRs;
             totalNaoRessarcivelRs += naoRessarcivelRs;
             totalFranquiaAbsorvidaRs += franquiaRs;
+            totalCompensavelRen1170Mwh += compensavelRen1170Mwh;
+            totalCompensavelRen1170Rs += compensavelRen1170Rs;
 
             Map<String, Object> item = new HashMap<>();
             item.put("usinaId", acc.usinaId);
@@ -179,10 +197,12 @@ public class CalcularRessarcimentoAneelUseCase {
             item.put("horasElegiveis", arredondar(horasElegiveis));
             item.put("ressarcivelLiquidoMwh", arredondar(ressarcivelLiquidoMwh));
             item.put("ressarcivelLiquidoRs", arredondar(ressarcivelLiquidoRs));
+            item.put("compensavelRen1170Mwh", arredondar(compensavelRen1170Mwh));
+            item.put("compensavelRen1170Rs", arredondar(compensavelRen1170Rs));
             item.put("franquiaAbsorvidaMwh", arredondar(franquiaMwh));
             item.put("naoRessarcivelMwh", arredondar(naoRessarcivelMwh));
             item.put("naoRessarcivelRs", arredondar(naoRessarcivelRs));
-            item.put("totalPerdaRs", arredondar(ressarcivelLiquidoRs + franquiaRs + naoRessarcivelRs));
+            item.put("totalPerdaRs", arredondar(ressarcivelLiquidoRs + compensavelRen1170Rs + franquiaRs + naoRessarcivelRs));
             listaUsinas.add(item);
         }
 
@@ -193,6 +213,7 @@ public class CalcularRessarcimentoAneelUseCase {
         resultado.put("fonteDados", fonteDados);
         resultado.put("franquiaHorasAplicada", franquiaAjustada);
         resultado.put("notaTecnica183Aplicada", aplicarNotaTecnica183);
+        resultado.put("percentualRateioRen1170", pctRen1170);
         resultado.put("relMwh", arredondar(totalRelMwh));
         resultado.put("cnfMwh", arredondar(totalCnfMwh));
         resultado.put("eneMwh", arredondar(totalEneMwh));
@@ -200,6 +221,8 @@ public class CalcularRessarcimentoAneelUseCase {
         resultado.put("ressarcivelBrutoMwh", arredondar(totalRessarcivelBrutoMwh));
         resultado.put("ressarcivelLiquidoMwh", arredondar(totalRessarcivelLiquidoMwh));
         resultado.put("ressarcivelLiquidoRs", arredondar(totalRessarcivelLiquidoRs));
+        resultado.put("compensavelRen1170Mwh", arredondar(totalCompensavelRen1170Mwh));
+        resultado.put("compensavelRen1170Rs", arredondar(totalCompensavelRen1170Rs));
         resultado.put("franquiaAbsorvidaMwh", arredondar(totalFranquiaAbsorvidaMwh));
         resultado.put("franquiaAbsorvidaRs", arredondar(totalFranquiaAbsorvidaRs));
         resultado.put("naoRessarcivelMwh", arredondar(totalNaoRessarcivelMwh));

@@ -53,9 +53,18 @@
       <div class="filter-separator"></div>
       <div>
         <label>Simulação Regulatória</label><br>
-        <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
-          <input type="checkbox" id="filter-nt183"> Aplicar NT 183/2026 (-17% ressarcível)
-        </label>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:4px;">
+          <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="filter-nt183"> Aplicar NT 183/2026 (-17% ressarcível)
+          </label>
+          <select id="filter-ren1170" title="Rateio gradual ENE com hidrelétricas (EVT) — REN 1.170/2026" style="font-size:12px; padding:4px 6px;">
+            <option value="0" selected>REN 1.170/2026: Sombra (0%)</option>
+            <option value="25">REN 1.170/2026: Ciclo 1 (25%)</option>
+            <option value="50">REN 1.170/2026: Ciclo 2 (50%)</option>
+            <option value="75">REN 1.170/2026: Ciclo 3 (75%)</option>
+            <option value="100">REN 1.170/2026: Ciclo 4 (100%)</option>
+          </select>
+        </div>
       </div>
       <div class="filter-separator"></div>
       <div>
@@ -189,14 +198,18 @@
     const ano = document.getElementById('filter-ano').value;
     const franquia = document.getElementById('filter-franquia').value || 0;
     const nt183 = document.getElementById('filter-nt183').checked;
+    const ren1170 = document.getElementById('filter-ren1170')?.value || 0;
 
-    const r = await fetchWithAuth(`/api/cortes-ons/ressarcimento?ano=${ano}&franquiaHoras=${franquia}&aplicarNt183=${nt183}`);
+    const r = await fetchWithAuth(`/api/cortes-ons/ressarcimento?ano=${ano}&franquiaHoras=${franquia}&aplicarNt183=${nt183}&percentualRateioRen1170=${ren1170}`);
     if (!r) return;
 
     document.getElementById('kpi-ressarcivel-rs').textContent = fmtMoney(r.ressarcivelLiquidoRs);
     document.getElementById('kpi-ressarcivel-mwh').textContent = `${fmtGWh(r.ressarcivelLiquidoMwh || 0)} GWh pós-franquia`;
     document.getElementById('kpi-ene-rs').textContent = fmtMoney(r.naoRessarcivelRs);
-    document.getElementById('kpi-ene-mwh').textContent = `${fmtGWh(r.naoRessarcivelMwh || 0)} GWh sem ressarcimento`;
+    const compRen = r.compensavelRen1170Mwh || 0;
+    document.getElementById('kpi-ene-mwh').textContent = compRen > 0
+      ? `${fmtGWh(r.naoRessarcivelMwh || 0)} GWh líquido (${fmtGWh(compRen)} GWh rateado REN 1.170)`
+      : `${fmtGWh(r.naoRessarcivelMwh || 0)} GWh sem ressarcimento`;
     document.getElementById('kpi-franquia-rs').textContent = fmtMoney(r.franquiaAbsorvidaRs);
     document.getElementById('kpi-franquia-mwh').textContent = `${fmtGWh(r.franquiaAbsorvidaMwh || 0)} GWh absorvidos na franquia`;
 
@@ -389,6 +402,7 @@
   document.getElementById('filter-ano').addEventListener('change', init);
   document.getElementById('filter-franquia').addEventListener('change', carregarRessarcimento);
   document.getElementById('filter-nt183').addEventListener('change', carregarRessarcimento);
+  document.getElementById('filter-ren1170').addEventListener('change', carregarRessarcimento);
 
   init();
 </script>

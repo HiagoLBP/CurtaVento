@@ -73,6 +73,15 @@
         <select id="select-usina" onchange="carregarTudoUsina()"></select>
       </div>
       <div class="ctrl-field">
+        <label for="select-ml-arch">Arquitetura Neural (Time2Vec)</label>
+        <select id="select-ml-arch" onchange="carregarCurva48h()">
+          <option value="AUTO" selected>AUTO (Melhor nRMSE)</option>
+          <option value="LSTM">LSTM + Time2Vec</option>
+          <option value="DLINEAR">DLinear + Time2Vec</option>
+          <option value="MLP">MLP + Time2Vec</option>
+        </select>
+      </div>
+      <div class="ctrl-field">
         <label>Subestação Coletora</label>
         <div id="meta-subestacao" style="font-size:13px; font-weight:600; padding:8px 0;">—</div>
       </div>
@@ -108,6 +117,57 @@
         <p class="card-subtitle">Recorrência recente na planta</p>
       </div>
     </div>
+
+    <section class="section-card" style="margin-bottom:24px;">
+      <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h2>Previsão Neural de Curto Prazo (6h &amp; 12h · PyTorch + Time2Vec)</h2>
+          <p>Inferência pelo microsserviço Python FastAPI (MLP, LSTM e DLinear) validado sobre dados reais ONS 2026</p>
+        </div>
+        <span id="ml-badge" class="badge-om om-torre">Verificando microsserviço ML...</span>
+      </div>
+      <div style="padding:20px;">
+        <div class="kpi-grid-4" style="margin-bottom:16px;">
+          <div class="card">
+            <h3 class="card-title">Risco Janela 6h (ML)</h3>
+            <p class="card-value val-crit" id="ml-prob-6h">—</p>
+            <p class="card-subtitle" id="ml-mwh-6h">Corte est.: — MWh</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Risco Janela 12h (ML)</h3>
+            <p class="card-value val-warn" id="ml-prob-12h">—</p>
+            <p class="card-subtitle" id="ml-mwh-12h">Corte est.: — MWh</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Arquitetura Ativa</h3>
+            <p class="card-value val-brand" id="ml-arch-ativa" style="font-size:20px;">—</p>
+            <p class="card-subtitle" id="ml-amostras">Base de treino: —</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Erro Validado (nRMSE 12h)</h3>
+            <p class="card-value val-ok" id="ml-nrmse-ativo">—</p>
+            <p class="card-subtitle" id="ml-corr-ativa">nMAE: — · Correlação r: —</p>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="font-size:12px;">
+            <thead>
+              <tr>
+                <th>Horizonte</th>
+                <th>Modelo</th>
+                <th class="num-col">nMAE (%)</th>
+                <th class="num-col">nRMSE (%)</th>
+                <th class="num-col">Correlação (r)</th>
+                <th class="num-col">Acurácia Risco</th>
+              </tr>
+            </thead>
+            <tbody id="tb-benchmark-ml">
+              <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:10px;">Carregando comparativo MLP / LSTM / DLinear...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
     <section class="section-card" style="margin-bottom:24px;">
       <div class="section-header">
@@ -263,7 +323,39 @@
         }
         select.appendChild(opt);
       });
-      await carregarTudoUsina();
+      await Promise.all([carregarTudoUsina(), carregarBenchmarkMl()]);
+    }
+  }
+
+  async function carregarBenchmarkMl() {
+    try {
+      const bench = await fetchWithAuth('/api/previsoes/benchmark-ml');
+      const tbody = document.getElementById('tb-benchmark-ml');
+      if (!bench || bench.disponivel === false || !bench.horizons) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:10px;">Microsserviço Python ML offline — fallback heurístico Java ativo.</td></tr>';
+        return;
+      }
+      document.getElementById('ml-amostras').textContent = `Treino: ${bench.train_samples}h · Teste: ${bench.test_samples}h (${bench.source})`;
+      const rows = [];
+      for (const h of ['6h', '12h']) {
+        const modelos = bench.horizons[h] || {};
+        for (const [nome, m] of Object.entries(modelos)) {
+          const destaque = nome === bench.recommended_model ? ' style="background:#EFF6FF; font-weight:600;"' : '';
+          rows.push(`
+            <tr${destaque}>
+              <td>${h}</td>
+              <td><strong>${escapeHTML(nome)}</strong>${nome === bench.recommended_model ? ' (Recomendado)' : ''}</td>
+              <td class="num-col">${m.nMAE_pct}%</td>
+              <td class="num-col">${m.nRMSE_pct}%</td>
+              <td class="num-col">${m.pearson_r}</td>
+              <td class="num-col">${m.accuracy_pct}%</td>
+            </tr>
+          `);
+        }
+      }
+      tbody.innerHTML = rows.join('');
+    } catch (e) {
+      console.warn('Erro ao carregar benchmark ML:', e);
     }
   }
 
@@ -274,9 +366,36 @@
   async function carregarCurva48h() {
     const usinaId = document.getElementById('select-usina').value;
     if (!usinaId) return;
+    const arquitetura = document.getElementById('select-ml-arch')?.value || 'AUTO';
 
-    const dados = await fetchWithAuth(`/api/previsoes/curva-48h?usinaId=${usinaId}`);
+    const dados = await fetchWithAuth(`/api/previsoes/curva-48h?usinaId=${usinaId}&arquitetura=${arquitetura}`);
     if (!dados) return;
+
+    const ml = dados.modeloPreditivo || {};
+    const mlBadge = document.getElementById('ml-badge');
+    if (ml.ativo) {
+      mlBadge.className = 'badge-om om-corda';
+      mlBadge.textContent = `Python FastAPI Ativo (${ml.modeloAtivo || 'PyTorch'})`;
+      const j6 = ml.janela6h || {};
+      const j12 = ml.janela12h || {};
+      document.getElementById('ml-prob-6h').textContent = `${j6.probabilidadeCortePct ?? '—'}%`;
+      document.getElementById('ml-mwh-6h').textContent = `Corte est.: ${j6.mwhEstimadoCorte ?? 0} MWh`;
+      document.getElementById('ml-prob-12h').textContent = `${j12.probabilidadeCortePct ?? '—'}%`;
+      document.getElementById('ml-mwh-12h').textContent = `Corte est.: ${j12.mwhEstimadoCorte ?? 0} MWh`;
+      document.getElementById('ml-arch-ativa').textContent = ml.modeloAtivo || 'LSTM+Time2Vec';
+      const met12 = j12.metricasValidacao || {};
+      document.getElementById('ml-nrmse-ativo').textContent = met12.nRMSE_pct != null ? `${met12.nRMSE_pct}%` : '—';
+      document.getElementById('ml-corr-ativa').textContent = `nMAE: ${met12.nMAE_pct ?? '—'}% · r: ${met12.pearson_r ?? '—'}`;
+    } else {
+      mlBadge.className = 'badge-om om-torre';
+      mlBadge.textContent = 'Fallback Heurístico Java';
+      document.getElementById('ml-prob-6h').textContent = 'Offline';
+      document.getElementById('ml-mwh-6h').textContent = 'Inicie ml-service na porta 8001';
+      document.getElementById('ml-prob-12h').textContent = 'Offline';
+      document.getElementById('ml-mwh-12h').textContent = 'Fallback ativo na curva 48h';
+      document.getElementById('ml-arch-ativa').textContent = 'Heurística Java';
+      document.getElementById('ml-nrmse-ativo').textContent = '—';
+    }
 
     document.getElementById('meta-subestacao').textContent = dados.usina.subestacao || 'N/D';
     document.getElementById('meta-capacidade').textContent = `${dados.usina.capacidadeMw} MW`;
@@ -317,7 +436,15 @@
             borderDash: [4, 4],
             tension: 0.3,
             yAxisID: 'yRisco'
-          }
+          },
+          ...(curva.some(c => c.probabilidadeMlPct != null) ? [{
+            label: 'Probabilidade Neural ML (%)',
+            data: curva.map(c => c.probabilidadeMlPct ?? null),
+            borderColor: '#10B981',
+            borderDash: [6, 3],
+            tension: 0.3,
+            yAxisID: 'yRisco'
+          }] : [])
         ]
       },
       options: {

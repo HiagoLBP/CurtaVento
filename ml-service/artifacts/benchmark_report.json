@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-11-24T16:54:44.806941+00:00",
+  "seq_len_hours": 24,
+  "encoding": "Time2Vec",
+  "horizons": {
+    "6h": {
+      "MLP+Time2Vec": {
+        "nMAE_pct": 12.5,
+        "nRMSE_pct": 17.26,
+        "pearson_r": 0.4818,
+        "accuracy_pct": 81.35
+      },
+      "LSTM+Time2Vec": {
+        "nMAE_pct": 11.82,
+        "nRMSE_pct": 16.61,
+        "pearson_r": 0.5725,
+        "accuracy_pct": 81.0
+      },
+      "DLinear+Time2Vec": {
+        "nMAE_pct": 12.53,
+        "nRMSE_pct": 17.18,
+        "pearson_r": 0.5026,
+        "accuracy_pct": 82.17
+      }
+    },
+    "12h": {
+      "MLP+Time2Vec": {
+        "nMAE_pct": 14.34,
+        "nRMSE_pct": 19.5,
+        "pearson_r": 0.3152,
+        "accuracy_pct": 78.18
+      },
+      "LSTM+Time2Vec": {
+        "nMAE_pct": 13.91,
+        "nRMSE_pct": 18.9,
+        "pearson_r": 0.4025,
+        "accuracy_pct": 81.68
+      },
+      "DLinear+Time2Vec": {
+        "nMAE_pct": 13.75,
+        "nRMSE_pct": 18.85,
+        "pearson_r": 0.3672,
+        "accuracy_pct": 79.11
+      }
+    }
+  },
+  "source": "MYSQL_ONS_REAL",
+  "train_samples": 3425,
+  "test_samples": 857,
+  "capacity_ref_mwh": 8740.22,
+  "recommended_model": "DLinear+Time2Vec"
+}

@@ -126,9 +126,10 @@ public class CortesOnsController {
             @RequestParam(required = false) Long usinaId,
             @RequestParam(defaultValue = "78") double franquiaHoras,
             @RequestParam(defaultValue = "false") boolean aplicarNt183,
-            @RequestParam(required = false) BigDecimal precoMwh) {
+            @RequestParam(required = false) BigDecimal precoMwh,
+            @RequestParam(defaultValue = "0") double percentualRateioRen1170) {
         return ResponseEntity.ok(calcularRessarcimentoAneelUseCase.executar(
-                ano, usinaId, franquiaHoras, aplicarNt183, precoMwh));
+                ano, usinaId, franquiaHoras, aplicarNt183, precoMwh, percentualRateioRen1170));
     }
 
     @GetMapping("/auditoria")

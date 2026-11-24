@@ -60,6 +60,31 @@ class SimularImpactoGovTechUseCaseTest {
         assertEquals(500.0, (Double) proj.get("totalImpactoT1Rs"), 0.01);
         assertEquals(1000.0, (Double) proj.get("totalImpactoT2Rs"), 0.01);
         assertEquals(1500.0, (Double) proj.get("totalImpactoBienioRs"), 0.01);
+        assertEquals(0.65, (Double) proj.get("pesoVafCotaParte"), 0.001);
+    }
+
+    @Test
+    void deveCalcularEquacoes51E52ComDefasagemBienalT2ET3() {
+        when(corteRepository.findImpactoPorMunicipio(any(), any()))
+                .thenReturn(Collections.singletonList(new Object[]{"Guanambi", 2L, new BigDecimal("1000.0")}));
+        when(municipioRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Eq 5.1: dVAF = 1000 * 200 = 200.000
+        // Eq 5.2: (200.000 / 200.000.000) * (10.000.000 * 0.25 * 0.65) = 0.001 * 1.625.000 = 1.625,00
+        // Bienio t+2 / t+3 (50% cada): 812,50 em 2028 e 812,50 em 2029
+        Map<String, Object> proj = useCase.calcularProjecaoPlurianualVaf(
+                2026,
+                new BigDecimal("200.0"),
+                new BigDecimal("200000000.0"),
+                new BigDecimal("10000000.0")
+        );
+
+        assertEquals(2028, proj.get("anoImpactoT2Bienal"));
+        assertEquals(2029, proj.get("anoImpactoT3Bienal"));
+        assertEquals(200000.0, (Double) proj.get("totalDeltaVafRs"), 0.01);
+        assertEquals(1625.0, (Double) proj.get("totalDeltaIcmsEq52Rs"), 0.01);
+        assertEquals(812.5, (Double) proj.get("totalImpactoT2BienalRs"), 0.01);
+        assertEquals(812.5, (Double) proj.get("totalImpactoT3BienalRs"), 0.01);
     }
 
     @Test

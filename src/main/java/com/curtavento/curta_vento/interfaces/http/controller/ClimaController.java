@@ -1,5 +1,6 @@
 package com.curtavento.curta_vento.interfaces.http.controller;
 
+import com.curtavento.curta_vento.infrastructure.client.NasaPowerClient;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.LeituraClimaticaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataLeituraClimaticaRepository;
@@ -20,11 +21,23 @@ public class ClimaController {
 
     private final SpringDataUsinaRepository springDataUsinaRepository;
     private final SpringDataLeituraClimaticaRepository leituraService;
+    private final NasaPowerClient nasaPowerClient;
 
     public ClimaController(SpringDataUsinaRepository springDataUsinaRepository,
-                           SpringDataLeituraClimaticaRepository leituraService) {
+                           SpringDataLeituraClimaticaRepository leituraService,
+                           NasaPowerClient nasaPowerClient) {
         this.springDataUsinaRepository = springDataUsinaRepository;
         this.leituraService = leituraService;
+        this.nasaPowerClient = nasaPowerClient;
+    }
+
+    @GetMapping("/usinas/{id}/reanalise-nasa")
+    public ResponseEntity<Map<String, Object>> buscarReanaliseNasaPower(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "5") int dias) {
+        UsinaEntity usina = springDataUsinaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usina não encontrada com o ID: " + id));
+        return ResponseEntity.ok(nasaPowerClient.buscarReanaliseHoraria(usina, dias));
     }
 
     @GetMapping("/usinas/{id}/historico")

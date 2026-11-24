@@ -1,6 +1,7 @@
 package com.curtavento.curta_vento.application.usecase;
 
 import com.curtavento.curta_vento.domain.model.NivelRisco;
+import com.curtavento.curta_vento.infrastructure.client.MlPrevisaoClient;
 import com.curtavento.curta_vento.infrastructure.client.OpenMeteoClient;
 import com.curtavento.curta_vento.infrastructure.client.OpenMeteoClient.PontoHorarioClimatico;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity;
@@ -29,14 +30,16 @@ public class PrevisaoCurvaRisco48hUseCase {
     private final SpringDataLeituraClimaticaRepository leituraRepository;
     private final SpringDataHistoricoCorteOnsRepository corteRepository;
     private final OpenMeteoClient openMeteoClient;
+    private final MlPrevisaoClient mlPrevisaoClient;
     private final Clock clock;
 
     @Autowired
     public PrevisaoCurvaRisco48hUseCase(SpringDataUsinaRepository usinaRepository,
                                         SpringDataLeituraClimaticaRepository leituraRepository,
                                         SpringDataHistoricoCorteOnsRepository corteRepository,
-                                        OpenMeteoClient openMeteoClient) {
-        this(usinaRepository, leituraRepository, corteRepository, openMeteoClient, Clock.systemDefaultZone());
+                                        OpenMeteoClient openMeteoClient,
+                                        MlPrevisaoClient mlPrevisaoClient) {
+        this(usinaRepository, leituraRepository, corteRepository, openMeteoClient, mlPrevisaoClient, Clock.systemDefaultZone());
     }
 
     public PrevisaoCurvaRisco48hUseCase(SpringDataUsinaRepository usinaRepository,
@@ -44,14 +47,29 @@ public class PrevisaoCurvaRisco48hUseCase {
                                         SpringDataHistoricoCorteOnsRepository corteRepository,
                                         OpenMeteoClient openMeteoClient,
                                         Clock clock) {
+        this(usinaRepository, leituraRepository, corteRepository, openMeteoClient, null, clock);
+    }
+
+    public PrevisaoCurvaRisco48hUseCase(SpringDataUsinaRepository usinaRepository,
+                                        SpringDataLeituraClimaticaRepository leituraRepository,
+                                        SpringDataHistoricoCorteOnsRepository corteRepository,
+                                        OpenMeteoClient openMeteoClient,
+                                        MlPrevisaoClient mlPrevisaoClient,
+                                        Clock clock) {
         this.usinaRepository = usinaRepository;
         this.leituraRepository = leituraRepository;
         this.corteRepository = corteRepository;
         this.openMeteoClient = openMeteoClient;
+        this.mlPrevisaoClient = mlPrevisaoClient;
         this.clock = clock;
     }
 
     public Map<String, Object> executar(Long usinaId) {
+        return executar(usinaId, "AUTO");
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> executar(Long usinaId, String arquiteturaMl) {
         UsinaEntity usina = usinaRepository.findById(usinaId)
                 .orElseThrow(() -> new RuntimeException("Usina não encontrada com o ID: " + usinaId));
 
@@ -145,9 +163,44 @@ public class PrevisaoCurvaRisco48hUseCase {
         resumo.put("economiaPotencialMwh", arredondar(economiaTotalMwh));
         resumo.put("diasComCorteRecente", diasComCorteRecente);
 
+        Map<String, Object> modeloPreditivo = new HashMap<>();
+        modeloPreditivo.put("ativo", false);
+        modeloPreditivo.put("origem", "FALLBACK_HEURISTICO_JAVA");
+
+        if (mlPrevisaoClient != null) {
+            Optional<Map<String, Object>> mlOpt = mlPrevisaoClient.preverCurtailment(
+                    usina, pontos, diasComCorteRecente, arquiteturaMl);
+            if (mlOpt.isPresent()) {
+                Map<String, Object> mlResp = mlOpt.get();
+                modeloPreditivo.put("ativo", true);
+                modeloPreditivo.put("origem", "PYTHON_FASTAPI_PYTORCH");
+                modeloPreditivo.put("modeloAtivo", mlResp.get("modeloAtivo"));
+                modeloPreditivo.put("janela6h", mlResp.get("janela6h"));
+                modeloPreditivo.put("janela12h", mlResp.get("janela12h"));
+
+                Object curvaMlObj = mlResp.get("curvaHorariaMl");
+                if (curvaMlObj instanceof List<?> mlLista) {
+                    Map<String, Map<String, Object>> porHora = new HashMap<>();
+                    for (Object elem : mlLista) {
+                        if (elem instanceof Map<?, ?> m && m.get("dataHora") != null) {
+                            porHora.put(m.get("dataHora").toString(), (Map<String, Object>) m);
+                        }
+                    }
+                    for (Map<String, Object> item : curva) {
+                        Map<String, Object> mlPonto = porHora.get(String.valueOf(item.get("dataHora")));
+                        if (mlPonto != null) {
+                            item.put("probabilidadeMlPct", mlPonto.get("probabilidadeCorte"));
+                            item.put("mwhEstimadoCorteMl", mlPonto.get("mwhEstimadoCorte"));
+                        }
+                    }
+                }
+            }
+        }
+
         Map<String, Object> resultado = new HashMap<>();
         resultado.put("usina", usinaDto);
         resultado.put("fontePrevisao", fontePrevisao);
+        resultado.put("modeloPreditivo", modeloPreditivo);
         resultado.put("resumo", resumo);
         resultado.put("curvaHoraria", curva);
         resultado.put("melhoresJanelasOm", melhoresJanelasOm);

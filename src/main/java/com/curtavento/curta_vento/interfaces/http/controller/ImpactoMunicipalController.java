@@ -69,8 +69,13 @@ public class ImpactoMunicipalController {
     }
 
     @GetMapping("/projecao-plurianual")
-    public ResponseEntity<Map<String, Object>> getProjecaoPlurianual(@RequestParam(defaultValue = "2026") int ano) {
-        return ResponseEntity.ok(govTechUseCase.calcularProjecaoPlurianualVaf(ano));
+    public ResponseEntity<Map<String, Object>> getProjecaoPlurianual(
+            @RequestParam(defaultValue = "2026") int ano,
+            @RequestParam(required = false) BigDecimal precoReferenciaMwh,
+            @RequestParam(required = false) BigDecimal vafTotalBa,
+            @RequestParam(required = false) BigDecimal icmsTotalBa) {
+        return ResponseEntity.ok(govTechUseCase.calcularProjecaoPlurianualVaf(
+                ano, precoReferenciaMwh, vafTotalBa, icmsTotalBa));
     }
 
     @GetMapping("/arrendamento-rural")

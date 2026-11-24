@@ -50,5 +50,11 @@ class CalcularRessarcimentoAneelUseCaseTest {
         assertEquals(830.0, (Double) comNt183.get("ressarcivelLiquidoMwh"), 0.01);
         assertEquals(670.0, (Double) comNt183.get("naoRessarcivelMwh"), 0.01);
         assertEquals(166000.0, (Double) comNt183.get("ressarcivelLiquidoRs"), 0.01);
+
+        // Com REN 1.170/2026 (Ciclo 2 = 50% de rateio ENE com hidrelétricas EVT) sobre 500 MWh ENE => 250 MWh compensável
+        Map<String, Object> comRen1170 = useCase.executar(2026, null, 0.0, false, new BigDecimal("200.0"), 50.0);
+        assertEquals(250.0, (Double) comRen1170.get("compensavelRen1170Mwh"), 0.01);
+        assertEquals(50000.0, (Double) comRen1170.get("compensavelRen1170Rs"), 0.01);
+        assertEquals(250.0, (Double) comRen1170.get("naoRessarcivelMwh"), 0.01);
     }
 }

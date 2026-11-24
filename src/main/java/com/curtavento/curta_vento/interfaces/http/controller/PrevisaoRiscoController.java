@@ -2,6 +2,7 @@ package com.curtavento.curta_vento.interfaces.http.controller;
 
 import com.curtavento.curta_vento.application.usecase.PrevisaoCurvaRisco48hUseCase;
 import com.curtavento.curta_vento.application.usecase.PrevisaoRiscoService;
+import com.curtavento.curta_vento.infrastructure.client.MlPrevisaoClient;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.LeituraClimaticaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.PrevisaoRiscoEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
@@ -21,15 +22,18 @@ public class PrevisaoRiscoController {
     private final PrevisaoCurvaRisco48hUseCase previsaoCurvaRisco48hUseCase;
     private final SpringDataUsinaRepository springDataUsinaRepository;
     private final SpringDataLeituraClimaticaRepository climaRepository;
+    private final MlPrevisaoClient mlPrevisaoClient;
 
     public PrevisaoRiscoController(PrevisaoRiscoService riscoService,
                                    PrevisaoCurvaRisco48hUseCase previsaoCurvaRisco48hUseCase,
                                    SpringDataUsinaRepository springDataUsinaRepository,
-                                   SpringDataLeituraClimaticaRepository climaRepository) {
+                                   SpringDataLeituraClimaticaRepository climaRepository,
+                                   MlPrevisaoClient mlPrevisaoClient) {
         this.riscoService = riscoService;
         this.previsaoCurvaRisco48hUseCase = previsaoCurvaRisco48hUseCase;
         this.springDataUsinaRepository = springDataUsinaRepository;
         this.climaRepository = climaRepository;
+        this.mlPrevisaoClient = mlPrevisaoClient;
     }
 
     @GetMapping("/usina/{usinaId}")
@@ -38,8 +42,20 @@ public class PrevisaoRiscoController {
     }
 
     @GetMapping("/curva-48h")
-    public ResponseEntity<Map<String, Object>> obterCurva48h(@RequestParam Long usinaId) {
-        return ResponseEntity.ok(previsaoCurvaRisco48hUseCase.executar(usinaId));
+    public ResponseEntity<Map<String, Object>> obterCurva48h(
+            @RequestParam Long usinaId,
+            @RequestParam(defaultValue = "AUTO") String arquitetura) {
+        return ResponseEntity.ok(previsaoCurvaRisco48hUseCase.executar(usinaId, arquitetura));
+    }
+
+    @GetMapping("/benchmark-ml")
+    public ResponseEntity<Map<String, Object>> obterBenchmarkMl() {
+        return mlPrevisaoClient.obterBenchmarkModelos()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.ok(Map.of(
+                        "disponivel", false,
+                        "motivo", "Microsserviço ML Python offline em curtavento.ml.url"
+                )));
     }
 
     @PostMapping("/recalcular/{usinaId}")

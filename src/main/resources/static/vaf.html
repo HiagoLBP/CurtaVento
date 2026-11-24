@@ -60,35 +60,51 @@
 
   <main>
     <div class="methodology-box">
-      <h3>Metodologia Fiscal &amp; Fundiária (LC 63/1990)</h3>
+      <h3>Metodologia Fiscal &amp; Fundiária (LC 63/1990 · LC BA 53/2022 · Equações 5.1 e 5.2)</h3>
       <ul>
-        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (MWh) &times; Preço MWh</span>.</li>
-        <li><strong>Impacto Defasado no VAF (t+1 / t+2):</strong> O Valor Adicionado Fiscal apurado no ano <em>t</em> compõe a média bienal do IPM municipal, afetando o repasse constitucional de ICMS nos dois exercícios seguintes (<em>t+1</em> com 50% e consolidação em <em>t+2</em>).</li>
+        <li><strong>Equação 5.1 (Perda no VAF Municipal):</strong> <span class="formula">&Delta;VAF<sub>m</sub> = &Delta;E<sub>cortada,m</sub> &times; P<sub>ref</sub></span>.</li>
+        <li><strong>Equação 5.2 (Reflexo no Repasse ICMS):</strong> <span class="formula">&Delta;ICMS<sub>m</sub> = (&Delta;VAF<sub>m</sub> / VAF<sub>total,BA</sub>) &times; (ICMS<sub>total,BA</sub> &times; 0,25 &times; 0,65)</span> — 25% cota-parte municipal e 65% via VAF na Bahia.</li>
+        <li><strong>Defasagem Bienal (Art. 3º &sect; 4º LC 63/1990):</strong> O impacto do ano-base <em>t</em> entra 50% em <em>t+2</em> e 50% em <em>t+3</em> na média bienal do IPM; também exibimos o reflexo proporcional direto pelo IPM do município.</li>
         <li><strong>Arrendamento Rural:</strong> Contratos fundiários na Bahia remuneram os proprietários de terras com 1% a 2,5% da receita bruta gerada pelo parque.</li>
       </ul>
+      <div class="form-inline" style="margin-top:14px; margin-bottom:0;">
+        <div class="fld">
+          <label for="vaf-pref">P_ref (R$/MWh)</label>
+          <input type="number" id="vaf-pref" value="200" step="10" min="50">
+        </div>
+        <div class="fld">
+          <label for="vaf-total-ba">VAF_total BA (R$ bi)</label>
+          <input type="number" id="vaf-total-ba" value="320" step="10" min="10">
+        </div>
+        <div class="fld">
+          <label for="icms-total-ba">ICMS_total BA (R$ bi)</label>
+          <input type="number" id="icms-total-ba" value="42" step="1" min="1">
+        </div>
+        <button class="btn-audit" onclick="init()">Recalcular Projeção</button>
+      </div>
     </div>
 
     <div class="kpi-grid">
       <div class="card">
-        <h3 class="card-title">Receita Bruta Perdida</h3>
+        <h3 class="card-title">Perda no VAF (&Delta;VAF)</h3>
         <p class="card-value val-warn" id="kpi-receita">R$ 0,00</p>
-        <p class="card-subtitle">Perda de faturamento das usinas</p>
+        <p class="card-subtitle">Equação 5.1: Energia cortada &times; P_ref</p>
       </div>
       <div class="card">
-        <h3 class="card-title">Impacto Fiscal em <span id="lbl-t1">2027</span> (t+1)</h3>
+        <h3 class="card-title">Impacto Estadual Eq. 5.2 em <span id="lbl-t2b">2028</span> (t+2 · 50%)</h3>
         <p class="card-value val-brand" id="kpi-t1">R$ 0,00</p>
-        <p class="card-subtitle">Reflexo parcial na formação do IPM</p>
+        <p class="card-subtitle" id="sub-ipm-t1">1º ano da média bienal (LC 63/1990)</p>
       </div>
       <div class="card">
-        <h3 class="card-title">Impacto Fiscal em <span id="lbl-t2">2028</span> (t+2)</h3>
+        <h3 class="card-title">Impacto Estadual Eq. 5.2 em <span id="lbl-t3b">2029</span> (t+3 · 50%)</h3>
         <p class="card-value val-crit" id="kpi-t2">R$ 0,00</p>
-        <p class="card-subtitle">Consolidação plena no repasse ICMS</p>
+        <p class="card-subtitle" id="sub-ipm-t2">2º ano da média bienal (LC 63/1990)</p>
       </div>
     </div>
 
     <div class="card" style="padding: 0; overflow: hidden;">
       <div style="padding:16px 20px; border-bottom:1px solid var(--border-light);">
-        <h2 style="margin:0; font-size:16px;">Projeção Plurianual por Município (IPM Real &amp; Biênio t+1 / t+2)</h2>
+        <h2 style="margin:0; font-size:16px;">Projeção Plurianual por Município (Equações 5.1 / 5.2 &amp; Biênio t+2 / t+3)</h2>
       </div>
       <table>
         <thead>
@@ -96,9 +112,10 @@
             <th>Município (BA)</th>
             <th class="num-col">IPM (%)</th>
             <th class="num-col">Cortada (GWh)</th>
-            <th class="num-col">Receita Perdida</th>
-            <th class="num-col">Queda t+1</th>
-            <th class="num-col">Queda t+2</th>
+            <th class="num-col">&Delta;VAF (Eq. 5.1)</th>
+            <th class="num-col">Eq. 5.2 (t+2 · 50%)</th>
+            <th class="num-col">Eq. 5.2 (t+3 · 50%)</th>
+            <th class="num-col">Reflexo IPM Direto</th>
           </tr>
         </thead>
         <tbody id="tabela-vaf"></tbody>
@@ -189,16 +206,22 @@
 
   async function init() {
     const ano = document.getElementById('ano-selector').value;
+    const pRef = document.getElementById('vaf-pref')?.value || 200;
+    const vafBaBi = Number(document.getElementById('vaf-total-ba')?.value || 320) * 1e9;
+    const icmsBaBi = Number(document.getElementById('icms-total-ba')?.value || 42) * 1e9;
+
     await carregarUsinasSelector();
 
-    const proj = await fetchWithAuth(`/api/impacto-vaf/projecao-plurianual?ano=${ano}`);
+    const proj = await fetchWithAuth(`/api/impacto-vaf/projecao-plurianual?ano=${ano}&precoReferenciaMwh=${pRef}&vafTotalBa=${vafBaBi}&icmsTotalBa=${icmsBaBi}`);
     if (!proj) return;
 
-    document.getElementById('lbl-t1').textContent = proj.anoImpactoT1;
-    document.getElementById('lbl-t2').textContent = proj.anoImpactoT2;
-    document.getElementById('kpi-receita').textContent = formatMoney(proj.totalPerdaFaturamentoRs);
-    document.getElementById('kpi-t1').textContent = formatMoney(proj.totalImpactoT1Rs);
-    document.getElementById('kpi-t2').textContent = formatMoney(proj.totalImpactoT2Rs);
+    document.getElementById('lbl-t2b').textContent = proj.anoImpactoT2Bienal || (Number(ano) + 2);
+    document.getElementById('lbl-t3b').textContent = proj.anoImpactoT3Bienal || (Number(ano) + 3);
+    document.getElementById('kpi-receita').textContent = formatMoney(proj.totalDeltaVafRs || proj.totalPerdaFaturamentoRs);
+    document.getElementById('kpi-t1').textContent = formatMoney(proj.totalImpactoT2BienalRs || proj.totalImpactoT1Rs);
+    document.getElementById('kpi-t2').textContent = formatMoney(proj.totalImpactoT3BienalRs || proj.totalImpactoT2Rs);
+    document.getElementById('sub-ipm-t1').textContent = `50% em ${proj.anoImpactoT2Bienal} · Reflexo IPM: ${formatMoney(proj.totalImpactoT1Rs)}`;
+    document.getElementById('sub-ipm-t2').textContent = `50% em ${proj.anoImpactoT3Bienal} · Total Eq. 5.2: ${formatMoney(proj.totalDeltaIcmsEq52Rs)}`;
 
     const tbody = document.getElementById('tabela-vaf');
     tbody.innerHTML = '';
@@ -208,9 +231,10 @@
           <td><strong>${escapeHTML(item.municipio)}</strong></td>
           <td class="num-col">${(item.ipmPercentual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 })}%</td>
           <td class="num-col">${((item.energiaCortadaMwh || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GWh</td>
-          <td class="num-col val-warn">${formatMoney(item.faturamentoPerdidoRs)}</td>
-          <td class="num-col" style="color:var(--brand); font-weight:600;">${formatMoney(item.impactoAnoT1)}</td>
-          <td class="num-col" style="color:var(--crit); font-weight:600;">${formatMoney(item.impactoAnoT2)}</td>
+          <td class="num-col val-warn">${formatMoney(item.deltaVafRs || item.faturamentoPerdidoRs)}</td>
+          <td class="num-col" style="color:var(--brand); font-weight:600;">${formatMoney(item.impactoAnoT2Bienal)}</td>
+          <td class="num-col" style="color:var(--crit); font-weight:600;">${formatMoney(item.impactoAnoT3Bienal)}</td>
+          <td class="num-col" style="color:var(--text-muted);">${formatMoney(item.impactoAnoT2)}</td>
         </tr>
       `;
     });
