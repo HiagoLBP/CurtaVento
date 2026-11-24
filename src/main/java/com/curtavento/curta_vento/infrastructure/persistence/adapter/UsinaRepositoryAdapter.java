@@ -6,13 +6,14 @@ import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataUsinaRepository;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
 public class UsinaRepositoryAdapter implements UsinaRepositoryPort {
-    
+
     private final SpringDataUsinaRepository repository;
     private final MunicipioRepositoryAdapter municipioAdapter;
 
@@ -49,6 +50,11 @@ public class UsinaRepositoryAdapter implements UsinaRepositoryPort {
         domain.setLatitude(entity.getLatitude());
         domain.setLongitude(entity.getLongitude());
         domain.setDataInicioOperacao(entity.getDataInicioOperacao());
+        domain.setIdOns(entity.getIdOns());
+        domain.setCeg(entity.getCeg());
+        domain.setNomeConjuntoOns(entity.getNomeConjuntoOns());
+        domain.setSubestacaoConexao(entity.getSubestacaoConexao());
+        domain.setPrecoPpaMwh(entity.getPrecoPpaMwh());
         return domain;
     }
 
@@ -63,6 +69,11 @@ public class UsinaRepositoryAdapter implements UsinaRepositoryPort {
         entity.setLatitude(domain.getLatitude());
         entity.setLongitude(domain.getLongitude());
         entity.setDataInicioOperacao(domain.getDataInicioOperacao());
+        entity.setIdOns(domain.getIdOns());
+        entity.setCeg(domain.getCeg());
+        entity.setNomeConjuntoOns(domain.getNomeConjuntoOns());
+        entity.setSubestacaoConexao(domain.getSubestacaoConexao());
+        entity.setPrecoPpaMwh(domain.getPrecoPpaMwh() != null ? domain.getPrecoPpaMwh() : new BigDecimal("200.00"));
         return entity;
     }
 }

@@ -34,6 +34,12 @@ public class LeituraClimaticaEntity {
     @Column(name = "temperatura_c")
     private BigDecimal temperaturaC;
 
+    @Column(name = "radiacao_solar_wm2", precision = 10, scale = 2)
+    private BigDecimal radiacaoSolarWm2;
+
+    @Column(name = "rajada_vento_ms", precision = 10, scale = 2)
+    private BigDecimal rajadaVentoMs;
+
     private String fonte;
 
     public LeituraClimaticaEntity() {}
@@ -54,6 +60,10 @@ public class LeituraClimaticaEntity {
     public void setDirecaoVentoGraus(BigDecimal direcaoVentoGraus) { this.direcaoVentoGraus = direcaoVentoGraus; }
     public BigDecimal getTemperaturaC() { return temperaturaC; }
     public void setTemperaturaC(BigDecimal temperaturaC) { this.temperaturaC = temperaturaC; }
+    public BigDecimal getRadiacaoSolarWm2() { return radiacaoSolarWm2; }
+    public void setRadiacaoSolarWm2(BigDecimal radiacaoSolarWm2) { this.radiacaoSolarWm2 = radiacaoSolarWm2; }
+    public BigDecimal getRajadaVentoMs() { return rajadaVentoMs; }
+    public void setRajadaVentoMs(BigDecimal rajadaVentoMs) { this.rajadaVentoMs = rajadaVentoMs; }
     public String getFonte() { return fonte; }
     public void setFonte(String fonte) { this.fonte = fonte; }
 }

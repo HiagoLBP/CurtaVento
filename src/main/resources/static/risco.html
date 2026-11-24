@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CurtaVento — Risco 48h, O&amp;M e BESS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/css/global.css">
+  <style>
+    .controls-panel {
+      display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;
+    }
+    .ctrl-field { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+    .ctrl-field label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 600; }
+    .ctrl-field select, .ctrl-field input {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-family: var(--font); font-size: 13px; background: #fff; color: var(--text-main);
+    }
+    .btn-primary {
+      padding: 9px 16px; background: var(--brand); color: #fff; border: none;
+      border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .btn-primary:hover { opacity: .92; }
+    .kpi-grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
+    .badge-om { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .om-corda { background: #DCFCE7; color: #166534; }
+    .om-plataforma { background: #DBEAFE; color: #1E40AF; }
+    .om-torre { background: #FEF3C7; color: #92400E; }
+    .om-bloqueado { background: #FEE2E2; color: #991B1B; }
+    .alert-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border-light);
+    }
+    .alert-row:last-child { border-bottom: none; }
+    .alert-unread { background: #FEF2F2; }
+  </style>
+</head>
+<body>
+<div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
+
+<aside class="sidebar">
+  <div class="sidebar-header">CURTAVENTO</div>
+  <nav class="nav-list">
+    <a href="index.html" class="nav-item">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item">☁ Clima</a>
+    <a href="risco.html" class="nav-item active">⚠ Risco</a>
+    <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
+    <a href="#" class="nav-item" onclick="logout()" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
+  </nav>
+</aside>
+
+<div class="main-wrapper">
+  <header>
+    <div class="header-left">
+      <h1>Inteligência Preditiva 48h, O&amp;M e BESS</h1>
+      <span>Modelo "Curva do Pato" (Vento + Radiação Solar + Carga), Janelas NR-35 e Viabilidade de Baterias</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="controls-panel">
+      <div class="ctrl-field" style="flex:1; min-width:260px;">
+        <label for="select-usina">Parque Eólico Monitorado</label>
+        <select id="select-usina" onchange="carregarTudoUsina()"></select>
+      </div>
+      <div class="ctrl-field">
+        <label>Subestação Coletora</label>
+        <div id="meta-subestacao" style="font-size:13px; font-weight:600; padding:8px 0;">—</div>
+      </div>
+      <div class="ctrl-field">
+        <label>Capacidade Instalada</label>
+        <div id="meta-capacidade" style="font-size:13px; font-weight:600; padding:8px 0;">—</div>
+      </div>
+      <div class="ctrl-field">
+        <label>Fonte Meteorológica</label>
+        <div id="meta-fonte" style="font-size:13px; font-weight:600; padding:8px 0;">—</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid-4">
+      <div class="card">
+        <h3 class="card-title">Horas Alto/Crítico (48h)</h3>
+        <p class="card-value val-crit" id="kpi-horas-risco">0 h</p>
+        <p class="card-subtitle">Janelas com alta probabilidade de corte</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Janelas Ótimas O&amp;M</h3>
+        <p class="card-value val-ok" id="kpi-horas-om">0 h</p>
+        <p class="card-subtitle">Risco alto de corte + vento NR-35 &le; 11,1 m/s</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Economia O&amp;M Estimada</h3>
+        <p class="card-value val-brand" id="kpi-economia-om">0 MWh</p>
+        <p class="card-subtitle">Energia poupada operando em horário nobre</p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Cortes Recentes (15d)</h3>
+        <p class="card-value val-warn" id="kpi-dias-corte">0 dias</p>
+        <p class="card-subtitle">Recorrência recente na planta</p>
+      </div>
+    </div>
+
+    <section class="section-card" style="margin-bottom:24px;">
+      <div class="section-header">
+        <div>
+          <h2>Curva Preditiva Horária 48h (Vento 80m &times; Radiação Solar &times; Risco)</h2>
+          <p>Identifica picos diurnos da "Curva do Pato" (10h–16h) quando sol forte e vento elevado saturam o escoamento</p>
+        </div>
+      </div>
+      <div style="padding:20px; height:340px;">
+        <canvas id="curvaRiscoChart"></canvas>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <h2>Recomendador de Janelas O&amp;M (NR-35 / GWO)</h2>
+            <p>Melhores horários nas próximas 48h para manutenção preventiva a "custo zero"</p>
+          </div>
+        </div>
+        <div style="overflow-x:auto; max-height:360px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Janela</th>
+                <th>Vento 80m</th>
+                <th>Risco Corte</th>
+                <th>Condição NR-35</th>
+                <th>Ganho Est.</th>
+              </tr>
+            </thead>
+            <tbody id="tb-janelas-om"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <div class="section-header">
+          <div>
+            <h2>Central de Alertas Operacionais</h2>
+            <p>Notificações automáticas de risco crítico e impacto fiscal</p>
+          </div>
+        </div>
+        <div id="lista-alertas" style="max-height:360px; overflow-y:auto;"></div>
+      </section>
+    </div>
+
+    <section class="section-card" style="margin-bottom:24px;">
+      <div class="section-header">
+        <div>
+          <h2>Simulador de Baterias (BESS — Arbitragem de Curtailment)</h2>
+          <p>Dimensionamento LFP para armazenar energia cortada e injetar na ponta noturna com PLD elevado</p>
+        </div>
+      </div>
+      <div style="padding:20px;">
+        <div class="controls-panel" style="margin-bottom:20px;">
+          <div class="ctrl-field">
+            <label for="bess-ano">Ano Histórico</label>
+            <select id="bess-ano">
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+            </select>
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-pot">Potência (MW)</label>
+            <input type="number" id="bess-pot" value="10" step="1" min="1">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-cap">Capacidade (MWh)</label>
+            <input type="number" id="bess-cap" value="40" step="2" min="2">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-rte">Eficiência RTE (%)</label>
+            <input type="number" id="bess-rte" value="88" step="1" min="60" max="98">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-pld">PLD Ponta (R$/MWh)</label>
+            <input type="number" id="bess-pld" value="350" step="10" min="50">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-capex">CAPEX (R$/kWh)</label>
+            <input type="number" id="bess-capex" value="1800" step="50" min="500">
+          </div>
+          <button class="btn-primary" onclick="simularBess()">Simular BESS</button>
+        </div>
+
+        <div class="kpi-grid-4">
+          <div class="card">
+            <h3 class="card-title">Energia Entregue (Ponta)</h3>
+            <p class="card-value val-ok" id="bess-entregue">0 MWh</p>
+            <p class="card-subtitle" id="bess-aproveitamento">Aproveitamento: 0%</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Receita Anual Arbitragem</h3>
+            <p class="card-value val-brand" id="bess-receita">R$ 0,00</p>
+            <p class="card-subtitle" id="bess-fluxo">Fluxo líquido: R$ 0,00</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">CAPEX Total Estimado</h3>
+            <p class="card-value" id="bess-capex-total">R$ 0,00</p>
+            <p class="card-subtitle">Inclui sistema LFP + inversores</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Payback Simples</h3>
+            <p class="card-value val-warn" id="bess-payback">—</p>
+            <p class="card-subtitle" id="bess-roi">ROI 10 anos: —</p>
+          </div>
+        </div>
+
+        <div style="height:280px;">
+          <canvas id="bessChart"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>CurtaVento — Inteligência Operacional &amp; Armazenamento BESS</span>
+    <span>Fontes: Open-Meteo · ONS · NR-35 / GWO</span>
+  </footer>
+</div>
+
+<script src="/js/global.js"></script>
+<script>
+  let usinasCache = [];
+
+  function fmtMoeda(v) {
+    return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  async function inicializar() {
+    const params = new URLSearchParams(window.location.search);
+    const usinaParam = params.get('usinaId');
+
+    const [resumo] = await Promise.all([
+      fetchWithAuth('/api/dashboard/resumo-geral?ano=2026&limite=500'),
+      carregarAlertas()
+    ]);
+
+    if (resumo && resumo.usinas && resumo.usinas.length > 0) {
+      usinasCache = resumo.usinas;
+      const select = document.getElementById('select-usina');
+      select.innerHTML = '';
+      usinasCache.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.nome} (${u.municipio || 'BA'})`;
+        if (usinaParam && String(u.id) === String(usinaParam)) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      });
+      await carregarTudoUsina();
+    }
+  }
+
+  async function carregarTudoUsina() {
+    await Promise.all([carregarCurva48h(), simularBess()]);
+  }
+
+  async function carregarCurva48h() {
+    const usinaId = document.getElementById('select-usina').value;
+    if (!usinaId) return;
+
+    const dados = await fetchWithAuth(`/api/previsoes/curva-48h?usinaId=${usinaId}`);
+    if (!dados) return;
+
+    document.getElementById('meta-subestacao').textContent = dados.usina.subestacao || 'N/D';
+    document.getElementById('meta-capacidade').textContent = `${dados.usina.capacidadeMw} MW`;
+    document.getElementById('meta-fonte').textContent = dados.fontePrevisao;
+
+    document.getElementById('kpi-horas-risco').textContent = `${dados.resumo.horasAltoOuCritico} h`;
+    document.getElementById('kpi-horas-om').textContent = `${dados.resumo.horasOtimaOm} h`;
+    document.getElementById('kpi-economia-om').textContent = `${dados.resumo.economiaPotencialMwh.toLocaleString('pt-BR')} MWh`;
+    document.getElementById('kpi-dias-corte').textContent = `${dados.resumo.diasComCorteRecente} dias`;
+
+    const curva = dados.curvaHoraria || [];
+    if (window._curvaChart) window._curvaChart.destroy();
+    window._curvaChart = new Chart(document.getElementById('curvaRiscoChart'), {
+      type: 'line',
+      data: {
+        labels: curva.map(c => c.rotuloHora),
+        datasets: [
+          {
+            label: 'Risco Curtailment (%)',
+            data: curva.map(c => c.scoreCurtailment),
+            borderColor: '#EF4444',
+            backgroundColor: 'rgba(239,68,68,0.12)',
+            fill: true,
+            tension: 0.3,
+            yAxisID: 'yRisco'
+          },
+          {
+            label: 'Vento 80m (m/s)',
+            data: curva.map(c => c.vento80mMs),
+            borderColor: '#2563EB',
+            tension: 0.3,
+            yAxisID: 'yVento'
+          },
+          {
+            label: 'Radiação Solar (x10 W/m²)',
+            data: curva.map(c => +(c.radiacaoSolarWm2 / 10).toFixed(1)),
+            borderColor: '#F59E0B',
+            borderDash: [4, 4],
+            tension: 0.3,
+            yAxisID: 'yRisco'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          yRisco: { type: 'linear', position: 'left', min: 0, max: 100, title: { display: true, text: 'Risco (%) / Sol (x10)' } },
+          yVento: { type: 'linear', position: 'right', min: 0, grid: { drawOnChartArea: false }, title: { display: true, text: 'Vento (m/s)' } }
+        }
+      }
+    });
+
+    const tbody = document.getElementById('tb-janelas-om');
+    tbody.innerHTML = '';
+    const janelas = (dados.melhoresJanelasOm && dados.melhoresJanelasOm.length > 0)
+      ? dados.melhoresJanelasOm
+      : curva.slice(0, 8);
+
+    janelas.forEach(j => {
+      let cls = 'om-bloqueado';
+      if (j.categoriaOm === 'ACESSO_CORDA_PAS') cls = 'om-corda';
+      else if (j.categoriaOm === 'PLATAFORMA_ICAMENTO') cls = 'om-plataforma';
+      else if (j.categoriaOm === 'TORRE_INTERNA') cls = 'om-torre';
+
+      const estrela = j.janelaOtimaOm ? '★ ' : '';
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${estrela}${escapeHTML(j.rotuloHora)}</strong></td>
+          <td>${j.vento80mMs} m/s</td>
+          <td><strong style="color:${j.scoreCurtailment >= 60 ? 'var(--crit)' : 'var(--warn)'}">${j.scoreCurtailment}%</strong></td>
+          <td><span class="badge-om ${cls}">${escapeHTML(j.categoriaOm.replaceAll('_', ' '))}</span></td>
+          <td>${j.mwhEconomizavel} MWh</td>
+        </tr>
+      `;
+    });
+  }
+
+  async function simularBess() {
+    const usinaId = document.getElementById('select-usina').value;
+    if (!usinaId) return;
+
+    const payload = {
+      usinaId: Number(usinaId),
+      ano: Number(document.getElementById('bess-ano').value),
+      potenciaMw: Number(document.getElementById('bess-pot').value),
+      capacidadeMwh: Number(document.getElementById('bess-cap').value),
+      eficienciaRtePercentual: Number(document.getElementById('bess-rte').value),
+      precoDescargaPontaMwh: Number(document.getElementById('bess-pld').value),
+      capexPorKwhRs: Number(document.getElementById('bess-capex').value),
+      opexAnualPercentual: 2.0
+    };
+
+    const res = await fetchWithAuth('/api/simuladores/bess', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res) return;
+
+    document.getElementById('bess-entregue').textContent = `${(res.energiaEntreguePontaAnualMwh || 0).toLocaleString('pt-BR')} MWh`;
+    document.getElementById('bess-aproveitamento').textContent = `Aproveitamento dos cortes: ${res.aproveitamentoCurtailmentPct}%`;
+    document.getElementById('bess-receita').textContent = fmtMoeda(res.receitaAnualArbitragemRs);
+    document.getElementById('bess-fluxo').textContent = `Fluxo líquido (-OPEX): ${fmtMoeda(res.fluxoAnualLiquidoRs)}`;
+    document.getElementById('bess-capex-total').textContent = fmtMoeda(res.capexTotalRs);
+    document.getElementById('bess-payback').textContent = res.paybackAnos != null ? `${res.paybackAnos} anos` : 'Sem payback (sem cortes)';
+    document.getElementById('bess-roi').textContent = `ROI em 10 anos: ${res.roi10AnosPct}%`;
+
+    const serie = res.serieMensal || [];
+    if (window._bessChart) window._bessChart.destroy();
+    window._bessChart = new Chart(document.getElementById('bessChart'), {
+      type: 'bar',
+      data: {
+        labels: serie.map(s => s.mes),
+        datasets: [
+          { label: 'Energia Cortada (MWh)', data: serie.map(s => s.cortadaMwh), backgroundColor: 'rgba(239,68,68,0.65)' },
+          { label: 'Recuperada pelo BESS (MWh)', data: serie.map(s => s.recuperadaMwh), backgroundColor: 'rgba(16,185,129,0.8)' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  async function carregarAlertas() {
+    const lista = document.getElementById('lista-alertas');
+    try {
+      const alertas = await fetchWithAuth('/api/alertas');
+      if (!alertas || alertas.length === 0) {
+        lista.innerHTML = '<p style="padding:16px; color:var(--text-muted); font-size:13px;">Nenhum alerta pendente para o perfil autenticado.</p>';
+        return;
+      }
+      lista.innerHTML = '';
+      alertas.slice(0, 20).forEach(a => {
+        const cls = a.lido ? 'alert-row' : 'alert-row alert-unread';
+        const btn = a.lido
+          ? '<span style="font-size:11px; color:var(--ok); font-weight:600;">Lido</span>'
+          : `<button onclick="marcarAlertaLido(${a.id})" style="padding:5px 10px; font-size:11px; border:1px solid var(--border); background:#fff; border-radius:4px; cursor:pointer;">Marcar lido</button>`;
+        lista.innerHTML += `
+          <div class="${cls}">
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--crit);">${escapeHTML(a.tipo || 'ALERTA')} · ${escapeHTML(a.nivelSeveridade || '')}</div>
+              <div style="font-size:13px; color:var(--text-main);">${escapeHTML(a.mensagem || '')}</div>
+            </div>
+            ${btn}
+          </div>
+        `;
+      });
+    } catch (e) {
+      lista.innerHTML = '<p style="padding:16px; color:var(--text-muted); font-size:13px;">Não foi possível carregar os alertas.</p>';
+    }
+  }
+
+  async function marcarAlertaLido(id) {
+    const token = localStorage.getItem('jwt_token');
+    await fetch(`/api/alertas/${id}/marcar-lido`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    await carregarAlertas();
+  }
+
+  inicializar();
+</script>
+</body>
+</html>

@@ -1,33 +1,18 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-
   <title>CurtaVento — Plataforma de Monitoramento</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
-
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  
-
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="/css/global.css">
 </head>
-
 <body>
 <div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
-
-
-
-<!-- SIDEBAR -->
 
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
@@ -36,131 +21,88 @@
     <a href="usinas.html" class="nav-item">◫ Usinas</a>
     <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
     <a href="clima.html" class="nav-item">☁ Clima</a>
-    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="risco.html" class="nav-item">⚠ Risco</a>
     <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
-  <a href="#" class="nav-item" onclick="if(typeof logout === 'function') logout(); else { localStorage.removeItem('jwt_token'); window.location.href='/login.html'; }" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
-    </nav>
+    <a href="#" class="nav-item" onclick="logout()" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
+  </nav>
 </aside>
 
-
-
-<!-- MAIN CONTENT -->
-
 <div class="main-wrapper">
-
-  
-
   <header>
-
     <div class="header-left">
-
       <h1>Visão Geral</h1>
-
-      <span>Alto Sertão — BA</span>
-
+      <span>Alto Sertão &amp; Polos Eólicos — Bahia</span>
     </div>
-
     <div class="header-controls" style="display: flex; gap: 12px; align-items: center;">
-        <button onclick="exportarCSV()" style="padding: 6px 12px; background: #0061FF; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📥 Exportar CSV</button>
-        <button onclick="gerarRelatorio()" style="padding: 6px 12px; background: #1E2329; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📄 Gerar Relatório</button>
-        <label for="ano-selector" class="sr-only" style="display:none;">Ano</label>
-          <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
-          <option value="2026">2026 ▼</option>
-          <option value="2023">2023 ▼</option>
-        </select>
-        <div id="api-status-chip" class="status-chip">
-
+      <button onclick="exportarCSV()" style="padding: 6px 12px; background: #0061FF; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📥 Exportar CSV</button>
+      <button onclick="gerarRelatorio()" style="padding: 6px 12px; background: #1E2329; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">📄 Gerar Relatório</button>
+      <label for="ano-selector" class="sr-only" style="display:none;">Ano</label>
+      <select id="ano-selector" class="year-select" onchange="carregarDadosReais()">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
+      <div id="api-status-chip" class="status-chip">
         <span class="status-dot"></span>
-
         <span id="api-status-text">Aguardando API...</span>
-
       </div>
-
     </div>
-
   </header>
 
-
-
   <main>
-
-    
-
-    <!-- 1. KPI CARDS -->
-
-    <div class="kpi-grid">
-
+    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
       <div class="card">
-
         <h3 class="card-title">Energia Cortada</h3>
-
         <p class="card-value" id="card-energia">0 <small>GWh</small></p>
-
         <p class="card-subtitle" id="label-energia">Em 2026</p>
-
         <p class="card-subtitle" id="trend-energia" style="font-weight:600; font-size:13px; margin-top:4px;"></p>
-
       </div>
-
       <div class="card">
-
         <h3 class="card-title">Perda Bruta</h3>
-
         <p class="card-value val-warn" id="card-receita">R$ 0,0 <small>mi</small></p>
-
-        <p class="card-subtitle">Baseada no PLD Horário dinâmico</p>
-
+        <p class="card-subtitle">Baseada no PLD Horário / PPA</p>
       </div>
-
       <div class="card">
-
         <h3 class="card-title">Impacto VAF/ICMS</h3>
-
         <p class="card-value val-brand" id="card-impacto">R$ 0,0 <small>mi</small></p>
-
         <p class="card-subtitle">Estimado nos municípios</p>
-
       </div>
-
       <div class="card">
-
         <h3 class="card-title">Usinas</h3>
-
         <p class="card-value" id="card-usinas-count">0</p>
-
         <p class="card-subtitle">Monitoradas</p>
-
       </div>
-
     </div>
 
-
-
-    <!-- 2. MONITORAMENTO DE USINAS -->
+    <section class="section-card">
+      <div class="section-header" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px;">
+        <div>
+          <h2>Mapa Geoespacial de Gargalos — Bahia</h2>
+          <p>Localização dos parques monitorados, nível de risco atual e filtro por subestação coletora</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label for="filtro-subestacao" style="font-size:12px; color:var(--text-muted); font-weight:600;">Subestação:</label>
+          <select id="filtro-subestacao" onchange="renderMapa()" style="padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px;">
+            <option value="TODAS">Todas as Subestações</option>
+          </select>
+        </div>
+      </div>
+      <div id="mapa-bahia" style="height: 360px; width: 100%; border-top: 1px solid var(--border-light); z-index: 1;"></div>
+    </section>
 
     <section class="section-card">
-
       <div class="section-header">
-
         <div>
-
           <h2>Monitoramento das Usinas</h2>
-
           <p>Previsão de risco e histórico de perdas</p>
-
         </div>
-
         <label for="usina-search" class="sr-only" style="display:none;">Buscar Usina</label>
-          <input type="text" id="usina-search" class="search-input" placeholder="Buscar usina..." onkeyup="filtrarUsinas()">
-
+        <input type="text" id="usina-search" class="search-input" placeholder="Buscar usina..." onkeyup="filtrarUsinas()">
       </div>
-
       <div style="overflow-x: auto;">
-
         <table>
-
           <thead>
-
             <tr>
               <th>Usina</th>
               <th>Vento Agora</th>
@@ -172,240 +114,171 @@
               <th>Status VAF</th>
               <th>Ação</th>
             </tr>
-
           </thead>
-
           <tbody id="usinas-body"></tbody>
-
         </table>
-
       </div>
-
     </section>
-
-
-
-    <!-- 3. GRÁFICOS E INDICADORES DE REDE -->
 
     <section class="section-card" id="grafico-section">
-
       <div class="section-header" style="display: flex; justify-content: space-between;">
-
         <div>
-
           <h2>Motivos de Corte (ONS)</h2>
-
-          <p>Distribuição do curtailment por classificação técnica (Base: Subestação BAIGT)</p>
-
+          <p>Distribuição do curtailment por classificação regulatória (REL · CNF · ENE)</p>
         </div>
-
         <div style="text-align: right;">
-
-          <h2 style="color: var(--crit); margin-bottom: 4px;">0 MW</h2>
-
-          <p>Margem de Escoamento (2027-2031)</p>
-
+          <h2 style="color: var(--crit); margin-bottom: 4px;" id="card-taxa-desperdicio">0,0%</h2>
+          <p>Taxa Real de Desperdício</p>
         </div>
-
       </div>
-
       <div style="padding: 24px;">
-
-        <div style="display: flex; height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 16px;" id="stacked-bar">
-
-          <!-- Barras injetadas via JS -->
-
-        </div>
-
-        <div style="display: flex; gap: 24px; justify-content: center; font-size: 13px;" id="legendas-motivo">
-
-          <!-- Legendas injetadas via JS -->
-
-        </div>
-
+        <div style="display: flex; height: 24px; border-radius: 12px; overflow: hidden; margin-bottom: 16px;" id="stacked-bar"></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; font-size: 13px;" id="legendas-motivo"></div>
       </div>
-
     </section>
 
-
-
-    <!-- 4. BOTTOM GRID -->
-
     <div class="bottom-grid">
-
-      
-
-      <!-- Situação Operacional -->
-
       <section class="section-card">
-
         <div class="section-header">
-
           <h2>Situação Operacional</h2>
-
           <p>Níveis de risco atuais</p>
-
         </div>
-
         <div class="op-status-list">
-
           <div class="op-row" style="border-bottom: 1px solid var(--border-light); padding-bottom: 16px; margin-bottom: 4px;">
-
             <span class="op-label" style="font-weight: 600;">Total monitoradas</span>
-
             <span class="op-val" id="op-total">0</span>
-
           </div>
-
           <div class="op-row">
-
             <span class="op-label"><span class="status-dot" style="background: var(--ok)"></span> Baixo</span>
-
             <span class="op-val" id="op-baixo">0</span>
-
           </div>
-
           <div class="op-row">
-
             <span class="op-label"><span class="status-dot" style="background: var(--warn)"></span> Médio</span>
-
             <span class="op-val" id="op-medio">0</span>
-
           </div>
-
           <div class="op-row">
-
-            <span class="op-label"><span class="status-dot" style="background: var(--high)"></span> Alto</span>
-
+            <span class="op-label"><span class="status-dot" style="background: var(--high)"></span> Alto / Crítico</span>
             <span class="op-val" id="op-alto">0</span>
-
           </div>
-
         </div>
-
       </section>
-
-
-
-      <!-- Impacto Econômico -->
 
       <section class="section-card">
-
         <div class="section-header">
-
           <div>
-
             <h2>Impacto Econômico por Município</h2>
-
             <p>Estimativa acumulada de VAF/ICMS no ano selecionado</p>
-
           </div>
-
         </div>
-
         <div class="muni-list-container">
-
           <div id="muni-list" style="margin-top: 10px;"></div>
-
         </div>
-
       </section>
-
-
-
     </div>
-
-
-
   </main>
 
-
-
   <footer>
-
     <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
-
-    <span>Fontes: INMET · ONS · Sefaz-BA</span>
-
+    <span>Fontes: Open-Meteo · ONS · CCEE · Sefaz-BA</span>
   </footer>
-
-
-
 </div>
-
-
 
 <script src="/js/global.js"></script>
 <script>
-    function escapeHTML(str) {
-      if (typeof str !== 'string') return str;
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-
-  
-
-
-
-  const RISK_COLOR = { BAIXO: 'var(--ok)', MEDIO: 'var(--warn)', ALTO: 'var(--high)', CRITICO: 'var(--crit)' };
-
   const RISK_LABEL = { BAIXO: 'Baixo', MEDIO: 'Médio', ALTO: 'Alto', CRITICO: 'Crítico' };
+  const RISK_HEX = { BAIXO: '#10B981', MEDIO: '#F59E0B', ALTO: '#EF4444', CRITICO: '#991B1B' };
+  let mapaLeaflet = null;
+  let camadaMarcadores = null;
+  let todasUsinasMapa = [];
 
+  function initMapa() {
+    if (mapaLeaflet || typeof L === 'undefined') return;
+    mapaLeaflet = L.map('mapa-bahia').setView([-13.2, -42.4], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 18
+    }).addTo(mapaLeaflet);
+    camadaMarcadores = L.layerGroup().addTo(mapaLeaflet);
+  }
 
+  function atualizarFiltroSubestacoes(usinas) {
+    const sel = document.getElementById('filtro-subestacao');
+    const atual = sel.value;
+    const subs = [...new Set(usinas.map(u => u.subestacao).filter(s => s && s !== 'N/D'))].sort();
+    sel.innerHTML = '<option value="TODAS">Todas as Subestações</option>';
+    subs.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      if (s === atual) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
 
-  function renderUsinas(lista) {
+  function renderMapa() {
+    initMapa();
+    if (!camadaMarcadores) return;
+    camadaMarcadores.clearLayers();
+    const filtroSub = document.getElementById('filtro-subestacao').value;
 
-    const tbody = document.getElementById('usinas-body');
+    todasUsinasMapa.forEach(u => {
+      if (u.latitude == null || u.longitude == null) return;
+      if (filtroSub !== 'TODAS' && u.subestacao !== filtroSub) return;
 
-    tbody.innerHTML = '';
-
-    
-
-    let contBaixo = 0;
-
-    let contMedio = 0;
-
-    let contAlto = 0;
-
-
-
-    
-    
-      // RANKING OPERACIONAL: Risco x Impacto Financeiro
-      lista.sort((a, b) => {
-          const getRiscoWeight = (r) => r === 'CRITICO' ? 4 : r === 'ALTO' ? 3 : r === 'MEDIO' ? 2 : 1;
-          const scoreA = (a.energiaCortada || 0) * getRiscoWeight(a.risco);
-          const scoreB = (b.energiaCortada || 0) * getRiscoWeight(b.risco);
-          return scoreB - scoreA;
+      const cor = RISK_HEX[u.risco] || '#6B7280';
+      const perdaGwh = ((u.energiaCortada || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const marker = L.circleMarker([Number(u.latitude), Number(u.longitude)], {
+        radius: 7,
+        color: '#ffffff',
+        weight: 1.5,
+        fillColor: cor,
+        fillOpacity: 0.85
       });
 
-      lista.forEach(u => {
+      marker.bindPopup(`
+        <div style="font-family:Inter,sans-serif; font-size:12px; min-width:190px;">
+          <strong>${escapeHTML(u.nome)}</strong><br>
+          <span style="color:#6B7280;">${escapeHTML(u.municipio)} · ${escapeHTML(u.operador || '')}</span><br>
+          <hr style="margin:6px 0; border:none; border-top:1px solid #E5E7EB;">
+          <b>Subestação:</b> ${escapeHTML(u.subestacao || 'N/D')}<br>
+          <b>Vento Agora:</b> ${escapeHTML(u.vento || 'N/D')}<br>
+          <b>Risco 24h:</b> <span style="color:${cor}; font-weight:700;">${escapeHTML(u.risco || 'N/D')}</span><br>
+          <b>Corte Ano:</b> ${perdaGwh} GWh<br>
+          <a href="risco.html?usinaId=${u.id}" style="display:inline-block; margin-top:6px; color:#2563EB; font-weight:600;">Abrir Risco 48h &amp; BESS &rarr;</a>
+        </div>
+      `);
+      marker.addTo(camadaMarcadores);
+    });
+  }
 
-      // Contagem para Situação Operacional
+  function renderUsinas(lista, todasLista) {
+    const tbody = document.getElementById('usinas-body');
+    tbody.innerHTML = '';
+
+    let contBaixo = 0, contMedio = 0, contAlto = 0;
+    (todasLista || lista).forEach(u => {
       if (u.risco === 'BAIXO') contBaixo++;
       else if (u.risco === 'MEDIO') contMedio++;
       else if (u.risco === 'ALTO' || u.risco === 'CRITICO') contAlto++;
+    });
 
+    lista.sort((a, b) => {
+      const peso = r => r === 'CRITICO' ? 4 : r === 'ALTO' ? 3 : r === 'MEDIO' ? 2 : 1;
+      return ((b.energiaCortada || 0) * peso(b.risco)) - ((a.energiaCortada || 0) * peso(a.risco));
+    });
+
+    lista.forEach(u => {
       const tr = document.createElement('tr');
-      const perdaGwh = (u.energiaCortada / 1000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
+      const perdaGwh = ((u.energiaCortada || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       const riscoClass = u.risco ? u.risco.toLowerCase() : 'baixo';
       const riscoLabel = RISK_LABEL[u.risco] || 'Baixo';
-      
-      const pR$ = (u.prejuizoFinanceiro || 0);
-      const preFormatado = pR$ > 1000000 ? 
-          'R$ ' + (pR$/1000000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' mi' : 
-          'R$ ' + (pR$/1000).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' mil';
-          
-      const statusVaf = pR$ > 1000000 ? '<span style="color:var(--crit); font-weight:bold;">Crítico</span>' : 
-                        pR$ > 100000 ? '<span style="color:var(--high); font-weight:bold;">Atenção</span>' : 
+      const pRs = u.prejuizoFinanceiro || 0;
+      const preFormatado = pRs > 1000000
+        ? 'R$ ' + (pRs / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi'
+        : 'R$ ' + (pRs / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mil';
+
+      const statusVaf = pRs > 1000000 ? '<span style="color:var(--crit); font-weight:bold;">Crítico</span>' :
+                        pRs > 100000 ? '<span style="color:var(--high); font-weight:bold;">Atenção</span>' :
                         '<span style="color:var(--ok);">Normal</span>';
 
       tr.innerHTML = `
@@ -413,374 +286,196 @@
           <div style="font-weight: 500;">${escapeHTML(u.nome)}</div>
           <div style="font-size: 12px; color: var(--text-muted);">${escapeHTML(u.operador)}</div>
         </td>
-        <td data-label="Vento Agora" style="font-variant-numeric: tabular-nums;">${u.vento}</td>
-        <td data-label="Pico 24h" style="font-weight: 500;">${u.vento24h}</td>
-        <td style="color: var(--text-muted);">${u.vento48h}</td>
+        <td data-label="Vento Agora" style="font-variant-numeric: tabular-nums;">${escapeHTML(u.vento)}</td>
+        <td data-label="Pico 24h" style="font-weight: 500;">${escapeHTML(u.vento24h)}</td>
+        <td style="color: var(--text-muted);">${escapeHTML(u.vento48h)}</td>
         <td>
-          <span class="risk-badge risk-${riscoClass}" title="${escapeHTML(u.fatorRisco)}"></span> <span title="${escapeHTML(u.fatorRisco)}">${riscoLabel}</span>
+          <span class="risk-badge risk-${riscoClass}" title="${escapeHTML(u.fatorRisco)}"></span>
+          <span title="${escapeHTML(u.fatorRisco)}">${riscoLabel}</span>
         </td>
         <td data-label="Perda no Ano" style="color: var(--high); font-weight: 500;">${perdaGwh} GWh</td>
         <td data-label="Prejuízo (R$)" style="font-variant-numeric: tabular-nums; font-weight: 500;">${preFormatado}</td>
         <td data-label="Status VAF">${statusVaf}</td>
-        <td data-label="Ação"><a href="#" style="color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 500;">Ver detalhes</a></td>
+        <td data-label="Ação"><a href="risco.html?usinaId=${u.id}" style="color: var(--brand); text-decoration: none; font-size: 13px; font-weight: 500;">Risco &amp; BESS</a></td>
       `;
       tbody.appendChild(tr);
     });
 
-
-    
-
-    // Atualiza Totalizadores
-
-    document.getElementById('card-usinas-count').textContent = lista.length;
-
-    document.getElementById('op-total').textContent = lista.length;
-
+    const total = todasLista ? todasLista.length : lista.length;
+    document.getElementById('card-usinas-count').textContent = total;
+    document.getElementById('op-total').textContent = total;
     document.getElementById('op-baixo').textContent = contBaixo;
-
     document.getElementById('op-medio').textContent = contMedio;
-
     document.getElementById('op-alto').textContent = contAlto;
-
-
-
-    // Reaplica o filtro caso exista texto na busca
-
     filtrarUsinas();
-
   }
-
-
 
   function filtrarUsinas() {
-
     const searchInput = document.getElementById('usina-search');
-
     if (!searchInput) return;
-
     const input = searchInput.value.toLowerCase();
-
     const rows = document.getElementById('usinas-body').getElementsByTagName('tr');
-
     for (let i = 0; i < rows.length; i++) {
-
       const nomeUsina = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
-
-      if (nomeUsina.includes(input)) {
-
-        rows[i].style.display = '';
-
-      } else {
-
-        rows[i].style.display = 'none';
-
-      }
-
+      rows[i].style.display = nomeUsina.includes(input) ? '' : 'none';
     }
-
   }
-
-
 
   function renderMunicipios(lista) {
-
     const muniList = document.getElementById('muni-list');
-
     muniList.innerHTML = '';
-
     lista.forEach(m => {
-
       const pct = Math.min(100, (m.valor / m.max) * 100);
-
-      let valorFormatado = '';
-
-      if (m.valor >= 1000000) {
-
-        valorFormatado = 'R$ ' + (m.valor / 1000000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' mi';
-
-      } else {
-
-        valorFormatado = 'R$ ' + (m.valor / 1000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' mil';
-
-      }
-
-
+      const valorFormatado = m.valor >= 1000000
+        ? 'R$ ' + (m.valor / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi'
+        : 'R$ ' + (m.valor / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mil';
 
       const row = document.createElement('div');
-
       row.className = 'muni-row';
-
       row.innerHTML = `
-
         <span class="muni-name">${escapeHTML(m.nome)}</span>
-
         <div class="muni-track"><div class="muni-fill" style="width:${pct}%"></div></div>
-
         <span class="muni-value">${valorFormatado}</span>`;
-
       muniList.appendChild(row);
-
     });
-
   }
-
-
 
   function formatarValor(valor) {
-
     if (valor >= 1000000) {
-
-      return { val: (valor / 1000000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}), suf: 'mi' };
-
-    } else {
-
-      return { val: (valor / 1000).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}), suf: 'mil' };
-
+      return { val: (valor / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }), suf: 'mi' };
     }
-
+    return { val: (valor / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }), suf: 'mil' };
   }
-
-
 
   function setApiStatus(connected) {
-
     const chip = document.getElementById('api-status-chip');
-
     const text = document.getElementById('api-status-text');
-
     if (connected) {
-
       chip.className = 'status-chip connected';
-
       text.textContent = 'API conectada';
-
     } else {
-
       chip.className = 'status-chip error';
-
       text.textContent = 'Erro de conexão';
-
     }
-
   }
 
-
-
-  
-  
-
   async function carregarDadosReais() {
-
-
     const ano = document.getElementById('ano-selector').value;
-
     document.getElementById('label-energia').textContent = `Em ${ano}`;
-
-    
-
     const statusText = document.getElementById('api-status-text');
-
     if (statusText.textContent !== 'API conectada') {
-
       statusText.textContent = 'Conectando...';
-
     }
 
     try {
+      const data = await fetchWithAuth(`${API_BASE}/api/dashboard/resumo-geral?ano=${ano}&limite=500`);
+      if (!data) throw new Error('API retornou erro');
 
-      const data = await fetchWithAuth(`${API_BASE}/api/dashboard/resumo-geral?ano=${ano}&limite=15`);
-      if (data) {
+      const todas = data.usinas || [];
+      todasUsinasMapa = todas;
+      atualizarFiltroSubestacoes(todas);
+      renderMapa();
+      renderUsinas(todas.slice(0, 15), todas);
 
+      if (data.municipios) renderMunicipios(data.municipios);
 
-
-        if (data.usinas) renderUsinas(data.usinas);
-
-        if (data.municipios) renderMunicipios(data.municipios);
-
-
-
-        if (data.energiaTotal !== undefined) {
-
-          let extraHtml = '';
-
-          if (data.taxaDesperdicio) {
-
-            extraHtml = `<span style="background: var(--crit); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px; vertical-align: middle;">${data.taxaDesperdicio}% desperdiçado</span>`;
-
-          }
-
-          let energiaOdometro = data.energiaTotal;
-          const perdaPorSegundo = 0.23; 
-            function renderOdometro() {
-              const gwh = energiaOdometro / 1000;
-              document.getElementById('card-energia').innerHTML = `<span style="font-variant-numeric: tabular-nums; font-family: 'Inter', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--crit);">${gwh.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</span> <small style="font-size: 14px; color: var(--text-muted); font-weight: 600;">GWh</small> ${extraHtml}`;
-            }
-            renderOdometro();
-          if (window.odometroInterval) clearInterval(window.odometroInterval);
-          window.odometroInterval = setInterval(() => {
-            energiaOdometro += perdaPorSegundo;
-            renderOdometro();
-          }, 1000);
-
-        }
-
-        if (data.perdaReceitaTotal !== undefined) {
-
-          const fmt = formatarValor(data.perdaReceitaTotal);
-
-          document.getElementById('card-receita').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
-
-        }
-
-        if (data.impactoTotal !== undefined) {
-
-          const fmt = formatarValor(data.impactoTotal);
-
-          document.getElementById('card-impacto').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
-
-        }
-
-        
-
-        // Render stacked bar for Motivos
-
-        if (data.motivosCorte && data.energiaTotal > 0) {
-
-          const cores = ['#3b82f6', '#f59e0b', '#ef4444'];
-
-          let i = 0;
-
-          let barHtml = '';
-
-          let legHtml = '';
-
-          for (const [motivo, valor] of Object.entries(data.motivosCorte)) {
-
-            const pct = (valor / data.energiaTotal) * 100;
-
-            const cor = cores[i % cores.length];
-
-            barHtml += `<div style="width: ${pct}%; background: ${cor};" title="${motivo}: ${pct.toFixed(1)}%"></div>`;
-
-            legHtml += `<div style="display: flex; align-items: center; gap: 6px;">
-
-                          <span style="width: 10px; height: 10px; border-radius: 50%; background: ${cor};"></span>
-
-                          <span style="font-weight: 500;">${motivo}</span>
-
-                          <span style="color: var(--text-muted)">${pct.toFixed(1)}%</span>
-
-                        </div>`;
-
-            i++;
-
-          }
-
-          document.getElementById('stacked-bar').innerHTML = barHtml;
-
-          document.getElementById('legendas-motivo').innerHTML = legHtml;
-
-        }
-
-
-
-        
-          // Trend: buscar dados de evolução para comparação mês a mês
-          try {
-            const evolData = await fetchWithAuth(`${API_BASE}/api/cortes-ons/evolucao`);
-            if (evolData && evolData.length > 1) {
-              const mesAtual = new Date().getMonth();
-              const valAtual = evolData[mesAtual] ? evolData[mesAtual].total : 0;
-              const valAnterior = mesAtual > 0 && evolData[mesAtual-1] ? evolData[mesAtual-1].total : 0;
-              const trendEl = document.getElementById('trend-energia');
-              if (valAnterior > 0) {
-                const pctVar = ((valAtual - valAnterior) / valAnterior * 100).toFixed(1);
-                if (pctVar > 0) {
-                  trendEl.innerHTML = `<span style="color:var(--high);">&#9650; +${pctVar}% vs mês anterior</span>`;
-                } else {
-                  trendEl.innerHTML = `<span style="color:var(--ok);">&#9660; ${pctVar}% vs mês anterior</span>`;
-                }
-              }
-            }
-          } catch(e2) { /* silencioso */ }
-
-        setApiStatus(true);
-
-      } else {
-
-        throw new Error('API retornou erro');
-
+      if (data.energiaTotal !== undefined) {
+        const gwh = data.energiaTotal / 1000;
+        const taxa = data.taxaDesperdicio ? `${data.taxaDesperdicio}% desperdiçado` : 'Sem estimativa base';
+        const extraHtml = `<span style="background: var(--crit); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px; vertical-align: middle;">${taxa}</span>`;
+        document.getElementById('card-energia').innerHTML =
+          `<span style="font-variant-numeric: tabular-nums; font-family: 'Inter', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--crit);">${gwh.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span> <small style="font-size: 14px; color: var(--text-muted); font-weight: 600;">GWh</small> ${extraHtml}`;
+        document.getElementById('card-taxa-desperdicio').textContent = `${(data.taxaDesperdicio || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
       }
 
+      if (data.perdaReceitaTotal !== undefined) {
+        const fmt = formatarValor(data.perdaReceitaTotal);
+        document.getElementById('card-receita').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
+      }
+
+      if (data.impactoTotal !== undefined) {
+        const fmt = formatarValor(data.impactoTotal);
+        document.getElementById('card-impacto').innerHTML = `R$ ${fmt.val} <small>${fmt.suf}</small>`;
+      }
+
+      const stackedBar = document.getElementById('stacked-bar');
+      const legendasMotivo = document.getElementById('legendas-motivo');
+      stackedBar.innerHTML = '';
+      legendasMotivo.innerHTML = '';
+      if (data.motivosCorte && Object.keys(data.motivosCorte).length > 0) {
+        const totalMotivos = Object.values(data.motivosCorte).reduce((a, b) => a + b, 0);
+        const cores = ['#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#6b7280'];
+        let i = 0;
+        for (const [motivo, valor] of Object.entries(data.motivosCorte)) {
+          const pct = totalMotivos > 0 ? (valor / totalMotivos) * 100 : 0;
+          const cor = cores[i % cores.length];
+          stackedBar.innerHTML += `<div style="width: ${pct}%; background: ${cor};" title="${escapeHTML(motivo)}: ${pct.toFixed(1)}%"></div>`;
+          legendasMotivo.innerHTML += `
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: ${cor};"></span>
+              <span style="font-weight: 500;">${escapeHTML(motivo)}</span>
+              <span style="color: var(--text-muted)">${pct.toFixed(1)}%</span>
+            </div>`;
+          i++;
+        }
+      }
+
+      try {
+        const evolData = await fetchWithAuth(`${API_BASE}/api/cortes-ons/evolucao?ano=${ano}`);
+        if (evolData && evolData.length > 1) {
+          const mesAtual = new Date().getMonth();
+          const valAtual = evolData[mesAtual] ? evolData[mesAtual].total : 0;
+          const valAnterior = mesAtual > 0 && evolData[mesAtual - 1] ? evolData[mesAtual - 1].total : 0;
+          const trendEl = document.getElementById('trend-energia');
+          if (valAnterior > 0) {
+            const pctVar = ((valAtual - valAnterior) / valAnterior * 100).toFixed(1);
+            trendEl.innerHTML = pctVar > 0
+              ? `<span style="color:var(--high);">&#9650; +${pctVar}% vs mês anterior</span>`
+              : `<span style="color:var(--ok);">&#9660; ${pctVar}% vs mês anterior</span>`;
+          } else {
+            trendEl.innerHTML = '';
+          }
+        }
+      } catch (e2) { /* silencioso */ }
+
+      setApiStatus(true);
     } catch (e) {
-
       console.warn(e);
-
       setApiStatus(false);
-
     }
-
   }
 
+  function exportarCSV() {
+    const rows = document.querySelectorAll("table tr");
+    if (rows.length === 0) {
+      alert("Sem dados para exportar.");
+      return;
+    }
+    const csv = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = [];
+      const cols = rows[i].querySelectorAll("td, th");
+      for (let j = 0; j < cols.length; j++) {
+        row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
+      }
+      csv.push(row.join(";"));
+    }
+    const blob = new Blob(["\uFEFF" + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "curtavento_relatorio_operacional.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
-
-  // Carrega ao abrir a página
+  function gerarRelatorio() {
+    const ano = document.getElementById('ano-selector').value;
+    window.open(`relatorio.html?ano=${ano}`, '_blank');
+  }
 
   carregarDadosReais();
-
-
-
-  // Atualiza automaticamente a cada 10 segundos
-
-  setInterval(carregarDadosReais, 300000); // 5 minutes polling
-
+  setInterval(carregarDadosReais, 300000);
 </script>
-
-
-
-
-<script>
-    function escapeHTML(str) {
-      if (typeof str !== 'string') return str;
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-    function exportarCSV() {
-      const rows = document.querySelectorAll("table tr");
-      if (rows.length === 0) {
-        alert("Sem dados para exportar.");
-        return;
-      }
-      let csv = [];
-      for (let i = 0; i < rows.length; i++) {
-          let row = [], cols = rows[i].querySelectorAll("td, th");
-          for (let j = 0; j < cols.length; j++) 
-              row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
-          csv.push(row.join(";"));
-      }
-      const csvStr = csv.join("\n");
-      const blob = new Blob(["\uFEFF" + csvStr], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "curtavento_relatorio_operacional.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function gerarRelatorio() {
-      const ano = document.getElementById('ano-selector').value;
-      window.open(`relatorio.html?ano=${ano}`, '_blank');
-    }
-  </script>
 </body>
-
 </html>

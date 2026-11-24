@@ -3,13 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>CurtaVento — Impacto VAF</title>
+  <title>CurtaVento — Impacto VAF &amp; Arrendamento Rural</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-
   <link rel="stylesheet" href="/css/global.css">
+  <style>
+    .govtech-box {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-top: 24px;
+    }
+    .form-inline {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 18px;
+    }
+    .form-inline .fld { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+    .form-inline label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .form-inline select, .form-inline input {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-family: var(--font); font-size: 13px;
+    }
+    .btn-audit {
+      padding: 9px 16px; background: var(--brand); color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 <div id="error-banner">Falha na conexão com o servidor. Alguns dados podem estar desatualizados.</div>
@@ -21,121 +36,186 @@
     <a href="usinas.html" class="nav-item">◫ Usinas</a>
     <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
     <a href="clima.html" class="nav-item">☁ Clima</a>
-    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="risco.html" class="nav-item">⚠ Risco</a>
     <a href="vaf.html" class="nav-item active">$ Impacto VAF</a>
-  <a href="#" class="nav-item" onclick="if(typeof logout === 'function') logout(); else { localStorage.removeItem('jwt_token'); window.location.href='/login.html'; }" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
-    </nav>
+    <a href="#" class="nav-item" onclick="logout()" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
+  </nav>
 </aside>
 
 <div class="main-wrapper">
   <header>
     <div class="header-left">
-      <h1>Impacto Financeiro (VAF e ICMS)</h1>
-      <span>Estimativa de perdas na arrecadação municipal por Curtailment</span>
+      <h1>Impacto Financeiro Municipal (VAF/ICMS) &amp; Arrendamento Rural</h1>
+      <span>Projeção orçamentária plurianual (t+1 / t+2) e auditoria de royalties fundiários</span>
+    </div>
+    <div class="header-controls">
+      <select id="ano-selector" class="year-select" onchange="init()" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
+        <option value="2026" selected>2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
     </div>
   </header>
-  
+
   <main>
     <div class="methodology-box">
-      <h3>Metodologia de Cálculo</h3>
+      <h3>Metodologia Fiscal &amp; Fundiária (LC 63/1990)</h3>
       <ul>
-        <li><strong>Preço MADI:</strong> Adotado o valor fixo de <span class="formula">R$ 200,00 / MWh</span> conforme histórico de liquidação na CCEE para a fonte eólica no submercado NE.</li>
-        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (GWh) × Preço MADI</span>.</li>
-        <li><strong>ICMS (Estado):</strong> Alíquota sobre a Receita Bruta Perdida.</li>
-        <li><strong>Impacto VAF (Município):</strong> Parte da perda de ICMS retorna ao município via cota-parte do VAF.</li>
+        <li><strong>Receita Bruta Perdida:</strong> <span class="formula">Energia Cortada (MWh) &times; Preço MWh</span>.</li>
+        <li><strong>Impacto Defasado no VAF (t+1 / t+2):</strong> O Valor Adicionado Fiscal apurado no ano <em>t</em> compõe a média bienal do IPM municipal, afetando o repasse constitucional de ICMS nos dois exercícios seguintes (<em>t+1</em> com 50% e consolidação em <em>t+2</em>).</li>
+        <li><strong>Arrendamento Rural:</strong> Contratos fundiários na Bahia remuneram os proprietários de terras com 1% a 2,5% da receita bruta gerada pelo parque.</li>
       </ul>
-      <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--high);">* Os valores apresentados são uma simulação educacional e não representam laudo fiscal oficial.</p>
     </div>
 
     <div class="kpi-grid">
       <div class="card">
         <h3 class="card-title">Receita Bruta Perdida</h3>
         <p class="card-value val-warn" id="kpi-receita">R$ 0,00</p>
-        <p class="card-subtitle">Perda total faturamento (Usinas)</p>
+        <p class="card-subtitle">Perda de faturamento das usinas</p>
       </div>
       <div class="card">
-        <h3 class="card-title">Perda de ICMS (18%)</h3>
-        <p class="card-value val-brand" id="kpi-icms">R$ 0,00</p>
-        <p class="card-subtitle">Perda total de arrecadação (Estado)</p>
+        <h3 class="card-title">Impacto Fiscal em <span id="lbl-t1">2027</span> (t+1)</h3>
+        <p class="card-value val-brand" id="kpi-t1">R$ 0,00</p>
+        <p class="card-subtitle">Reflexo parcial na formação do IPM</p>
       </div>
       <div class="card">
-        <h3 class="card-title">Impacto VAF Municipal (25%)</h3>
-        <p class="card-value val-ok" id="kpi-vaf">R$ 0,00</p>
-        <p class="card-subtitle">Deixou de retornar aos municípios</p>
+        <h3 class="card-title">Impacto Fiscal em <span id="lbl-t2">2028</span> (t+2)</h3>
+        <p class="card-value val-crit" id="kpi-t2">R$ 0,00</p>
+        <p class="card-subtitle">Consolidação plena no repasse ICMS</p>
       </div>
     </div>
 
     <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding:16px 20px; border-bottom:1px solid var(--border-light);">
+        <h2 style="margin:0; font-size:16px;">Projeção Plurianual por Município (IPM Real &amp; Biênio t+1 / t+2)</h2>
+      </div>
       <table>
         <thead>
           <tr>
-            <th>Município (Alto Sertão BA)</th>
-            <th class="num-col">Energia Cortada (GWh)</th>
+            <th>Município (BA)</th>
+            <th class="num-col">IPM (%)</th>
+            <th class="num-col">Cortada (GWh)</th>
             <th class="num-col">Receita Perdida</th>
-            <th class="num-col">Impacto VAF (Municipal)</th>
+            <th class="num-col">Queda t+1</th>
+            <th class="num-col">Queda t+2</th>
           </tr>
         </thead>
-        <tbody id="tabela-vaf">
-          <!-- Injetado via JS -->
-        </tbody>
+        <tbody id="tabela-vaf"></tbody>
       </table>
     </div>
+
+    <section class="govtech-box">
+      <h2 style="margin-top:0; font-size:17px;">Auditor de Royalties de Arrendamento Rural (Proprietários de Terra)</h2>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+        Comprove com base nos registros oficiais do ONS quanto o proprietário rural deixou de receber por cortes de transmissão/sobreoferta vs. operação normal.
+      </p>
+
+      <div class="form-inline">
+        <div class="fld" style="flex:1; min-width:240px;">
+          <label for="arr-usina">Parque Eólico</label>
+          <select id="arr-usina"></select>
+        </div>
+        <div class="fld">
+          <label for="arr-royalty">% Royalty Contratual</label>
+          <input type="number" id="arr-royalty" value="1.5" step="0.1" min="0.1" max="15">
+        </div>
+        <div class="fld">
+          <label for="arr-props">Nº Proprietários</label>
+          <input type="number" id="arr-props" value="5" step="1" min="1">
+        </div>
+        <button class="btn-audit" onclick="auditarArrendamento()">Auditar Royalties</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="card">
+          <h3 class="card-title">Royalty Devido (Verificado)</h3>
+          <p class="card-value val-ok" id="arr-devido">R$ 0,00</p>
+          <p class="card-subtitle" id="arr-sub-verificado">Sobre geração efetivamente entregue</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Royalty Perdido (Curtailment)</h3>
+          <p class="card-value val-crit" id="arr-perdido">R$ 0,00</p>
+          <p class="card-subtitle" id="arr-pct-perda">0% da renda potencial da terra</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Perda Média / Proprietário</h3>
+          <p class="card-value val-warn" id="arr-por-prop">R$ 0,00</p>
+          <p class="card-subtitle" id="arr-nota">Base oficial ONS</p>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
 <script src="/js/global.js"></script>
 <script>
-    function escapeHTML(str) {
-      if (typeof str !== 'string') return str;
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-  
-
-  
-
   function formatMoney(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  async function carregarUsinasSelector() {
+    const sel = document.getElementById('arr-usina');
+    if (sel.options.length > 0) return;
+    const resumo = await fetchWithAuth('/api/dashboard/resumo-geral?ano=2026&limite=500');
+    if (resumo && resumo.usinas) {
+      resumo.usinas.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.nome} (${u.municipio})`;
+        sel.appendChild(opt);
+      });
+    }
+  }
+
+  async function auditarArrendamento() {
+    const usinaId = document.getElementById('arr-usina').value;
+    if (!usinaId) return;
+    const ano = document.getElementById('ano-selector').value;
+    const royalty = document.getElementById('arr-royalty').value || 1.5;
+    const props = document.getElementById('arr-props').value || 1;
+
+    const r = await fetchWithAuth(`/api/impacto-vaf/arrendamento-rural?usinaId=${usinaId}&ano=${ano}&percentualRoyalty=${royalty}&numProprietarios=${props}`);
+    if (!r) return;
+
+    document.getElementById('arr-devido').textContent = formatMoney(r.royaltyDevidoVerificadoRs);
+    document.getElementById('arr-perdido').textContent = formatMoney(r.royaltyPerdidoCurtailmentRs);
+    document.getElementById('arr-pct-perda').textContent = `${r.percentualPerdaRendaRural}% da renda potencial perdida por cortes ONS`;
+    document.getElementById('arr-por-prop').textContent = formatMoney(r.perdaPorProprietarioRs);
+    document.getElementById('arr-nota').textContent = r.estimativaPorCapacidade
+      ? 'Referência com fator de capacidade médio (42%)'
+      : 'Geração de referência oficial ONS';
   }
 
   async function init() {
-    const ano = document.getElementById('ano-selector') ? document.getElementById('ano-selector').value : 2026;
-    const data = await fetchWithAuth('/api/impacto-vaf?ano=' + ano);
-    if (!data) return;
+    const ano = document.getElementById('ano-selector').value;
+    await carregarUsinasSelector();
 
-    let totalReceita = 0;
-    let totalIcms = 0;
-    let totalVaf = 0;
+    const proj = await fetchWithAuth(`/api/impacto-vaf/projecao-plurianual?ano=${ano}`);
+    if (!proj) return;
+
+    document.getElementById('lbl-t1').textContent = proj.anoImpactoT1;
+    document.getElementById('lbl-t2').textContent = proj.anoImpactoT2;
+    document.getElementById('kpi-receita').textContent = formatMoney(proj.totalPerdaFaturamentoRs);
+    document.getElementById('kpi-t1').textContent = formatMoney(proj.totalImpactoT1Rs);
+    document.getElementById('kpi-t2').textContent = formatMoney(proj.totalImpactoT2Rs);
 
     const tbody = document.getElementById('tabela-vaf');
     tbody.innerHTML = '';
-
-    data.forEach(item => {
-      totalReceita += item.faturamentoPerdidoRs;
-      totalIcms += item.icmsNaoGeradoRs;
-      totalVaf += item.arrecadacaoPerdidaVafRs;
-
+    (proj.municipios || []).forEach(item => {
       tbody.innerHTML += `
         <tr>
           <td><strong>${escapeHTML(item.municipio)}</strong></td>
-          <td class="num-col">${(item.energiaCortadaMwh/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} GWh</td>
+          <td class="num-col">${(item.ipmPercentual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 })}%</td>
+          <td class="num-col">${((item.energiaCortadaMwh || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GWh</td>
           <td class="num-col val-warn">${formatMoney(item.faturamentoPerdidoRs)}</td>
-          <td class="num-col" style="color:var(--ok); font-weight:600;">${formatMoney(item.arrecadacaoPerdidaVafRs)}</td>
+          <td class="num-col" style="color:var(--brand); font-weight:600;">${formatMoney(item.impactoAnoT1)}</td>
+          <td class="num-col" style="color:var(--crit); font-weight:600;">${formatMoney(item.impactoAnoT2)}</td>
         </tr>
       `;
     });
 
-    document.getElementById('kpi-receita').innerHTML = formatMoney(totalReceita);
-    document.getElementById('kpi-icms').innerHTML = formatMoney(totalIcms);
-    document.getElementById('kpi-vaf').innerHTML = formatMoney(totalVaf);
+    await auditarArrendamento();
   }
 
   init();

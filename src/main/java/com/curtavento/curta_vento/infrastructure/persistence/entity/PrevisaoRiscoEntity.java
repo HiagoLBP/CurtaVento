@@ -1,5 +1,6 @@
 package com.curtavento.curta_vento.infrastructure.persistence.entity;
 
+import com.curtavento.curta_vento.domain.model.NivelRisco;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;

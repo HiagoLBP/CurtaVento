@@ -373,16 +373,26 @@
       </tbody>
     </table>
 
-    <!-- 6. METODOLOGIA E PREMISSAS -->
+    <!-- 6. APURAÇÃO REGULATÓRIA & PROJEÇÃO ORÇAMENTÁRIA -->
     <div class="avoid-break">
-      <h3 class="section-title">6. Metodologia e Premissas</h3>
+      <h3 class="section-title">6. Apuração Regulatória ANEEL (REN 1.030) &amp; Projeção Orçamentária VAF</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Dimensão Analisada</th>
+            <th class="num">Volume / Alvo</th>
+            <th class="num">Valor Estimado (R$)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-regulatorio-govtech">
+          <tr><td colspan="3">Carregando dados regulatórios e fiscais...</td></tr>
+        </tbody>
+      </table>
       <div class="box-texto">
-        <strong>Fórmulas e Composição:</strong><br><br>
-        • <strong>Energia Cortada:</strong> Somatório da geração de referência menos a geração verificada (dados ONS).<br>
-        • <strong>Perda Financeira:</strong> <code>Energia Cortada × R$ 200,00/MWh</code> (Premissa estática).<br>
-        • <strong>Impacto VAF:</strong> <code>Perda Financeira × 18% (ICMS) × 25% (Repasse)</code>.<br>
-        • <strong>Risco (Score Heurístico):</strong> Combinação de vento previsto (>10m/s = Crítico), histórico recente e sazonalidade.<br>
-        • <strong>Motivos de Corte (ENE/REL/CNF):</strong> Distribuição proporcional estimada baseada no comportamento macro do subsistema Nordeste (55% ENE, 33% REL, 12% CNF), não representando a classificação individual final por usina.
+        <strong>Fórmulas e Premissas:</strong><br><br>
+        • <strong>Energia Cortada:</strong> Somatório da geração estimada/referência menos geração verificada nos blocos do ONS.<br>
+        • <strong>Ressarcimento ESS (REN 1.030/2022):</strong> Cortes por <code>REL</code> (indisponibilidade externa) e <code>CNF</code> (confiabilidade) descontada franquia anual de 78h; <code>ENE</code> (sobreoferta) é perda não ressarcível.<br>
+        • <strong>Projeção Orçamentária Municipal:</strong> Perda no VAF do ano base <em>t</em> repercute no IPM/ICMS dos exercícios <em>t+1</em> (50%) e <em>t+2</em> (100%).
       </div>
     </div>
 
@@ -390,11 +400,10 @@
     <div class="avoid-break">
       <h3 class="section-title">7. Limitações e Disclaimers</h3>
       <ul style="font-size:10px; color:#4B5563; padding-left: 15px;">
-        <li>Os motivos de corte (ENE, REL, CNF) exibidos no Dashboard são <strong>estimados</strong> pelo sistema.</li>
-        <li>A previsão climática depende do Open-Meteo e pode sofrer *fallback* para dados de cache em caso de indisponibilidade (Rate Limit 429).</li>
-        <li>O preço de energia é uma <strong>premissa fixa simulada</strong> (R$ 200/MWh) e não captura reajustes contratuais específicos (CCEAR, ACL, PROINFA) ou o PLD horário exato de cada período.</li>
-        <li>O impacto VAF representa uma estimativa referencial acadêmica e <strong>não</strong> uma apuração fiscal oficial para repasse da SEFAZ.</li>
-        <li>O indicador de "Risco" é um score heurístico do projeto CurtaVento, não constituindo um modelo estatístico, preditivo ou regulatório oficial do ONS.</li>
+        <li>Os motivos regulatórios (<code>REL</code>, <code>CNF</code>, <code>ENE</code>) são extraídos do conjunto ONS quando disponível o cruzamento por bloco; registros legados diários sem classificação figuram como não classificados.</li>
+        <li>A previsão climática depende do Open-Meteo (vento a 80m e radiação solar) e utiliza fallback em cache em caso de indisponibilidade.</li>
+        <li>Quando o PLD Horário da CCEE não foi importado para o intervalo, aplica-se o preço contratual/referência da usina (padrão R$ 200,00/MWh).</li>
+        <li>O impacto VAF representa uma projeção técnica referencial baseada no IPM cadastrado e não substitui apuração fiscal oficial da SEFAZ-BA.</li>
       </ul>
     </div>
 
@@ -448,13 +457,40 @@
           if(resEvo.ok) evolucao = await resEvo.json();
         } catch(e) { console.error("Sem dados de evolução"); }
 
-        render(data, evolucao);
+        let ressarcimento = null;
+        let projecaoVaf = null;
+        try {
+          const [resRess, resProj] = await Promise.all([
+            fetch(`/api/cortes-ons/ressarcimento?ano=${ano}&franquiaHoras=78`, { headers }),
+            fetch(`/api/impacto-vaf/projecao-plurianual?ano=${ano}`, { headers })
+          ]);
+          if (resRess.ok) ressarcimento = await resRess.json();
+          if (resProj.ok) projecaoVaf = await resProj.json();
+        } catch(e) { console.error("Sem dados complementares"); }
+
+        render(data, evolucao, ressarcimento, projecaoVaf);
       } catch(e) {
         alert("Erro ao carregar relatório: " + e.message);
       }
     }
 
-    function render(data, evolucao) {
+    function render(data, evolucao, ressarcimento, projecaoVaf) {
+      const tbReg = document.getElementById('tb-regulatorio-govtech');
+      if (tbReg) {
+        tbReg.innerHTML = '';
+        if (ressarcimento) {
+          tbReg.innerHTML += `
+            <tr><td>Ressarcível Líquido via ESS (REL + CNF pós-franquia 78h)</td><td class="num">${formatN(ressarcimento.ressarcivelLiquidoMwh || 0)} MWh</td><td class="num">${formatM(ressarcimento.ressarcivelLiquidoRs || 0)}</td></tr>
+            <tr><td>Prejuízo Não Ressarcível (ENE / Sobreoferta e outros)</td><td class="num">${formatN(ressarcimento.naoRessarcivelMwh || 0)} MWh</td><td class="num">${formatM(ressarcimento.naoRessarcivelRs || 0)}</td></tr>
+          `;
+        }
+        if (projecaoVaf) {
+          tbReg.innerHTML += `
+            <tr><td>Projeção Queda Repasse ICMS Municipal — Exercício ${projecaoVaf.anoImpactoT1} (t+1)</td><td class="num">Ano ${projecaoVaf.anoImpactoT1}</td><td class="num">${formatM(projecaoVaf.totalImpactoT1Rs || 0)}</td></tr>
+            <tr><td>Projeção Queda Repasse ICMS Municipal — Exercício ${projecaoVaf.anoImpactoT2} (t+2)</td><td class="num">Ano ${projecaoVaf.anoImpactoT2}</td><td class="num">${formatM(projecaoVaf.totalImpactoT2Rs || 0)}</td></tr>
+          `;
+        }
+      }
       const usinas = data.usinas || [];
       const totalUsinas = usinas.length;
       const usinasComCorte = usinas.filter(u => u.energiaCortada > 0);

@@ -1,5 +1,16 @@
 const API_BASE = '';
 
+function escapeHTML(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[tag] || tag));
+}
+
 function logout() {
   localStorage.removeItem('jwt_token');
   window.location.href = '/login.html';
@@ -23,7 +34,7 @@ async function fetchWithAuth(url, options = {}) {
   }
   if (!res.ok) {
     const banner = document.getElementById('error-banner');
-    if(banner) banner.style.display = 'block';
+    if (banner) banner.style.display = 'block';
     throw new Error('Erro na API');
   }
   return await res.json();

@@ -36,13 +36,13 @@ public class UsuarioService {
     public UsuarioEntity salvar(UsuarioEntity usuario) {
         if (usuario.getUsina() != null && usuario.getUsina().getId() != null) {
             UsinaEntity usina = springDataUsinaRepository.findById(usuario.getUsina().getId())
-                    .orElseThrow(() -> new RuntimeException("UsinaEntity n�o encontrada com o ID: " + usuario.getUsina().getId()));
+                    .orElseThrow(() -> new RuntimeException("Usina não encontrada com o ID: " + usuario.getUsina().getId()));
             usuario.setUsina(usina);
         }
 
         if (usuario.getMunicipio() != null && usuario.getMunicipio().getId() != null) {
             MunicipioEntity municipio = springDataMunicipioRepository.findById(usuario.getMunicipio().getId())
-                    .orElseThrow(() -> new RuntimeException("Munic�pio n�o encontrado com o ID: " + usuario.getMunicipio().getId()));
+                    .orElseThrow(() -> new RuntimeException("Município não encontrado com o ID: " + usuario.getMunicipio().getId()));
             usuario.setMunicipio(municipio);
         }
 

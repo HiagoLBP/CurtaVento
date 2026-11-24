@@ -7,8 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-
   <link rel="stylesheet" href="/css/global.css">
 </head>
 <body>
@@ -21,65 +19,46 @@
     <a href="usinas.html" class="nav-item active">◫ Usinas</a>
     <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
     <a href="clima.html" class="nav-item">☁ Clima</a>
-    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="risco.html" class="nav-item">⚠ Risco</a>
     <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
-  <a href="#" class="nav-item" onclick="if(typeof logout === 'function') logout(); else { localStorage.removeItem('jwt_token'); window.location.href='/login.html'; }" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
-    </nav>
+    <a href="#" class="nav-item" onclick="logout()" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
+  </nav>
 </aside>
 
 <div class="main-wrapper">
   <header>
-    
     <div class="header-left">
       <h1>Gestão de Usinas</h1>
       <span>Cadastro e Status dos Ativos</span>
     </div>
     <div class="header-controls" style="display:flex; gap:16px;">
-        <input type="text" id="search-usina" placeholder="Buscar usina..." onkeyup="filtrarPaginar()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-family:var(--font);">
-        <select id="ano-selector" class="year-select" onchange="init()" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
-          <option value="2026">2026 ▼</option>
-          <option value="2023">2023 ▼</option>
-        </select>
+      <input type="text" id="search-usina" placeholder="Buscar usina ou operador..." onkeyup="filtrarPaginar()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-family:var(--font);">
+      <select id="ano-selector" class="year-select" onchange="init()" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
     </div>
-
   </header>
-  
+
   <main>
-    
-    <div class="usinas-grid" id="usinas-grid">
-      <!-- Injetado via JS -->
-    </div>
+    <div class="usinas-grid" id="usinas-grid"></div>
     <div id="pagination-controls" style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:32px;">
       <button onclick="mudarPagina(-1)" id="btn-prev" style="padding:8px 16px; background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; cursor:pointer;">Anterior</button>
       <span id="page-info" style="font-size:14px; font-weight:500;">Página 1</span>
       <button onclick="mudarPagina(1)" id="btn-next" style="padding:8px 16px; background:var(--brand); color:white; border:none; border-radius:6px; cursor:pointer;">Próxima</button>
     </div>
-
   </main>
 
   <footer>
     <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
-    <span>Fontes: INMET • ONS • Sefaz-BA</span>
+    <span>Fontes: Open-Meteo · ONS · Sefaz-BA</span>
   </footer>
 </div>
 
 <script src="/js/global.js"></script>
 <script>
-    function escapeHTML(str) {
-      if (typeof str !== 'string') return str;
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-  
-
   const RISK_COLOR = {
     'BAIXO': 'var(--ok)',
     'MEDIO': 'var(--warn)',
@@ -87,9 +66,6 @@
     'CRITICO': 'var(--crit)'
   };
 
-  
-
-  
   let todasUsinas = [];
   let paginaAtual = 1;
   const ITENS_POR_PAGINA = 12;
@@ -97,107 +73,109 @@
   function renderGrid(lista) {
     const grid = document.getElementById('usinas-grid');
     grid.innerHTML = '';
-    
+
     lista.forEach(u => {
-        
-        
-        let omHtml = '<strong style="color:var(--text-muted)">N/D</strong>';
-        if (u.janelaManutencao === 'LIBERADO') {
-            omHtml = '<strong style="color:var(--ok)">LIBERADO ✅</strong>';
-        } else if (u.janelaManutencao === 'ALERTA') {
-            omHtml = '<strong style="color:var(--warn)">ALERTA ⚠️</strong>';
-        } else if (u.janelaManutencao === 'BLOQUEADO') {
-            omHtml = '<strong style="color:var(--high)">BLOQUEADO ❌</strong>';
-        }
-        const color = RISK_COLOR[u.risco] || 'var(--text-muted)';
-        
-        let dataStr = 'N/I';
-        if(u.dataInicio) {
-          const parts = u.dataInicio.split('-');
-          if(parts.length === 3) dataStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-        
-        const perdaFinanceira = u.prejuizoFinanceiro || 0;
-        const perdaText = perdaFinanceira > 1000000 
-            ? `R$ ${(perdaFinanceira/1000000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} milhões`
-            : `R$ ${(perdaFinanceira/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} mil`;
+      let omHtml = '<strong style="color:var(--text-muted)">N/D</strong>';
+      if (u.janelaManutencao === 'LIBERADO') {
+        omHtml = '<strong style="color:var(--ok)">LIBERADO ✅</strong>';
+      } else if (u.janelaManutencao === 'ALERTA') {
+        omHtml = '<strong style="color:var(--warn)">ALERTA ⚠️</strong>';
+      } else if (u.janelaManutencao === 'BLOQUEADO') {
+        omHtml = '<strong style="color:var(--high)">BLOQUEADO ❌</strong>';
+      }
+      const color = RISK_COLOR[u.risco] || 'var(--text-muted)';
 
-        grid.innerHTML += `
-          <div class="usina-card">
-            <div class="u-header">
-              <h3>${escapeHTML(u.nome)}</h3>
-              <p>${escapeHTML(u.operador) || '$1'}</p>
-            </div>
-            
-            <div class="u-details">
-              <div class="u-row"><span>Capacidade:</span> <strong>${u.capacidade} MW</strong></div>
-              <div class="u-row"><span>Município:</span> <strong>${escapeHTML(u.municipio)}</strong></div>
-              <div class="u-row"><span>Início de Operação:</span> <strong>${dataStr}</strong></div>
-            </div>
-            
-            <div class="u-stats">
-              
-                <div class="u-stat-row">
-                  <span>Risco Atual:</span>
-                  <strong style="color:${color}" title="${escapeHTML(u.fatorRisco) || '$1'}"><span class="status-dot" style="background:${color}"></span> ${u.risco}</strong>
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px; margin-bottom: 8px; font-style: italic;">
-                  ${escapeHTML(u.fatorRisco) || '$1'}
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
-                  <span>Fonte: ${u.fonteClima === 'CACHE_ANTIGO' || u.fonteClima === 'SEM_DADOS' ? '<strong style="color:var(--warn)">' + u.fonteClima + '</strong>' : u.fonteClima || 'Open-Meteo'}</span>
-                </div>
+      let dataStr = 'N/I';
+      if (u.dataInicio) {
+        const parts = u.dataInicio.split('-');
+        if (parts.length === 3) dataStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
 
-              <div class="u-stat-row">
-                <span>Janela O&M:</span>
-                ${omHtml}
-              </div>
-              <div class="u-stat-row">
-                <span>Energia Cortada:</span>
-                <strong class="val-crit">${((u.energiaCortada || 0)/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} GWh</strong>
-              </div>
-              <div class="u-stat-row">
-                <span>Receita Perdida:</span>
-                <strong style="color:var(--high)">${perdaText}</strong>
-              </div>
+      const perdaFinanceira = u.prejuizoFinanceiro || 0;
+      const perdaText = perdaFinanceira > 1000000
+        ? `R$ ${(perdaFinanceira / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} milhões`
+        : `R$ ${(perdaFinanceira / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mil`;
+
+      grid.innerHTML += `
+        <div class="usina-card">
+          <div class="u-header">
+            <h3>${escapeHTML(u.nome)}</h3>
+            <p>${escapeHTML(u.operador || 'N/D')}</p>
+          </div>
+
+          <div class="u-details">
+            <div class="u-row"><span>Capacidade:</span> <strong>${u.capacidade || 0} MW</strong></div>
+            <div class="u-row"><span>Município:</span> <strong>${escapeHTML(u.municipio || 'N/D')}</strong></div>
+            <div class="u-row"><span>Subestação:</span> <strong>${escapeHTML(u.subestacao || 'N/D')}</strong></div>
+            <div class="u-row"><span>Início de Operação:</span> <strong>${dataStr}</strong></div>
+          </div>
+
+          <div class="u-stats">
+            <div class="u-stat-row">
+              <span>Risco Atual:</span>
+              <strong style="color:${color}" title="${escapeHTML(u.fatorRisco || '')}"><span class="status-dot" style="background:${color}"></span> ${escapeHTML(u.risco || 'BAIXO')}</strong>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px; margin-bottom: 8px; font-style: italic;">
+              ${escapeHTML(u.fatorRisco || 'Sem risco atípico.')}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+              <span>Fonte: ${u.fonteClima === 'CACHE_ANTIGO' || u.fonteClima === 'SEM_DADOS' ? '<strong style="color:var(--warn)">' + escapeHTML(u.fonteClima) + '</strong>' : escapeHTML(u.fonteClima || 'Open-Meteo')}</span>
+            </div>
+
+            <div class="u-stat-row">
+              <span>Janela O&amp;M:</span>
+              ${omHtml}
+            </div>
+            <div class="u-stat-row">
+              <span>Energia Cortada:</span>
+              <strong class="val-crit">${((u.energiaCortada || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GWh</strong>
+            </div>
+            <div class="u-stat-row">
+              <span>Receita Perdida:</span>
+              <strong style="color:var(--high)">${perdaText}</strong>
+            </div>
+            <div style="margin-top:10px; text-align:right;">
+              <a href="risco.html?usinaId=${u.id}" style="color:var(--brand); font-size:12px; font-weight:600; text-decoration:none;">Ver Curva 48h &amp; Simular BESS &rarr;</a>
             </div>
           </div>
-        `;
+        </div>
+      `;
     });
   }
 
   function filtrarPaginar() {
-      const search = document.getElementById('search-usina').value.toLowerCase();
-      const filtradas = todasUsinas.filter(u => u.nome.toLowerCase().includes(search) || (u.operador && u.operador.toLowerCase().includes(search)));
-      
-      const totalPaginas = Math.ceil(filtradas.length / ITENS_POR_PAGINA) || 1;
-      if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
-      
-      const start = (paginaAtual - 1) * ITENS_POR_PAGINA;
-      const end = start + ITENS_POR_PAGINA;
-      const paginadas = filtradas.slice(start, end);
-      
-      renderGrid(paginadas);
-      
-      document.getElementById('page-info').textContent = `Página ${paginaAtual} de ${totalPaginas} (${filtradas.length} resultados)`;
-      document.getElementById('btn-prev').disabled = paginaAtual === 1;
-      document.getElementById('btn-next').disabled = paginaAtual === totalPaginas;
-      
-      document.getElementById('btn-prev').style.opacity = paginaAtual === 1 ? '0.5' : '1';
-      document.getElementById('btn-next').style.opacity = paginaAtual === totalPaginas ? '0.5' : '1';
+    const search = document.getElementById('search-usina').value.toLowerCase();
+    const filtradas = todasUsinas.filter(u =>
+      u.nome.toLowerCase().includes(search) ||
+      (u.operador && u.operador.toLowerCase().includes(search)) ||
+      (u.subestacao && u.subestacao.toLowerCase().includes(search))
+    );
+
+    const totalPaginas = Math.ceil(filtradas.length / ITENS_POR_PAGINA) || 1;
+    if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+
+    const start = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const paginadas = filtradas.slice(start, start + ITENS_POR_PAGINA);
+    renderGrid(paginadas);
+
+    document.getElementById('page-info').textContent = `Página ${paginaAtual} de ${totalPaginas} (${filtradas.length} resultados)`;
+    document.getElementById('btn-prev').disabled = paginaAtual === 1;
+    document.getElementById('btn-next').disabled = paginaAtual === totalPaginas;
+    document.getElementById('btn-prev').style.opacity = paginaAtual === 1 ? '0.5' : '1';
+    document.getElementById('btn-next').style.opacity = paginaAtual === totalPaginas ? '0.5' : '1';
   }
 
   function mudarPagina(dir) {
-      paginaAtual += dir;
-      filtrarPaginar();
-      window.scrollTo(0,0);
+    paginaAtual += dir;
+    filtrarPaginar();
+    window.scrollTo(0, 0);
   }
 
   async function init() {
     const ano = document.getElementById('ano-selector').value || 2026;
     const grid = document.getElementById('usinas-grid');
     grid.innerHTML = '<p>Carregando dados das usinas...</p>';
-    
+
     const data = await fetchWithAuth(`/api/dashboard/resumo-geral?ano=${ano}`);
     if (data && data.usinas) {
       todasUsinas = data.usinas;

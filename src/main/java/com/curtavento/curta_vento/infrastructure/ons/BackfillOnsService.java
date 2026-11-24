@@ -1,51 +1,117 @@
 package com.curtavento.curta_vento.infrastructure.ons;
 
 import com.curtavento.curta_vento.application.usecase.HistoricoCorteOnsService;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsBlocoEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.PldHorarioEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataPldHorarioRepository;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataUsinaRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
 public class BackfillOnsService {
 
-    private static final String URL_BASE =
+    private static final Logger logger = LoggerFactory.getLogger(BackfillOnsService.class);
+
+    private static final String URL_BASE_DETAIL =
             "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_eolica_detail_tm/RESTRICAO_COFF_EOLICA_DETAIL_%d_%02d.csv";
+    private static final String URL_BASE_CONJUNTO =
+            "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_eolica_tm/RESTRICAO_COFF_EOLICA_%d_%02d.csv";
 
     private static final String DELIMITADOR = ";";
+    private static final DateTimeFormatter PARSER_INSTANTE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final HistoricoCorteOnsService corteService;
     private final SpringDataUsinaRepository springDataUsinaRepository;
+    private final SpringDataPldHorarioRepository pldHorarioRepository;
+    private final RestTemplate restTemplate;
+
+    private record ConjuntoRestricaoInfo(String codRazao, String dscRestricao, String pontoConexao) {}
+
+    private static class AgregadoDiario {
+        double energiaCortadaMwh;
+        double energiaEstimadaMwh;
+        double energiaVerificadaMwh;
+        double valoradoPldRs;
+        double somaVento;
+        int blocosComCorte;
+        int blocosVento;
+        final Map<String, Double> energiaPorRazao = new HashMap<>();
+        String dscPrincipal;
+        String subestacaoPrincipal;
+
+        void registrarMotivo(String razao, double energiaMwh, String dsc, String subestacao) {
+            energiaPorRazao.merge(razao, energiaMwh, Double::sum);
+            if (dsc != null && !dsc.isBlank() && dscPrincipal == null) {
+                dscPrincipal = dsc;
+            }
+            if (subestacao != null && !subestacao.isBlank() && subestacaoPrincipal == null) {
+                subestacaoPrincipal = subestacao;
+            }
+        }
+
+        String razaoDominante() {
+            return energiaPorRazao.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse("NAO_CLASSIFICADO");
+        }
+    }
 
     @Autowired
-    public BackfillOnsService(HistoricoCorteOnsService corteService, SpringDataUsinaRepository springDataUsinaRepository) {
+    public BackfillOnsService(HistoricoCorteOnsService corteService,
+                              SpringDataUsinaRepository springDataUsinaRepository,
+                              SpringDataPldHorarioRepository pldHorarioRepository) {
         this.corteService = corteService;
         this.springDataUsinaRepository = springDataUsinaRepository;
+        this.pldHorarioRepository = pldHorarioRepository;
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(15));
+        factory.setReadTimeout(Duration.ofSeconds(120));
+        this.restTemplate = new RestTemplate(factory);
     }
 
     public int baixarEProcessarMes(int ano, int mes) {
-        String url = String.format(URL_BASE, ano, mes);
-        System.out.println("Baixando: " + url);
+        String urlConjunto = String.format(URL_BASE_CONJUNTO, ano, mes);
+        String urlDetail = String.format(URL_BASE_DETAIL, ano, mes);
+        logger.info("Iniciando backfill ONS {}/{}...", mes, ano);
 
-        Map<String, double[]> agregadoPorDia = new HashMap<>();
+        Map<String, ConjuntoRestricaoInfo> restricoesConjunto = carregarRestricoesConjunto(urlConjunto);
+        Map<String, BigDecimal> pldPorDiaHora = carregarPldMes(ano, mes);
+
+        List<UsinaEntity> todasUsinas = springDataUsinaRepository.findAll();
+        Map<Long, UsinaEntity> usinaPorId = new HashMap<>();
+        for (UsinaEntity u : todasUsinas) {
+            usinaPorId.put(u.getId(), u);
+        }
+
+        Map<String, AgregadoDiario> agregadoPorDia = new HashMap<>();
         Map<String, UsinaEntity> cacheUsinaPorNome = new HashMap<>();
-        final DateTimeFormatter parserInstante = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        List<HistoricoCorteOnsBlocoEntity> blocosParaSalvar = new ArrayList<>();
+        Set<UsinaEntity> usinasEnriquecidas = new HashSet<>();
 
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.execute(url, HttpMethod.GET, null, response -> {
+        restTemplate.execute(urlDetail, HttpMethod.GET, null, response -> {
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
 
@@ -55,12 +121,18 @@ public class BackfillOnsService {
                 Map<String, Integer> colunas = mapearColunas(headerLine);
                 int idxEstado = colunas.getOrDefault("id_estado", -1);
                 int idxUsina = colunas.getOrDefault("nom_usina", -1);
+                int idxIdOns = colunas.getOrDefault("id_ons", -1);
+                int idxCeg = colunas.getOrDefault("ceg", -1);
+                int idxConjuntoNome = colunas.getOrDefault("nom_conjuntousina", -1);
+                int idxConjuntoId = colunas.getOrDefault("id_ons_conjuntousina", -1);
                 int idxInstante = colunas.getOrDefault("din_instante", -1);
+                int idxVento = colunas.getOrDefault("val_ventoverificado", -1);
                 int idxEstimada = colunas.getOrDefault("val_geracaoestimada", -1);
                 int idxVerificada = colunas.getOrDefault("val_geracaoverificada", -1);
+                int idxFlagRestrita = colunas.getOrDefault("flg_geracaorestrita", -1);
 
                 if (idxUsina == -1 || idxEstimada == -1 || idxVerificada == -1) {
-                    System.err.println("Colunas obrigatórias não encontradas no CSV do ONS.");
+                    logger.error("Colunas obrigatórias não encontradas no CSV detail do ONS.");
                     return null;
                 }
 
@@ -70,69 +142,137 @@ public class BackfillOnsService {
                     String[] campos = linha.split(DELIMITADOR, -1);
 
                     if (idxEstado >= 0 && idxEstado < campos.length) {
-                        String uf = campos[idxEstado].trim().replace("\"", "");
+                        String uf = limparCampo(campos[idxEstado]);
                         if (!"BA".equalsIgnoreCase(uf)) continue;
                     }
 
-                    String nomeUsinaCsv = campos[idxUsina].trim().replace("\"", "");
-                    UsinaEntity usina = cacheUsinaPorNome.computeIfAbsent(nomeUsinaCsv, this::buscarUsinaPorNome);
+                    String nomeUsinaCsv = limparCampo(campos[idxUsina]);
+                    String idOnsConjunto = idxConjuntoId >= 0 && idxConjuntoId < campos.length ? limparCampo(campos[idxConjuntoId]) : "";
+                    String nomeConjunto = idxConjuntoNome >= 0 && idxConjuntoNome < campos.length ? limparCampo(campos[idxConjuntoNome]) : "";
+                    String idOnsUsina = idxIdOns >= 0 && idxIdOns < campos.length ? limparCampo(campos[idxIdOns]) : "";
+                    String ceg = idxCeg >= 0 && idxCeg < campos.length ? limparCampo(campos[idxCeg]) : "";
+
+                    UsinaEntity usina = cacheUsinaPorNome.computeIfAbsent(
+                            nomeUsinaCsv + "|" + ceg + "|" + idOnsUsina,
+                            k -> buscarUsina(nomeUsinaCsv, ceg, idOnsUsina, todasUsinas));
                     if (usina == null) continue;
 
-                    double valEstimada = idxEstimada < campos.length ? parseDecimalBr(campos[idxEstimada]) : 0.0;
-                    double valVerificada = idxVerificada < campos.length ? parseDecimalBr(campos[idxVerificada]) : 0.0;
-                    double valCorte = valEstimada - valVerificada;
-                    if (valCorte <= 0.0) continue;
+                    String instanteStr = idxInstante >= 0 && idxInstante < campos.length ? limparCampo(campos[idxInstante]) : "";
+                    LocalDateTime instante = parseInstante(instanteStr);
+                    if (instante == null) continue;
 
-                    String instante = idxInstante >= 0 && idxInstante < campos.length
-                            ? campos[idxInstante].trim().replace("\"", "") : "";
+                    String chaveConjunto = idOnsConjunto + "|" + instanteStr;
+                    ConjuntoRestricaoInfo infoConjunto = restricoesConjunto.get(chaveConjunto);
 
-                    LocalDate data;
-                    try {
-                        data = LocalDateTime.parse(instante, parserInstante).toLocalDate();
-                    } catch (Exception e) {
-                        try {
-                            data = LocalDate.parse(instante.substring(0, 10));
-                        } catch (Exception e2) {
-                            continue;
-                        }
+                    if (enriquecerUsina(usina, idOnsUsina, ceg, nomeConjunto, infoConjunto)) {
+                        usinasEnriquecidas.add(usina);
                     }
 
-                    double corteEnergiaMwh = valCorte * 0.5;
+                    double valEstimadaMw = idxEstimada < campos.length ? parseDecimalBr(campos[idxEstimada]) : 0.0;
+                    double valVerificadaMw = idxVerificada < campos.length ? parseDecimalBr(campos[idxVerificada]) : 0.0;
+                    double ventoMs = idxVento >= 0 && idxVento < campos.length ? parseDecimalBr(campos[idxVento]) : 0.0;
 
-                    String chaveDia = usina.getId() + "|" + data;
-                    agregadoPorDia.merge(chaveDia,
-                            new double[]{corteEnergiaMwh, 1.0},
-                            (a, b) -> new double[]{a[0] + b[0], a[1] + b[1]});
+                    boolean flagRestrita = idxFlagRestrita < 0 || idxFlagRestrita >= campos.length
+                            || "1".equals(limparCampo(campos[idxFlagRestrita]))
+                            || "TRUE".equalsIgnoreCase(limparCampo(campos[idxFlagRestrita]))
+                            || limparCampo(campos[idxFlagRestrita]).isEmpty();
+
+                    double estimadaMwh = Math.max(0.0, valEstimadaMw * 0.5);
+                    double verificadaMwh = Math.max(0.0, valVerificadaMw * 0.5);
+
+                    String chaveDia = usina.getId() + "|" + instante.toLocalDate();
+                    AgregadoDiario agg = agregadoPorDia.computeIfAbsent(chaveDia, k -> new AgregadoDiario());
+                    agg.energiaEstimadaMwh += estimadaMwh;
+                    agg.energiaVerificadaMwh += verificadaMwh;
+                    if (ventoMs > 0) {
+                        agg.somaVento += ventoMs;
+                        agg.blocosVento++;
+                    }
+
+                    double valCorteMw = valEstimadaMw - valVerificadaMw;
+                    if (valCorteMw <= 0.0 || !flagRestrita) continue;
+
+                    double corteMwh = valCorteMw * 0.5;
+                    String codRazao = normalizarRazao(infoConjunto != null ? infoConjunto.codRazao() : null);
+                    String dscRestricao = infoConjunto != null ? truncar(infoConjunto.dscRestricao(), 500) : null;
+                    String subestacao = infoConjunto != null && infoConjunto.pontoConexao() != null && !infoConjunto.pontoConexao().isBlank()
+                            ? infoConjunto.pontoConexao()
+                            : usina.getSubestacaoConexao();
+
+                    BigDecimal pldMwh = pldPorDiaHora.get(instante.toLocalDate() + "|" + instante.getHour());
+                    BigDecimal precoRef = pldMwh != null ? pldMwh
+                            : (usina.getPrecoPpaMwh() != null ? usina.getPrecoPpaMwh() : new BigDecimal("200.00"));
+
+                    agg.energiaCortadaMwh += corteMwh;
+                    agg.blocosComCorte++;
+                    agg.valoradoPldRs += corteMwh * precoRef.doubleValue();
+                    agg.registrarMotivo(codRazao, corteMwh, dscRestricao, subestacao);
+
+                    HistoricoCorteOnsBlocoEntity bloco = new HistoricoCorteOnsBlocoEntity();
+                    bloco.setUsina(usina);
+                    bloco.setInstante(instante);
+                    bloco.setGeracaoEstimadaMw(BigDecimal.valueOf(valEstimadaMw).setScale(6, RoundingMode.HALF_UP));
+                    bloco.setGeracaoVerificadaMw(BigDecimal.valueOf(valVerificadaMw).setScale(6, RoundingMode.HALF_UP));
+                    bloco.setEnergiaCortadaMwh(BigDecimal.valueOf(corteMwh).setScale(6, RoundingMode.HALF_UP));
+                    bloco.setMotivoOns(codRazao);
+                    bloco.setCodRazaoRestricao(codRazao);
+                    bloco.setDscRestricao(dscRestricao);
+                    bloco.setSubestacaoConexao(subestacao);
+                    if (ventoMs > 0) {
+                        bloco.setVentoVerificadoMs(BigDecimal.valueOf(ventoMs).setScale(2, RoundingMode.HALF_UP));
+                    }
+                    bloco.setPldMwh(pldMwh);
+                    blocosParaSalvar.add(bloco);
                 }
             }
             return null;
         });
 
-        System.out.println("Processamento concluÃƒÂ­do. Salvando no banco...");
+        if (!usinasEnriquecidas.isEmpty()) {
+            springDataUsinaRepository.saveAll(usinasEnriquecidas);
+        }
 
-        int registrosGravados = 0;
-        for (Map.Entry<String, double[]> entry : agregadoPorDia.entrySet()) {
+        YearMonth ym = YearMonth.of(ano, mes);
+        LocalDateTime inicioMes = ym.atDay(1).atStartOfDay();
+        LocalDateTime fimMes = ym.atEndOfMonth().atTime(23, 59, 59);
+        int blocosGravados = corteService.registrarBlocos(blocosParaSalvar, inicioMes, fimMes);
+
+        List<HistoricoCorteOnsEntity> cortesParaSalvar = new ArrayList<>();
+        for (Map.Entry<String, AgregadoDiario> entry : agregadoPorDia.entrySet()) {
+            AgregadoDiario agg = entry.getValue();
+            if (agg.energiaCortadaMwh <= 0.0) continue;
+
             String[] partes = entry.getKey().split("\\|");
             Long usinaId = Long.parseLong(partes[0]);
             LocalDate dia = LocalDate.parse(partes[1]);
-            double somaCorteMwh = entry.getValue()[0];
-            int blocos = (int) entry.getValue()[1];
 
-            UsinaEntity usina = springDataUsinaRepository.findById(usinaId).orElse(null);
+            UsinaEntity usina = usinaPorId.get(usinaId);
             if (usina == null) continue;
 
+            String razao = agg.razaoDominante();
             HistoricoCorteOnsEntity corte = new HistoricoCorteOnsEntity();
             corte.setUsina(usina);
             corte.setDataCorte(LocalDateTime.of(dia, LocalTime.NOON));
-            corte.setDuracaoMinutos(blocos * 30);
-            corte.setEnergiaCortadaMwh(BigDecimal.valueOf(somaCorteMwh));
-            corte.setMotivoOns("ONS_USINA_INDIVIDUAL");
+            corte.setDuracaoMinutos(agg.blocosComCorte * 30);
+            corte.setEnergiaCortadaMwh(BigDecimal.valueOf(agg.energiaCortadaMwh).setScale(2, RoundingMode.HALF_UP));
+            corte.setEnergiaEstimadaMwh(BigDecimal.valueOf(agg.energiaEstimadaMwh).setScale(4, RoundingMode.HALF_UP));
+            corte.setEnergiaVerificadaMwh(BigDecimal.valueOf(agg.energiaVerificadaMwh).setScale(4, RoundingMode.HALF_UP));
+            corte.setMotivoOns(razao);
+            corte.setCodRazaoRestricao(razao);
+            corte.setDscRestricao(agg.dscPrincipal);
+            corte.setSubestacaoConexao(agg.subestacaoPrincipal != null ? agg.subestacaoPrincipal : usina.getSubestacaoConexao());
+            if (agg.blocosVento > 0) {
+                corte.setVentoVerificadoMs(BigDecimal.valueOf(agg.somaVento / agg.blocosVento).setScale(2, RoundingMode.HALF_UP));
+            }
+            corte.setValoradoPldRs(BigDecimal.valueOf(agg.valoradoPldRs).setScale(2, RoundingMode.HALF_UP));
 
-            corteService.registrarCorte(corte);
-            registrosGravados++;
+            cortesParaSalvar.add(corte);
         }
 
-        System.out.println("Backfill de " + mes + "/" + ano + " concluÃƒÆ’Ã‚Â­do: " + registrosGravados + " registros diÃƒÆ’Ã‚Â¡rios gravados.");
+        int registrosGravados = corteService.registrarCortes(cortesParaSalvar, inicioMes, fimMes);
+
+        logger.info("Backfill de {}/{} concluído: {} registros diários e {} blocos semi-horários gravados.",
+                mes, ano, registrosGravados, blocosGravados);
         return registrosGravados;
     }
 
@@ -144,12 +284,130 @@ public class BackfillOnsService {
             try {
                 total += baixarEProcessarMes(ano, mes);
             } catch (Exception e) {
-                System.err.println("Falha ao processar " + mes + "/" + ano + ": " + e.getMessage());
+                logger.error("Falha ao processar {}/{}: {}", mes, ano, e.getMessage());
             }
             mes++;
             if (mes > 12) { mes = 1; ano++; }
         }
         return total;
+    }
+
+    private Map<String, ConjuntoRestricaoInfo> carregarRestricoesConjunto(String urlConjunto) {
+        Map<String, ConjuntoRestricaoInfo> mapa = new HashMap<>();
+        try {
+            restTemplate.execute(urlConjunto, HttpMethod.GET, null, response -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
+                    String headerLine = reader.readLine();
+                    if (headerLine == null) return null;
+
+                    Map<String, Integer> colunas = mapearColunas(headerLine);
+                    int idxEstado = colunas.getOrDefault("id_estado", -1);
+                    int idxIdOns = colunas.getOrDefault("id_ons", -1);
+                    int idxInstante = colunas.getOrDefault("din_instante", -1);
+                    int idxRazao = colunas.getOrDefault("cod_razaorestricao", -1);
+                    int idxDesc = colunas.getOrDefault("dsc_restricao", -1);
+                    int idxPonto = colunas.getOrDefault("nom_pontoconexao", -1);
+
+                    if (idxIdOns == -1 || idxInstante == -1 || idxRazao == -1) {
+                        return null;
+                    }
+
+                    String linha;
+                    while ((linha = reader.readLine()) != null) {
+                        if (linha.isBlank()) continue;
+                        String[] campos = linha.split(DELIMITADOR, -1);
+
+                        if (idxEstado >= 0 && idxEstado < campos.length && !"BA".equalsIgnoreCase(limparCampo(campos[idxEstado]))) {
+                            continue;
+                        }
+                        String razao = idxRazao < campos.length ? limparCampo(campos[idxRazao]) : "";
+                        String ponto = idxPonto >= 0 && idxPonto < campos.length ? limparCampo(campos[idxPonto]) : "";
+                        if (razao.isEmpty() && ponto.isEmpty()) continue;
+
+                        String idOns = limparCampo(campos[idxIdOns]);
+                        String instante = limparCampo(campos[idxInstante]);
+                        String dsc = idxDesc >= 0 && idxDesc < campos.length ? limparCampo(campos[idxDesc]) : "";
+
+                        mapa.put(idOns + "|" + instante, new ConjuntoRestricaoInfo(razao, dsc, ponto));
+                    }
+                }
+                return null;
+            });
+            logger.info("Dataset de conjuntos ONS carregado: {} registros indexados para BA.", mapa.size());
+        } catch (Exception ex) {
+            logger.warn("Não foi possível carregar dataset de conjuntos ONS ({}): {}. Seguindo com dados individuais.",
+                    urlConjunto, ex.getMessage());
+        }
+        return mapa;
+    }
+
+    private Map<String, BigDecimal> carregarPldMes(int ano, int mes) {
+        YearMonth ym = YearMonth.of(ano, mes);
+        Map<String, BigDecimal> pldMap = new HashMap<>();
+        List<PldHorarioEntity> registros = pldHorarioRepository.findByDiaBetweenAndSubmercado(
+                ym.atDay(1), ym.atEndOfMonth(), "NORDESTE");
+        for (PldHorarioEntity p : registros) {
+            pldMap.putIfAbsent(p.getDia() + "|" + p.getHora(), p.getPldHora());
+        }
+        return pldMap;
+    }
+
+    private boolean enriquecerUsina(UsinaEntity usina, String idOns, String ceg,
+                                    String nomeConjunto, ConjuntoRestricaoInfo infoConjunto) {
+        boolean alterada = false;
+        if (isBlank(usina.getIdOns()) && !isBlank(idOns)) {
+            usina.setIdOns(idOns);
+            alterada = true;
+        }
+        if (isBlank(usina.getCeg()) && !isBlank(ceg) && !"-".equals(ceg)) {
+            usina.setCeg(ceg);
+            alterada = true;
+        }
+        if (isBlank(usina.getNomeConjuntoOns()) && !isBlank(nomeConjunto)) {
+            usina.setNomeConjuntoOns(nomeConjunto);
+            alterada = true;
+        }
+        if (infoConjunto != null && isBlank(usina.getSubestacaoConexao()) && !isBlank(infoConjunto.pontoConexao())) {
+            usina.setSubestacaoConexao(infoConjunto.pontoConexao());
+            alterada = true;
+        }
+        return alterada;
+    }
+
+    private String normalizarRazao(String codRazao) {
+        if (codRazao == null || codRazao.isBlank()) return "NAO_CLASSIFICADO";
+        String upper = codRazao.trim().toUpperCase(Locale.ROOT);
+        if (upper.equals("REL") || upper.equals("CNF") || upper.equals("ENE") || upper.equals("PAR")) {
+            return upper;
+        }
+        return upper.length() > 30 ? upper.substring(0, 30) : upper;
+    }
+
+    private LocalDateTime parseInstante(String instante) {
+        if (isBlank(instante)) return null;
+        try {
+            return LocalDateTime.parse(instante, PARSER_INSTANTE);
+        } catch (Exception e) {
+            try {
+                return LocalDate.parse(instante.substring(0, 10)).atTime(LocalTime.NOON);
+            } catch (Exception e2) {
+                return null;
+            }
+        }
+    }
+
+    private String limparCampo(String valor) {
+        return valor == null ? "" : valor.trim().replace("\"", "");
+    }
+
+    private boolean isBlank(String str) {
+        return str == null || str.isBlank();
+    }
+
+    private String truncar(String s, int maxLen) {
+        if (s == null || s.length() <= maxLen) return s;
+        return s.substring(0, maxLen);
     }
 
     private Map<String, Integer> mapearColunas(String headerLine) {
@@ -170,31 +428,53 @@ public class BackfillOnsService {
         }
     }
 
-    private List<UsinaEntity> cacheTodasUsinas = null;
     private String cleanName(String str) {
         if (str == null) return "";
-        return java.text.Normalizer.normalize(str, java.text.Normalizer.Form.NFD)
+        return Normalizer.normalize(str, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toUpperCase()
                 .replaceAll("[^A-Z0-9]", "");
     }
 
-    private UsinaEntity buscarUsinaPorNome(String nomeCsv) {
-        if (cacheTodasUsinas == null) {
-            cacheTodasUsinas = springDataUsinaRepository.findAll();
+    private String removerParenteses(String str) {
+        if (str == null) return "";
+        return str.replaceAll("\\([^)]*\\)", " ").trim();
+    }
+
+    private UsinaEntity buscarUsina(String nomeCsv, String cegCsv, String idOnsCsv, List<UsinaEntity> todasUsinas) {
+        if (!isBlank(idOnsCsv)) {
+            for (UsinaEntity u : todasUsinas) {
+                if (!isBlank(u.getIdOns()) && u.getIdOns().equalsIgnoreCase(idOnsCsv)) {
+                    return u;
+                }
+            }
         }
+        if (!isBlank(cegCsv) && !"-".equals(cegCsv)) {
+            for (UsinaEntity u : todasUsinas) {
+                if (!isBlank(u.getCeg()) && u.getCeg().equalsIgnoreCase(cegCsv)) {
+                    return u;
+                }
+            }
+        }
+
         String nomeLimpoCsv = cleanName(nomeCsv);
         if (nomeLimpoCsv.isEmpty()) return null;
 
-        for (UsinaEntity u : cacheTodasUsinas) {
-            String nomeLimpoDb = cleanName(u.getNome());
-            if (nomeLimpoDb.equals(nomeLimpoCsv)) return u;
-            if (nomeLimpoDb.startsWith(nomeLimpoCsv) || nomeLimpoCsv.startsWith(nomeLimpoDb)) return u;
+        // 1. Match exato completo
+        for (UsinaEntity u : todasUsinas) {
+            if (cleanName(u.getNome()).equals(nomeLimpoCsv)) {
+                return u;
+            }
         }
+
+        // 2. Match exato ignorando observações entre parênteses (ex: "Baraúnas XV (Antiga Massaroca I)")
+        String nomeSemParentesesCsv = cleanName(removerParenteses(nomeCsv));
+        for (UsinaEntity u : todasUsinas) {
+            if (cleanName(removerParenteses(u.getNome())).equals(nomeSemParentesesCsv)) {
+                return u;
+            }
+        }
+
         return null;
     }
 }
-
-
-
-

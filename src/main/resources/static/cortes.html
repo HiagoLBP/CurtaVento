@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>CurtaVento — Cortes ONS</title>
+  <title>CurtaVento — Cortes ONS &amp; Ressarcimento ANEEL</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-
   <link rel="stylesheet" href="/css/global.css">
 </head>
 <body>
@@ -18,26 +16,25 @@
 <aside class="sidebar">
   <div class="sidebar-header">CURTAVENTO</div>
   <nav class="nav-list">
-    <a href="index.html" class="nav-item">&#9635; Visão Geral</a>
-    <a href="usinas.html" class="nav-item">&#9707; Usinas</a>
-    <a href="cortes.html" class="nav-item active">&#9672; Cortes ONS</a>
-    <a href="clima.html" class="nav-item">&#9729; Clima</a>
-    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">&#9888; Risco</a>
+    <a href="index.html" class="nav-item">▣ Visão Geral</a>
+    <a href="usinas.html" class="nav-item">◫ Usinas</a>
+    <a href="cortes.html" class="nav-item active">◈ Cortes ONS</a>
+    <a href="clima.html" class="nav-item">☁ Clima</a>
+    <a href="risco.html" class="nav-item">⚠ Risco</a>
     <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
-  <a href="#" class="nav-item" onclick="if(typeof logout === 'function') logout(); else { localStorage.removeItem('jwt_token'); window.location.href='/login.html'; }" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
-    </nav>
+    <a href="#" class="nav-item" onclick="logout()" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
+  </nav>
 </aside>
 
 <div class="main-wrapper">
   <header>
     <div class="header-left">
-      <h1>Análise de Curtailment ONS</h1>
-      <span>Histórico, Evolução e Auditoria de Cortes</span>
+      <h1>Análise de Curtailment ONS &amp; Ressarcimento ANEEL</h1>
+      <span>Classificação real (REL · CNF · ENE), Apuração REN 1.030/2022 e Simulador NT 183/2026</span>
     </div>
   </header>
-  
+
   <main>
-    <!-- FILTROS GLOBAIS -->
     <div class="filter-bar">
       <div>
         <label>Período</label><br>
@@ -50,10 +47,15 @@
       </div>
       <div class="filter-separator"></div>
       <div>
-        <label>Operador</label><br>
-        <select id="filter-operador">
-          <option value="all">Todos os Operadores</option>
-        </select>
+        <label>Franquia (h/ano)</label><br>
+        <input type="number" id="filter-franquia" value="78" min="0" step="1" style="width:90px; padding:6px 8px; border:1px solid var(--border); border-radius:4px;">
+      </div>
+      <div class="filter-separator"></div>
+      <div>
+        <label>Simulação Regulatória</label><br>
+        <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
+          <input type="checkbox" id="filter-nt183"> Aplicar NT 183/2026 (-17% ressarcível)
+        </label>
       </div>
       <div class="filter-separator"></div>
       <div>
@@ -67,7 +69,24 @@
       </div>
     </div>
 
-    <!-- KPI CARDS COM TENDÊNCIA -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Ressarcível Líquido via ESS (REL + CNF)</div>
+        <div class="kpi-value" id="kpi-ressarcivel-rs" style="color:var(--ok);">R$ 0,00</div>
+        <div class="kpi-trend neutral" id="kpi-ressarcivel-mwh">0,00 GWh pós-franquia</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Prejuízo Não Ressarcível (ENE / Sobreoferta)</div>
+        <div class="kpi-value" id="kpi-ene-rs" style="color:var(--crit);">R$ 0,00</div>
+        <div class="kpi-trend neutral" id="kpi-ene-mwh">0,00 GWh direto no caixa do gerador</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Absorvido na Franquia Regulatória</div>
+        <div class="kpi-value" id="kpi-franquia-rs">R$ 0,00</div>
+        <div class="kpi-trend neutral" id="kpi-franquia-mwh">0,00 GWh dentro da franquia</div>
+      </div>
+    </div>
+
     <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-label">Volume Cortado (Mês Atual)</div>
@@ -92,34 +111,62 @@
         <div style="height:300px;"><canvas id="linhaChart"></canvas></div>
       </div>
       <div class="card">
-        <h2>Distribuição por Motivo</h2>
+        <h2>Distribuição Real por Motivo (ONS)</h2>
         <div style="height:300px; display:flex; justify-content:center;"><canvas id="motivoChart"></canvas></div>
       </div>
     </div>
 
-    <div class="dashboard-grid">
-      <div class="card">
-        <h2>Ranking: Top Usinas Afetadas</h2>
-        <div class="ranking-list" id="ranking-list">
-          <!-- Injetado via JS -->
+    <div class="card" style="margin-bottom:24px; overflow-x:auto;">
+      <h2>Detalhamento Regulatório por Usina (REN ANEEL 1.030/2022)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Usina</th>
+            <th class="num-col">REL (MWh)</th>
+            <th class="num-col">CNF (MWh)</th>
+            <th class="num-col">ENE (MWh)</th>
+            <th class="num-col">Ressarcível (R$)</th>
+            <th class="num-col">Não Ressarcível (R$)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-ressarcimento"></tbody>
+      </table>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns: minmax(280px, 1fr) minmax(0, 1.6fr); align-items: start;">
+      <div class="card" style="min-width: 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <h2 style="margin:0;">Ranking: Top Usinas Afetadas</h2>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <input type="text" id="ranking-search" placeholder="Filtrar usina..." oninput="renderRankingFiltrado()" style="width:130px; padding:5px 8px; font-size:12px; border:1px solid var(--border); border-radius:4px;">
+            <select id="ranking-limit" onchange="renderRankingFiltrado()" style="padding:5px 6px; font-size:12px; border:1px solid var(--border); border-radius:4px; white-space:nowrap;">
+              <option value="20" selected>Top 20</option>
+              <option value="50">Top 50</option>
+              <option value="ALL">Todas</option>
+            </select>
+          </div>
         </div>
+        <div class="ranking-list" id="ranking-list" style="max-height: 420px; overflow-y: auto; gap: 8px; padding-right: 4px;"></div>
       </div>
-      
-      <div class="card" style="overflow-x: auto;">
-        <h2>Auditoria Bruta (Últimas 100 inserções)</h2>
-        <div style="max-height: 400px; overflow-y: auto;">
-          <table>
-            <thead>
+
+      <div class="card" style="min-width: 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <h2 style="margin:0;">Auditoria Bruta (Últimas 100 inserções)</h2>
+          <input type="text" id="audit-search" placeholder="Filtrar usina/motivo..." oninput="renderAuditoriaFiltrada()" style="width:160px; padding:5px 8px; font-size:12px; border:1px solid var(--border); border-radius:4px;">
+        </div>
+        <div style="max-height: 420px; overflow-y: auto; overflow-x: auto;">
+          <table style="font-size: 12px; width: 100%; table-layout: fixed;">
+            <thead style="position: sticky; top: 0; background: #fff; z-index: 1;">
               <tr>
-                <th>Data/Hora</th>
-                <th>Usina</th>
-                <th>Duração</th>
-                <th>Cortado</th>
+                <th style="width:108px; padding:8px 6px;">Data/Hora</th>
+                <th style="padding:8px 6px;">Usina</th>
+                <th style="width:68px; padding:8px 6px;">Motivo</th>
+                <th style="width:120px; padding:8px 6px;">Subestação</th>
+                <th style="width:72px; padding:8px 6px;">Duração</th>
+                <th style="width:88px; padding:8px 6px;">Cortado</th>
               </tr>
             </thead>
-            <tbody id="audit-table">
-              <!-- Injetado via JS -->
-            </tbody>
+            <tbody id="audit-table"></tbody>
           </table>
         </div>
       </div>
@@ -128,42 +175,59 @@
 
   <footer>
     <span>CurtaVento — protótipo de estudo, IF Baiano Campus Guanambi</span>
-    <span>Fontes: ONS · ANEEL REN 1030/2022</span>
+    <span>Fontes: ONS · ANEEL REN 1030/2022 · NT 183/2026</span>
   </footer>
 </div>
 
 <script src="/js/global.js"></script>
 <script>
-    function escapeHTML(str) {
-      if (typeof str !== 'string') return str;
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-  
-
-  
-
   function toGWh(mwh) { return (mwh / 1000); }
-  function fmtGWh(mwh) { return toGWh(mwh).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function fmtGWh(mwh) { return toGWh(mwh).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtMoney(v) { return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+  async function carregarRessarcimento() {
+    const ano = document.getElementById('filter-ano').value;
+    const franquia = document.getElementById('filter-franquia').value || 0;
+    const nt183 = document.getElementById('filter-nt183').checked;
+
+    const r = await fetchWithAuth(`/api/cortes-ons/ressarcimento?ano=${ano}&franquiaHoras=${franquia}&aplicarNt183=${nt183}`);
+    if (!r) return;
+
+    document.getElementById('kpi-ressarcivel-rs').textContent = fmtMoney(r.ressarcivelLiquidoRs);
+    document.getElementById('kpi-ressarcivel-mwh').textContent = `${fmtGWh(r.ressarcivelLiquidoMwh || 0)} GWh pós-franquia`;
+    document.getElementById('kpi-ene-rs').textContent = fmtMoney(r.naoRessarcivelRs);
+    document.getElementById('kpi-ene-mwh').textContent = `${fmtGWh(r.naoRessarcivelMwh || 0)} GWh sem ressarcimento`;
+    document.getElementById('kpi-franquia-rs').textContent = fmtMoney(r.franquiaAbsorvidaRs);
+    document.getElementById('kpi-franquia-mwh').textContent = `${fmtGWh(r.franquiaAbsorvidaMwh || 0)} GWh absorvidos na franquia`;
+
+    const tbody = document.getElementById('tb-ressarcimento');
+    tbody.innerHTML = '';
+    (r.porUsina || []).slice(0, 20).forEach(u => {
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${escapeHTML(u.usina)}</strong></td>
+          <td class="num-col">${(u.relMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          <td class="num-col">${(u.cnfMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          <td class="num-col">${(u.eneMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          <td class="num-col" style="color:var(--ok); font-weight:600;">${fmtMoney(u.ressarcivelLiquidoRs)}</td>
+          <td class="num-col" style="color:var(--crit); font-weight:600;">${fmtMoney(u.naoRessarcivelRs)}</td>
+        </tr>
+      `;
+    });
+  }
 
   async function init() {
+    const ano = document.getElementById('filter-ano').value;
     try {
       const [evolucao, motivos, rankingUsinas, ultimosCortes] = await Promise.all([
-        fetchWithAuth('/api/cortes-ons/evolucao'),
-        fetchWithAuth('/api/cortes-ons/motivos'),
-        fetchWithAuth('/api/cortes-ons/ranking'),
-        fetchWithAuth('/api/cortes-ons/auditoria')
+        fetchWithAuth(`/api/cortes-ons/evolucao?ano=${ano}`),
+        fetchWithAuth(`/api/cortes-ons/motivos?ano=${ano}`),
+        fetchWithAuth(`/api/cortes-ons/ranking?ano=${ano}`),
+        fetchWithAuth('/api/cortes-ons/auditoria'),
+        carregarRessarcimento()
       ]);
       if (!evolucao || !motivos || !rankingUsinas || !ultimosCortes) return;
-      
+
       const data = {
         evolucaoMeses: evolucao.map(e => e.mes),
         evolucaoValores: evolucao.map(e => e.total),
@@ -173,22 +237,18 @@
         ultimosCortes: ultimosCortes
       };
 
-      // --- KPI: Total perdido no ano ---
       const totalAno = data.evolucaoValores.reduce((a, b) => a + b, 0);
       document.getElementById('kpi-inline-total').textContent = fmtGWh(totalAno) + ' GWh';
       document.getElementById('kpi-inline-usinas').textContent = rankingUsinas.length;
 
-      // --- KPI: Mês atual vs mês anterior (TREND) ---
-      const now = new Date();
-      const mesAtualIdx = now.getMonth(); // 0-based (Jan=0)
+      const mesAtualIdx = new Date().getMonth();
       const mesAtualVal = data.evolucaoValores[mesAtualIdx] || 0;
       const mesAnteriorVal = mesAtualIdx > 0 ? (data.evolucaoValores[mesAtualIdx - 1] || 0) : 0;
-      
       document.getElementById('kpi-mes-atual').textContent = fmtGWh(mesAtualVal) + ' GWh';
-      
+
+      const trendEl = document.getElementById('kpi-trend-mes');
       if (mesAnteriorVal > 0) {
         const variacao = ((mesAtualVal - mesAnteriorVal) / mesAnteriorVal) * 100;
-        const trendEl = document.getElementById('kpi-trend-mes');
         if (variacao > 0) {
           trendEl.className = 'kpi-trend up';
           trendEl.innerHTML = `&#9650; +${variacao.toFixed(1)}% vs ${data.evolucaoMeses[mesAtualIdx - 1]}`;
@@ -199,24 +259,32 @@
           trendEl.className = 'kpi-trend neutral';
           trendEl.textContent = `= Sem variação vs ${data.evolucaoMeses[mesAtualIdx - 1]}`;
         }
+      } else {
+        trendEl.className = 'kpi-trend neutral';
+        trendEl.textContent = 'Sem base comparativa anterior';
       }
 
-      // --- KPI: Motivo predominante ---
-      let maxMotIdx = 0;
-      data.motivosValores.forEach((v, i) => { if (v > data.motivosValores[maxMotIdx]) maxMotIdx = i; });
-      const totalMotivos = data.motivosValores.reduce((a, b) => a + b, 0);
-      document.getElementById('kpi-motivo-top').textContent = data.motivosLabels[maxMotIdx] || '—';
-      document.getElementById('kpi-motivo-pct').textContent = totalMotivos > 0 
-        ? ((data.motivosValores[maxMotIdx] / totalMotivos) * 100).toFixed(1) + '% do total'
-        : '—';
+      if (data.motivosValores.length > 0) {
+        let maxMotIdx = 0;
+        data.motivosValores.forEach((v, i) => { if (v > data.motivosValores[maxMotIdx]) maxMotIdx = i; });
+        const totalMotivos = data.motivosValores.reduce((a, b) => a + b, 0);
+        document.getElementById('kpi-motivo-top').textContent = data.motivosLabels[maxMotIdx] || '—';
+        document.getElementById('kpi-motivo-pct').textContent = totalMotivos > 0
+          ? ((data.motivosValores[maxMotIdx] / totalMotivos) * 100).toFixed(1) + '% do total'
+          : '—';
+      } else {
+        document.getElementById('kpi-motivo-top').textContent = '—';
+        document.getElementById('kpi-motivo-pct').textContent = 'Sem registros no ano';
+      }
 
-      // --- KPI: Usina mais afetada ---
       if (rankingUsinas.length > 0) {
         document.getElementById('kpi-usina-top').textContent = rankingUsinas[0].usina;
         document.getElementById('kpi-usina-valor').textContent = fmtGWh(rankingUsinas[0].totalCortadoMwh) + ' GWh perdidos';
+      } else {
+        document.getElementById('kpi-usina-top').textContent = '—';
+        document.getElementById('kpi-usina-valor').textContent = '—';
       }
 
-      // --- Chart Linha (GWh) ---
       if (window._linhaChart) window._linhaChart.destroy();
       window._linhaChart = new Chart(document.getElementById('linhaChart'), {
         type: 'line',
@@ -234,15 +302,14 @@
             pointHoverRadius: 6
           }]
         },
-        options: { 
-          responsive: true, 
+        options: {
+          responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(0) + ' GWh' } } }
         }
       });
 
-      // --- Chart Doughnut (Motivos) ---
       if (window._motivoChart) window._motivoChart.destroy();
       window._motivoChart = new Chart(document.getElementById('motivoChart'), {
         type: 'doughnut',
@@ -250,57 +317,78 @@
           labels: data.motivosLabels,
           datasets: [{
             data: data.motivosValores.map(v => toGWh(v)),
-            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#6b7280']
           }]
         },
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false, 
-          plugins: { 
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
             legend: { position: 'bottom' },
             tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.parsed.toFixed(2) + ' GWh' } }
-          } 
+          }
         }
       });
 
-      // --- Ranking (GWh) ---
-      const rankingDiv = document.getElementById('ranking-list');
-      data.rankingUsinas.forEach((u, i) => {
-        rankingDiv.innerHTML += `
-          <div class="ranking-item">
-            <div>
-              <strong>${i+1}. ${escapeHTML(u.usina)}</strong>
-            </div>
-            <div class="value">${fmtGWh(u.totalCortadoMwh)} GWh</div>
-          </div>
-        `;
-      });
-
-      // --- Auditoria (MWh mantido aqui pois são valores unitários pequenos) ---
-      const tbody = document.getElementById('audit-table');
-      data.ultimosCortes.forEach(c => {
-        const duracao = (c.duracaoMinutos / 60).toFixed(1);
-        tbody.innerHTML += `
-          <tr>
-            <td style="white-space:nowrap">${c.dataHora}</td>
-            <td><strong>${escapeHTML(c.usina)}</strong></td>
-            <td>${duracao}h</td>
-            <td style="color:var(--crit); font-weight:600;">${c.energiaCortada.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})} MWh</td>
-          </tr>
-        `;
-      });
-
-      // --- Populate operador filter ---
-      const operadores = [...new Set(rankingUsinas.map(u => u.usina.split(' ')[0] + ' ' + u.usina.split(' ')[1]))];
-      // For now, just show "All" since we don't have operator data per cut
-
-    } catch(e) {
+      window._rankingUsinasCache = data.rankingUsinas || [];
+      window._ultimosCortesCache = data.ultimosCortes || [];
+      renderRankingFiltrado();
+      renderAuditoriaFiltrada();
+    } catch (e) {
       console.error('Erro ao carregar dados:', e);
     }
   }
 
-  // Re-init on filter change
-  document.getElementById('filter-ano').addEventListener('change', () => { init(); });
+  function renderRankingFiltrado() {
+    const rankingDiv = document.getElementById('ranking-list');
+    if (!rankingDiv) return;
+    const termo = (document.getElementById('ranking-search')?.value || '').trim().toLowerCase();
+    const limiteVal = document.getElementById('ranking-limit')?.value || '20';
+    let lista = (window._rankingUsinasCache || []).map((u, idx) => ({ ...u, pos: idx + 1 }));
+    if (termo) {
+      lista = lista.filter(u => (u.usina || '').toLowerCase().includes(termo));
+    }
+    if (limiteVal !== 'ALL' && !termo) {
+      lista = lista.slice(0, parseInt(limiteVal, 10));
+    }
+    rankingDiv.innerHTML = lista.map(u => `
+      <div class="ranking-item" style="padding: 8px 12px;">
+        <div style="font-size: 13px;"><strong>${u.pos}. ${escapeHTML(u.usina)}</strong></div>
+        <div class="value" style="font-size: 13px; white-space: nowrap;">${fmtGWh(u.totalCortadoMwh)} GWh</div>
+      </div>
+    `).join('') || '<div style="color:var(--text-muted); font-size:13px; padding:12px;">Nenhuma usina encontrada.</div>';
+  }
+
+  function renderAuditoriaFiltrada() {
+    const tbody = document.getElementById('audit-table');
+    if (!tbody) return;
+    const termo = (document.getElementById('audit-search')?.value || '').trim().toLowerCase();
+    let lista = window._ultimosCortesCache || [];
+    if (termo) {
+      lista = lista.filter(c =>
+        (c.usina || '').toLowerCase().includes(termo) ||
+        (c.motivo || '').toLowerCase().includes(termo) ||
+        (c.subestacao || '').toLowerCase().includes(termo)
+      );
+    }
+    tbody.innerHTML = lista.map(c => {
+      const duracao = (c.duracaoMinutos / 60).toFixed(1);
+      return `
+        <tr>
+          <td style="white-space:nowrap; padding:6px 6px;">${escapeHTML(c.dataHora)}</td>
+          <td style="padding:6px 6px; overflow-wrap:anywhere;"><strong>${escapeHTML(c.usina)}</strong></td>
+          <td style="padding:6px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHTML(c.motivo || 'N/I')}">${escapeHTML(c.motivo || 'N/I')}</td>
+          <td style="padding:6px 6px; overflow-wrap:anywhere;">${escapeHTML(c.subestacao || 'N/D')}</td>
+          <td style="padding:6px 6px; white-space:nowrap;">${duracao}h</td>
+          <td style="color:var(--crit); font-weight:600; white-space:nowrap; padding:6px 6px;">${c.energiaCortada.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MWh</td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:12px;">Nenhum registro encontrado.</td></tr>';
+  }
+
+  document.getElementById('filter-ano').addEventListener('change', init);
+  document.getElementById('filter-franquia').addEventListener('change', carregarRessarcimento);
+  document.getElementById('filter-nt183').addEventListener('change', carregarRessarcimento);
 
   init();
 </script>

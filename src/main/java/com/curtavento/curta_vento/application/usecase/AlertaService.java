@@ -3,10 +3,11 @@ package com.curtavento.curta_vento.application.usecase;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.AlertaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.MunicipioEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
-import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataAlertaRepository;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsuarioEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataAlertaRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class AlertaService {
         List<AlertaEntity> existentes = alertaRepository.findByUsinaIdOrderByDataCriacaoDesc(usina.getId());
         if (!existentes.isEmpty()) {
             AlertaEntity ultimo = existentes.get(0);
-            if (ultimo.getTipo().equals(tipo) && ultimo.getDataCriacao().toLocalDate().equals(java.time.LocalDate.now())) {
+            if (ultimo.getTipo().equals(tipo) && ultimo.getDataCriacao().toLocalDate().equals(LocalDate.now())) {
                 ultimo.setNivelSeveridade(nivel);
                 ultimo.setMensagem(mensagem);
                 ultimo.setLido(false);
@@ -45,7 +46,7 @@ public class AlertaService {
         List<AlertaEntity> existentes = alertaRepository.findByMunicipioIdOrderByDataCriacaoDesc(municipio.getId());
         if (!existentes.isEmpty()) {
             AlertaEntity ultimo = existentes.get(0);
-            if (ultimo.getTipo().equals(tipo) && ultimo.getDataCriacao().toLocalDate().equals(java.time.LocalDate.now())) {
+            if (ultimo.getTipo().equals(tipo) && ultimo.getDataCriacao().toLocalDate().equals(LocalDate.now())) {
                 ultimo.setNivelSeveridade(nivel);
                 ultimo.setMensagem(mensagem);
                 ultimo.setLido(false);
@@ -76,7 +77,7 @@ public class AlertaService {
 
     public void marcarComoLido(Long alertaId, UsuarioEntity usuarioLogado) {
         AlertaEntity alerta = alertaRepository.findById(alertaId)
-                .orElseThrow(() -> new RuntimeException("Alerta n�o encontrado"));
+                .orElseThrow(() -> new RuntimeException("Alerta não encontrado"));
 
         if ("GESTOR_USINA".equals(usuarioLogado.getPerfil())) {
             if (alerta.getUsina() == null || !alerta.getUsina().getId().equals(usuarioLogado.getUsina().getId())) {

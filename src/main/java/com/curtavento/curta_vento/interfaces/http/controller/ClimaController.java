@@ -1,7 +1,7 @@
 package com.curtavento.curta_vento.interfaces.http.controller;
 
-import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.LeituraClimaticaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataLeituraClimaticaRepository;
 import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataUsinaRepository;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,7 +21,8 @@ public class ClimaController {
     private final SpringDataUsinaRepository springDataUsinaRepository;
     private final SpringDataLeituraClimaticaRepository leituraService;
 
-    public ClimaController(SpringDataUsinaRepository springDataUsinaRepository, SpringDataLeituraClimaticaRepository leituraService) {
+    public ClimaController(SpringDataUsinaRepository springDataUsinaRepository,
+                           SpringDataLeituraClimaticaRepository leituraService) {
         this.springDataUsinaRepository = springDataUsinaRepository;
         this.leituraService = leituraService;
     }
@@ -41,9 +42,11 @@ public class ClimaController {
 
     @GetMapping("/estacoes")
     public ResponseEntity<List<Map<String, Object>>> getEstacoes() {
+        Map<Long, LeituraClimaticaEntity> ultimasPorUsina = carregarUltimasLeituras();
         List<Map<String, Object>> estacoes = new ArrayList<>();
+
         for (UsinaEntity u : springDataUsinaRepository.findAll()) {
-            LeituraClimaticaEntity leitura = leituraService.findFirstByUsinaIdOrderByDataHoraDesc(u.getId());
+            LeituraClimaticaEntity leitura = ultimasPorUsina.get(u.getId());
             Map<String, Object> dto = new HashMap<>();
             dto.put("usinaId", u.getId());
             dto.put("usina", u.getNome());
@@ -89,9 +92,11 @@ public class ClimaController {
 
     @GetMapping("/previsao-rajadas")
     public ResponseEntity<List<Map<String, Object>>> getPrevisaoRajadas() {
+        Map<Long, LeituraClimaticaEntity> ultimasPorUsina = carregarUltimasLeituras();
         List<Map<String, Object>> rajadas = new ArrayList<>();
+
         for (UsinaEntity u : springDataUsinaRepository.findAll()) {
-            LeituraClimaticaEntity leitura = leituraService.findFirstByUsinaIdOrderByDataHoraDesc(u.getId());
+            LeituraClimaticaEntity leitura = ultimasPorUsina.get(u.getId());
             Map<String, Object> dto = new HashMap<>();
             dto.put("usina", u.getNome());
             if (leitura != null) {
@@ -114,12 +119,13 @@ public class ClimaController {
         double[] intensidades = new double[8];
         int[] contagens = new int[8];
 
+        Map<Long, LeituraClimaticaEntity> ultimasPorUsina = carregarUltimasLeituras();
         for (UsinaEntity u : springDataUsinaRepository.findAll()) {
-            LeituraClimaticaEntity leitura = leituraService.findFirstByUsinaIdOrderByDataHoraDesc(u.getId());
+            LeituraClimaticaEntity leitura = ultimasPorUsina.get(u.getId());
             if (leitura != null && leitura.getDirecaoVentoGraus() != null && leitura.getVelocidadeVentoMs() != null) {
                 double graus = leitura.getDirecaoVentoGraus().doubleValue();
                 double vento = leitura.getVelocidadeVentoMs().doubleValue();
-                int setor = (int) Math.round(graus / 45.0) % 8;
+                int setor = (((int) Math.round(graus / 45.0) % 8) + 8) % 8;
                 intensidades[setor] += vento;
                 contagens[setor]++;
             }
@@ -134,5 +140,13 @@ public class ClimaController {
         resultado.put("direcoes", direcoes);
         resultado.put("intensidades", medias);
         return ResponseEntity.ok(resultado);
+    }
+
+    private Map<Long, LeituraClimaticaEntity> carregarUltimasLeituras() {
+        Map<Long, LeituraClimaticaEntity> ultimasPorUsina = new HashMap<>();
+        for (LeituraClimaticaEntity l : leituraService.findUltimasLeiturasGeral()) {
+            ultimasPorUsina.put(l.getUsina().getId(), l);
+        }
+        return ultimasPorUsina;
     }
 }

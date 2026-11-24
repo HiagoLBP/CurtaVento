@@ -22,7 +22,7 @@
     <a href="usinas.html" class="nav-item">◫ Usinas</a>
     <a href="cortes.html" class="nav-item">◈ Cortes ONS</a>
     <a href="clima.html" class="nav-item active">☁ Clima</a>
-    <a href="#" class="nav-item" onclick="alert('Em desenvolvimento')">⚠ Risco</a>
+    <a href="risco.html" class="nav-item">⚠ Risco</a>
     <a href="vaf.html" class="nav-item">$ Impacto VAF</a>
   <a href="#" class="nav-item" onclick="if(typeof logout === 'function') logout(); else { localStorage.removeItem('jwt_token'); window.location.href='/login.html'; }" style="color: var(--high); font-weight: bold; margin-top: auto;">Sair / Logout</a>
     </nav>
@@ -130,7 +130,7 @@
             <div class="station-header">
               <div>
                 <h3>${escapeHTML(e.usina)}</h3>
-                <small>${escapeHTML(e.operadorUsina) || 'N/D'}</small>
+                <small>${escapeHTML(e.operador || 'N/D')}</small>
               </div>
               ${statusBadge}
             </div>

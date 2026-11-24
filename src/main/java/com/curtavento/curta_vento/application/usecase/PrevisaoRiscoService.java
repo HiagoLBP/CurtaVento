@@ -1,13 +1,17 @@
 package com.curtavento.curta_vento.application.usecase;
-import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataPrevisaoRiscoRepository;
-import com.curtavento.curta_vento.infrastructure.persistence.entity.PrevisaoRiscoEntity;
-import com.curtavento.curta_vento.infrastructure.persistence.entity.NivelRisco;
 
+import com.curtavento.curta_vento.domain.model.NivelRisco;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.LeituraClimaticaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.entity.PrevisaoRiscoEntity;
 import com.curtavento.curta_vento.infrastructure.persistence.entity.UsinaEntity;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository;
+import com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataPrevisaoRiscoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,11 +20,21 @@ import java.util.List;
 public class PrevisaoRiscoService {
 
     private final SpringDataPrevisaoRiscoRepository riscoRepository;
-    private final com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository corteRepository;
+    private final SpringDataHistoricoCorteOnsRepository corteRepository;
+    private final Clock clock;
 
-    public PrevisaoRiscoService(SpringDataPrevisaoRiscoRepository riscoRepository, com.curtavento.curta_vento.infrastructure.persistence.repository.SpringDataHistoricoCorteOnsRepository corteRepository) {
+    @Autowired
+    public PrevisaoRiscoService(SpringDataPrevisaoRiscoRepository riscoRepository,
+                                SpringDataHistoricoCorteOnsRepository corteRepository) {
+        this(riscoRepository, corteRepository, Clock.systemDefaultZone());
+    }
+
+    public PrevisaoRiscoService(SpringDataPrevisaoRiscoRepository riscoRepository,
+                                SpringDataHistoricoCorteOnsRepository corteRepository,
+                                Clock clock) {
         this.riscoRepository = riscoRepository;
         this.corteRepository = corteRepository;
+        this.clock = clock;
     }
 
     public List<PrevisaoRiscoEntity> buscarPorUsina(Long usinaId) {
@@ -28,16 +42,17 @@ public class PrevisaoRiscoService {
     }
 
     public PrevisaoRiscoEntity calcularRisco(UsinaEntity usina, LeituraClimaticaEntity ultimaLeitura, int horizonteHoras) {
-        LocalDate hoje = LocalDate.now();
+        LocalDate hoje = LocalDate.now(clock);
+        LocalDateTime agora = LocalDateTime.now(clock);
         PrevisaoRiscoEntity previsao = riscoRepository.findFirstByUsinaIdAndDataReferencia(usina.getId(), hoje);
-        
+
         if (previsao == null) {
             previsao = new PrevisaoRiscoEntity();
             previsao.setUsina(usina);
             previsao.setDataReferencia(hoje);
         }
         previsao.setHorizonteHoras(horizonteHoras);
-        previsao.setCriadoEm(LocalDateTime.now());
+        previsao.setCriadoEm(agora);
 
         int scoreRisco = 0;
         StringBuilder justificativa = new StringBuilder();
@@ -60,9 +75,10 @@ public class PrevisaoRiscoService {
         }
 
         // Fator de Tendência Recente (Últimos 15 dias)
-        LocalDateTime inicioTendencia = LocalDateTime.now().minusDays(15);
-        List<com.curtavento.curta_vento.infrastructure.persistence.entity.HistoricoCorteOnsEntity> cortesRecentes = corteRepository.findByUsinaIdAndDataCorteBetween(usina.getId(), inicioTendencia, LocalDateTime.now());
-        
+        LocalDateTime inicioTendencia = agora.minusDays(15);
+        List<HistoricoCorteOnsEntity> cortesRecentes = corteRepository.findByUsinaIdAndDataCorteBetween(
+                usina.getId(), inicioTendencia, agora);
+
         long diasComCorte = cortesRecentes.stream()
                 .map(c -> c.getDataCorte().toLocalDate())
                 .distinct()

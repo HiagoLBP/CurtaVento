@@ -31,6 +31,21 @@ public class UsinaEntity {
     @Column(name = "data_inicio_operacao")
     private LocalDate dataInicioOperacao;
 
+    @Column(name = "id_ons", length = 60)
+    private String idOns;
+
+    @Column(name = "ceg", length = 40)
+    private String ceg;
+
+    @Column(name = "nome_conjunto_ons", length = 150)
+    private String nomeConjuntoOns;
+
+    @Column(name = "subestacao_conexao", length = 150)
+    private String subestacaoConexao;
+
+    @Column(name = "preco_ppa_mwh", nullable = false, precision = 10, scale = 2)
+    private BigDecimal precoPpaMwh = new BigDecimal("200.00");
+
     public UsinaEntity() {}
 
     public Long getId() { return id; }
@@ -49,4 +64,14 @@ public class UsinaEntity {
     public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
     public LocalDate getDataInicioOperacao() { return dataInicioOperacao; }
     public void setDataInicioOperacao(LocalDate dataInicioOperacao) { this.dataInicioOperacao = dataInicioOperacao; }
+    public String getIdOns() { return idOns; }
+    public void setIdOns(String idOns) { this.idOns = idOns; }
+    public String getCeg() { return ceg; }
+    public void setCeg(String ceg) { this.ceg = ceg; }
+    public String getNomeConjuntoOns() { return nomeConjuntoOns; }
+    public void setNomeConjuntoOns(String nomeConjuntoOns) { this.nomeConjuntoOns = nomeConjuntoOns; }
+    public String getSubestacaoConexao() { return subestacaoConexao; }
+    public void setSubestacaoConexao(String subestacaoConexao) { this.subestacaoConexao = subestacaoConexao; }
+    public BigDecimal getPrecoPpaMwh() { return precoPpaMwh; }
+    public void setPrecoPpaMwh(BigDecimal precoPpaMwh) { this.precoPpaMwh = precoPpaMwh; }
 }
