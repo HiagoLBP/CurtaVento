@@ -265,3 +265,13 @@ docker run -p 8080:8080 --name curtavento curtavento-api
 ## Autor
 
 Desenvolvido por **[Hiago L. B. P.](https://github.com/HiagoLBP)** — Instituto Federal Baiano (Campus Guanambi).
+
+---
+
+## Licença & Propriedade Intelectual
+
+Copyright (c) 2026 Hiago Rocha Souza. Todos os direitos reservados.
+
+Este projeto é protegido pela legislação brasileira de direitos autorais e propriedade intelectual de programa de computador (**Lei Federal nº 9.609/1998** e **Lei Federal nº 9.610/1998**).
+
+O código-fonte é disponibilizado publicamente em modalidade **Source-Available para fins estritamente acadêmicos, de avaliação curricular e pesquisa científica**. São expressamente proibidas a reprodução não autorizada, plágio, redistribuição ou qualquer forma de exploração comercial sem autorização prévia por escrito do autor. Consulte o arquivo [LICENSE](file:///c:/Users/Hiago/Desktop/curta-vento/LICENSE) para os termos e condições integrais.

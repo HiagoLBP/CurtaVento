@@ -1,0 +1,58 @@
+TERMOS DE LICENÇA, PROPRIEDADE INTELECTUAL E USO NÃO COMERCIAL
+=============================================================================
+Projeto: CurtaVento — Sistema de Inteligência & Monitoramento de Curtailment Eólico
+Autor e Titular dos Direitos: Hiago Rocha Souza
+Instituição de Origem: Instituto Federal de Educação, Ciência e Tecnologia Baiano (IF Baiano) — Campus Guanambi
+Curso: Tecnologia em Análise e Desenvolvimento de Sistemas (ADS)
+Ano: 2026
+=============================================================================
+
+Copyright (c) 2026 Hiago Rocha Souza. Todos os direitos reservados.
+Copyright (c) 2026 Hiago Rocha Souza. All rights reserved.
+
+Este programa de computador, incluindo seu código-fonte, arquitetura de software,
+modelos de machine learning (Time2Vec, DLinear, LSTM, MLP), bases de dados,
+interfaces de usuário e documentação técnica associada, é protegido pela legislação
+brasileira de direitos autorais e propriedade intelectual de programa de computador,
+em especial pela Lei Federal nº 9.609/1998 (Lei do Software) e pela Lei Federal
+nº 9.610/1998 (Lei de Direitos Autorais), bem como por tratados e convenções
+internacionais de propriedade intelectual.
+
+1. CONCESSÃO DE USO RESTRITO (SOURCE-AVAILABLE / ACADÊMICO)
+É concedida a qualquer pessoa ou entidade permissão temporária, não exclusiva e
+gratuita para visualizar, baixar, compilar e executar este código-fonte
+ESTRITAMENTE para fins de:
+  a) Avaliação acadêmica, bancas examinadoras e auditoria curricular no âmbito do IF Baiano;
+  b) Pesquisa científica, estudo pessoal e validação de resultados acadêmicos sem fins lucrativos;
+  c) Realização de Prova de Conceito (PoC) técnica previamente autorizada pelo autor.
+
+2. RESTRIÇÕES EXPRESSAS E VEDAÇÕES
+São expressamente PROIBIDAS, sob as penas da legislação cível e penal aplicável,
+sem a prévia, expressa e formal autorização por escrito do autor e titular:
+  a) EXPLORAÇÃO COMERCIAL: Utilização total ou parcial deste software, de seus módulos,
+     algoritmos ou dados para obtenção de lucro direto ou indireto, comercialização
+     de licenças, prestação de serviços pagos de consultoria ou disponibilização como
+     Software como Serviço (SaaS);
+  b) CÓPIA E PLÁGIO: Apropriação indevida de autoria, reprodução substancial de código,
+     plágio de metodologia científica ou republicação sob outro nome, marca ou titularidade;
+  c) REDISTRIBUIÇÃO: Venda, sublicenciamento, locação, cessão ou redistribuição deste
+     código em repositórios públicos ou privados sem a manutenção integral deste aviso;
+  d) REMOÇÃO DE CRÉDITOS: É vedada a alteração, ocultação ou remoção de qualquer aviso
+     de direitos autorais, menção à autoria de Hiago Rocha Souza ou referência ao IF Baiano.
+
+3. OBRIGATORIEDADE DE CITAÇÃO CIENTÍFICA
+Qualquer publicação acadêmica, dissertação, monografia, relatório técnico ou artigo
+que utilize métodos, dados ou resultados derivados desta plataforma DEVE citar
+obrigatoriamente a seguinte referência:
+
+  SOUZA, Hiago Rocha. CURTAVENTO: Plataforma de Previsão de Risco de Curtailment
+  Eólico e seu Impacto Socioeconômico Municipal no Alto Sertão (Guanambi/BA).
+  Trabalho de Conclusão de Curso (Tecnologia em Análise e Desenvolvimento de Sistemas).
+  Instituto Federal de Educação, Ciência e Tecnologia Baiano, Campus Guanambi, 2026.
+
+4. ISENÇÃO DE GARANTIAS (DISCLAIMER)
+ESTE SOFTWARE É FORNECIDO PELO TITULAR DOS DIREITOS "COMO ESTÁ" (AS IS), SEM QUALQUER
+GARANTIA EXPRESSA OU IMPLÍCITA, INCLUINDO, DENTRE OUTRAS, GARANTIAS IMPLÍCITAS DE
+COMERCIABILIDADE OU ADEQUAÇÃO A UM DETERMINADO PROPÓSITO. EM NENHUMA HIPÓTESE O AUTOR
+SERÁ RESPONSÁVEL POR QUAISQUER DANOS DIRETOS, INDIRETOS, INCIDENTAIS OU EMERGENTES
+DECORRENTES DO USO OU DA INCAPACIDADE DE USO DESTE SOFTWARE.

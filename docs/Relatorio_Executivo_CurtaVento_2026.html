@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Nota Técnica e Relatório Executivo — CurtaVento (2026)</title>
+<style>
+  @page {
+    size: A4;
+    margin: 9mm 13mm 9mm 13mm;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: "Segoe UI", "Liberation Sans", Arial, sans-serif;
+    color: #1E293B;
+    font-size: 8.5pt;
+    line-height: 1.36;
+    background: #FFFFFF;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .header {
+    border-top: 3.5px solid #0F2942;
+    border-bottom: 1px solid #CBD5E1;
+    padding: 6px 0 8px 0;
+    margin-bottom: 9px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+  }
+
+  .header-left {
+    flex: 1;
+  }
+
+  .doc-tag {
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0F2942;
+    margin-bottom: 2px;
+  }
+
+  h1 {
+    font-size: 13.5pt;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.18;
+    margin-bottom: 3px;
+  }
+
+  .subtitle {
+    font-size: 8.5pt;
+    color: #475569;
+    font-weight: 400;
+  }
+
+  .header-meta {
+    text-align: right;
+    font-size: 7.5pt;
+    color: #475569;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .header-meta strong {
+    color: #0F172A;
+  }
+
+  h2 {
+    font-size: 9.3pt;
+    font-weight: 700;
+    color: #0F2942;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1.5px solid #E2E8F0;
+    padding-bottom: 2px;
+    margin-top: 7px;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin-bottom: 5px;
+    text-align: justify;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin: 7px 0 9px 0;
+  }
+
+  .kpi-card {
+    border: 1px solid #CBD5E1;
+    border-top: 2.5px solid #0F2942;
+    padding: 6px 8px;
+    background: #F8FAFC;
+    break-inside: avoid;
+  }
+
+  .kpi-label {
+    font-size: 6.8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #475569;
+    letter-spacing: 0.03em;
+    margin-bottom: 2px;
+  }
+
+  .kpi-value {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.15;
+    margin-bottom: 2px;
+  }
+
+  .kpi-sub {
+    font-size: 6.9pt;
+    color: #64748B;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 5px 0 7px 0;
+    font-size: 8pt;
+    break-inside: avoid;
+  }
+
+  th {
+    background: #0F2942;
+    color: #FFFFFF;
+    font-weight: 600;
+    text-align: left;
+    padding: 4px 6px;
+    font-size: 7.5pt;
+    letter-spacing: 0.02em;
+  }
+
+  td {
+    padding: 2.8px 6px;
+    border-bottom: 1px solid #E2E8F0;
+    color: #1E293B;
+  }
+
+  tr:nth-child(even) td {
+    background: #F8FAFC;
+  }
+
+  tr.highlight td {
+    background: #EFF6FF;
+    font-weight: 600;
+    color: #0F2942;
+  }
+
+  tr.total-row td {
+    border-top: 1.5px solid #0F2942;
+    border-bottom: 1.5px solid #0F2942;
+    background: #F1F5F9;
+    font-weight: 700;
+    color: #0F172A;
+  }
+
+  .num {
+    text-align: right;
+  }
+
+  .center {
+    text-align: center;
+  }
+
+  .callout {
+    border-left: 3px solid #0F2942;
+    background: #F8FAFC;
+    padding: 6px 9px;
+    margin: 6px 0;
+    font-size: 8.1pt;
+    break-inside: avoid;
+  }
+
+  .callout strong {
+    color: #0F2942;
+  }
+
+  .formula-box {
+    border: 1px solid #CBD5E1;
+    background: #F8FAFC;
+    padding: 5px 9px;
+    margin: 5px 0 7px 0;
+    font-size: 8pt;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    break-inside: avoid;
+  }
+
+  .formula-item strong {
+    display: block;
+    color: #0F2942;
+    margin-bottom: 1px;
+    font-size: 7.5pt;
+  }
+
+  .formula-code {
+    font-family: "Cambria Math", "Times New Roman", serif;
+    font-size: 8.8pt;
+    color: #0F172A;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-top: 5px;
+  }
+
+  .box {
+    border: 1px solid #CBD5E1;
+    padding: 6px 8px;
+    break-inside: avoid;
+    font-size: 8pt;
+  }
+
+  .box-title {
+    font-size: 8pt;
+    font-weight: 700;
+    color: #0F2942;
+    margin-bottom: 3px;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 2px;
+  }
+
+  ul {
+    padding-left: 14px;
+    margin: 2px 0;
+  }
+
+  li {
+    margin-bottom: 2.5px;
+  }
+
+  .note {
+    font-size: 7.1pt;
+    color: #64748B;
+    margin-top: 1px;
+    margin-bottom: 5px;
+  }
+
+  .footer {
+    margin-top: 6px;
+    border-top: 1px solid #CBD5E1;
+    padding-top: 5px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.4pt;
+    color: #475569;
+    break-inside: avoid;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="doc-tag">Nota Técnica Executiva &mdash; Projeto CurtaVento</div>
+      <h1>Diagnóstico de Curtailment Eólico, Previsão Preditiva e Impacto Fiscal na Bahia</h1>
+      <div class="subtitle">Auditoria operacional de restrições do ONS, modelagem ANEEL (REN 1.030/2022 e 1.170/2026) e reflexos no VAF/ICMS do Alto Sertão</div>
+    </div>
+    <div class="header-meta">
+      <strong>Instituição:</strong> IF Baiano &mdash; Campus Guanambi<br>
+      <strong>Período Base:</strong> 01/01/2026 a 22/11/2026<br>
+      <strong>Fonte Primária:</strong> ONS Open Data / CCEE / NASA POWER<br>
+      <strong>Emissão:</strong> Novembro de 2026
+    </div>
+  </div>
+
+  <h2>1. Sumário Executivo</h2>
+  <p>
+    Este documento sintetiza os resultados obtidos pela plataforma analítica <strong>CurtaVento</strong> no monitoramento contínuo de cortes compulsórios de geração (<em>constrained-off / curtailment</em>) nos parques eólicos conectados ao Sistema Interligado Nacional (SIN) no Estado da Bahia, com recorte específico para o polo do Alto Sertão Produtivo (Caetité, Igaporã, Pindaí, Guanambi e Tanque Novo). Os dados consolidados entre janeiro e novembro de 2026 evidenciam um volume crítico de energia desperdiçada por limitações elétricas e energéticas da rede de transmissão, gerando impacto financeiro direto sobre geradores, proprietários rurais arrendadores e receitas tributárias municipais.
+  </p>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Parques Monitorados (BA)</div>
+      <div class="kpi-value">382 usinas</div>
+      <div class="kpi-sub">11.982,07 MW em 36 municípios e 22 SEs</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Energia Cortada (2026)</div>
+      <div class="kpi-value">7.290,68 GWh</div>
+      <div class="kpi-sub">17,78% de 41.001,94 GWh estimados</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Perda Bruta Valorada</div>
+      <div class="kpi-value">R$ 1.458,14 mi</div>
+      <div class="kpi-sub">Base de referência R$ 200,00 / MWh</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Polo Alto Sertão (5 mun.)</div>
+      <div class="kpi-value">1.838,97 GWh</div>
+      <div class="kpi-sub">25,2% do corte estadual (94 usinas)</div>
+    </div>
+  </div>
+
+  <h2>2. Classificação Regulatória dos Cortes e Ressarcimento ANEEL</h2>
+  <p>
+    A auditoria em blocos semi-horários (30 minutos) e registros diários do ONS permite segregar a perda física conforme o código de razão da restrição, elemento decisivo para o enquadramento regulatório de ressarcimento financeiro via Encargo de Serviço do Sistema (ESS):
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Classificação ONS</th>
+        <th>Natureza Operacional</th>
+        <th class="num">Energia Cortada (GWh)</th>
+        <th class="num">Participação</th>
+        <th class="num">Valor Bruto Ref. (R$ mi)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ENE</strong> &mdash; Razão Energética</td>
+        <td>Excesso de oferta hidráulica/renovável ou restrição sistêmica de carga</td>
+        <td class="num">5.259,07</td>
+        <td class="num">72,13%</td>
+        <td class="num">1.051,81</td>
+      </tr>
+      <tr>
+        <td><strong>REL</strong> &mdash; Confiabilidade Elétrica</td>
+        <td>Restrição de escoamento em subestações e linhas de transmissão locais</td>
+        <td class="num">1.361,66</td>
+        <td class="num">18,68%</td>
+        <td class="num">272,33</td>
+      </tr>
+      <tr>
+        <td><strong>CNF</strong> &mdash; Constrained-off / Indisponibilidade</td>
+        <td>Limitação por indisponibilidade externa de equipamentos da rede</td>
+        <td class="num">548,73</td>
+        <td class="num">7,53%</td>
+        <td class="num">109,75</td>
+      </tr>
+      <tr>
+        <td><strong>Outros / Não Classificado</strong></td>
+        <td>Registros sem enquadramento explícito na base consolidada</td>
+        <td class="num">121,22</td>
+        <td class="num">1,66%</td>
+        <td class="num">24,24</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="2">Total Consolidado Bahia (Jan&ndash;Nov/2026)</td>
+        <td class="num">7.290,68</td>
+        <td class="num">100,00%</td>
+        <td class="num">1.458,14</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Implicação Regulatória (REN 1.030/2022, NT 183/2026 e REN 1.170/2026):</strong> Pelo critério tradicional da REN nº 1.030/2022, apenas a parcela <strong>REL</strong> (R$ 272,33 milhões brutos, deduzida a franquia horária anual) é passível de compensação direta, enquanto a aplicação dos critérios da Nota Técnica nº 183/2026 impõe redução adicional estimada em 17% sobre o montante elegível. A <strong>Resolução Normativa ANEEL nº 1.170/2026</strong> altera esse cenário ao instituir o compartilhamento gradual da parcela <strong>ENE</strong> (25% a 100%) com os encargos de Eventos de Transição (EVT), abrindo margem de recuperação regulatória auditável entre R$ 262,95 milhões e R$ 1.051,81 milhões no estado.
+  </div>
+
+  <h2>3. Principais Gargalos Locais: Usinas Mais Afetadas</h2>
+  <p>
+    Observa-se forte concentração geográfica dos cortes em subestações coletoras específicas. Somente na região de Caetité e Igaporã, quatro parques conectados à <strong>SE Igaporã III (230 kV)</strong> figuram entre as sete usinas com maior corte absoluto em toda a Bahia em 2026:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Parque Eólico</th>
+        <th>Município</th>
+        <th>Subestação de Conexão</th>
+        <th class="num">Energia Cortada (GWh)</th>
+        <th class="num">Perda Bruta Est. (R$ mi)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ventos de Santa Luzia 15</td>
+        <td>Morro do Chapéu</td>
+        <td>OUROLANDIA II 500 kV</td>
+        <td class="num">58,72</td>
+        <td class="num">11,74</td>
+      </tr>
+      <tr class="highlight">
+        <td>Caetité D</td>
+        <td>Caetité</td>
+        <td>IGAPORA III &mdash; 230 kV (A)</td>
+        <td class="num">57,77</td>
+        <td class="num">11,55</td>
+      </tr>
+      <tr class="highlight">
+        <td>Brejinhos B</td>
+        <td>Caetité</td>
+        <td>IGAPORA III &mdash; 230 kV (A)</td>
+        <td class="num">49,27</td>
+        <td class="num">9,85</td>
+      </tr>
+      <tr class="highlight">
+        <td>Brejinhos A</td>
+        <td>Caetité</td>
+        <td>IGAPORA III &mdash; 230 kV (A)</td>
+        <td class="num">47,05</td>
+        <td class="num">9,41</td>
+      </tr>
+      <tr>
+        <td>Ventos de Santo Antônio 05</td>
+        <td>Morro do Chapéu</td>
+        <td>OUROLANDIA II 500 kV</td>
+        <td class="num">41,63</td>
+        <td class="num">8,33</td>
+      </tr>
+      <tr>
+        <td>Ventos de Santa Luzia 03</td>
+        <td>Ibitiara</td>
+        <td>SOL DO SERTÃO 500 kV</td>
+        <td class="num">41,41</td>
+        <td class="num">8,28</td>
+      </tr>
+      <tr class="highlight">
+        <td>Caetité E</td>
+        <td>Caetité</td>
+        <td>IGAPORA III &mdash; 230 kV (A)</td>
+        <td class="num">41,37</td>
+        <td class="num">8,27</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2>4. Impacto Socioeconômico Municipal (VAF/ICMS) e Royalties Fundiários</h2>
+  <p>
+    Cada megawatt-hora cortado reduz o faturamento da usina instalada no município e, por consequência direta, contrai o <strong>Valor Adicionado Fiscal (VAF)</strong> apurado para formação do Índice de Participação dos Municípios (IPM). Conforme a Lei Complementar Federal nº 63/1990 e a Lei Complementar Estadual da Bahia nº 53/2022, a queda de arrecadação reflete-se no repasse constitucional de ICMS de forma bienal (50% no exercício <em>t+2</em> e 50% em <em>t+3</em>). Adicionalmente, os proprietários rurais arrendatários sofrem perda proporcional na remuneração contratual (usualmente de 1,5% a 2,5% da receita bruta).
+  </p>
+
+  <div class="formula-box">
+    <div class="formula-item">
+      <strong>Equação 5.1 &mdash; Redução do VAF Municipal</strong>
+      <span class="formula-code">&Delta;VAF<sub>m</sub> = &Delta;E<sub>cortada,m</sub> &times; P<sub>ref</sub></span>
+    </div>
+    <div class="formula-item">
+      <strong>Equação 5.2 &mdash; Impacto na Cota-Parte de ICMS Municipal</strong>
+      <span class="formula-code">&Delta;ICMS<sub>m</sub> = (&Delta;VAF<sub>m</sub> / VAF<sub>total,BA</sub>) &times; (ICMS<sub>total,BA</sub> &times; 0,25 &times; 0,65)</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 26%;">Município (BA)</th>
+        <th class="center">Usinas</th>
+        <th class="num">Corte (GWh)</th>
+        <th class="num">Perda VAF (R$ mi)</th>
+        <th class="num">&Delta;ICMS (R$ mi)</th>
+        <th class="num">Queda t+2/t+3 (R$ mi/ano)</th>
+        <th class="num">Arrendamento (R$ mi)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td>Caetité (Alto Sertão)</td>
+        <td class="center">37</td>
+        <td class="num">948,97</td>
+        <td class="num">189,79</td>
+        <td class="num">4,05</td>
+        <td class="num">2,02</td>
+        <td class="num">2,85 &ndash; 4,74</td>
+      </tr>
+      <tr class="highlight">
+        <td>Igaporã (Alto Sertão)</td>
+        <td class="center">20</td>
+        <td class="num">314,32</td>
+        <td class="num">62,86</td>
+        <td class="num">1,34</td>
+        <td class="num">0,67</td>
+        <td class="num">0,94 &ndash; 1,57</td>
+      </tr>
+      <tr class="highlight">
+        <td>Pindaí (Alto Sertão)</td>
+        <td class="center">22</td>
+        <td class="num">261,34</td>
+        <td class="num">52,27</td>
+        <td class="num">1,11</td>
+        <td class="num">0,56</td>
+        <td class="num">0,78 &ndash; 1,31</td>
+      </tr>
+      <tr class="highlight">
+        <td>Guanambi (Alto Sertão)</td>
+        <td class="center">9</td>
+        <td class="num">175,87</td>
+        <td class="num">35,17</td>
+        <td class="num">0,75</td>
+        <td class="num">0,38</td>
+        <td class="num">0,53 &ndash; 0,88</td>
+      </tr>
+      <tr class="highlight">
+        <td>Tanque Novo (Alto Sertão)</td>
+        <td class="center">6</td>
+        <td class="num">138,47</td>
+        <td class="num">27,69</td>
+        <td class="num">0,59</td>
+        <td class="num">0,30</td>
+        <td class="num">0,42 &ndash; 0,69</td>
+      </tr>
+      <tr>
+        <td>Morro do Chapéu</td>
+        <td class="center">48</td>
+        <td class="num">1.072,17</td>
+        <td class="num">214,43</td>
+        <td class="num">4,57</td>
+        <td class="num">2,29</td>
+        <td class="num">3,22 &ndash; 5,36</td>
+      </tr>
+      <tr>
+        <td>Gentio do Ouro</td>
+        <td class="center">45</td>
+        <td class="num">881,10</td>
+        <td class="num">176,22</td>
+        <td class="num">3,76</td>
+        <td class="num">1,88</td>
+        <td class="num">2,64 &ndash; 4,41</td>
+      </tr>
+      <tr>
+        <td>Sento Sé</td>
+        <td class="center">54</td>
+        <td class="num">827,03</td>
+        <td class="num">165,41</td>
+        <td class="num">3,53</td>
+        <td class="num">1,76</td>
+        <td class="num">2,48 &ndash; 4,14</td>
+      </tr>
+      <tr>
+        <td>Campo Formoso</td>
+        <td class="center">26</td>
+        <td class="num">438,05</td>
+        <td class="num">87,61</td>
+        <td class="num">1,87</td>
+        <td class="num">0,93</td>
+        <td class="num">1,31 &ndash; 2,19</td>
+      </tr>
+      <tr class="total-row">
+        <td>Subtotal Alto Sertão (5 mun.)</td>
+        <td class="center">94</td>
+        <td class="num">1.838,97</td>
+        <td class="num">367,79</td>
+        <td class="num">7,84</td>
+        <td class="num">3,92</td>
+        <td class="num">5,52 &ndash; 9,19</td>
+      </tr>
+      <tr class="total-row">
+        <td>Total Geral Bahia (36 mun.)</td>
+        <td class="center">382</td>
+        <td class="num">7.290,68</td>
+        <td class="num">1.458,14</td>
+        <td class="num">31,10</td>
+        <td class="num">15,55</td>
+        <td class="num">21,87 &ndash; 36,45</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">Parâmetros base da simulação estadual: VAF total Bahia = R$ 320,0 bilhões; arrecadação ICMS Bahia = R$ 42,0 bilhões; cota-parte municipal = 25%; peso VAF = 65% (LC BA nº 53/2022).</div>
+
+  <h2>5. Inteligência Preditiva (Time2Vec) e Ferramentas Operacionais</h2>
+  <p>
+    Para mitigar a imprevisibilidade dos despachos de corte, a plataforma integra um microsserviço em Python/PyTorch equipado com camada de representação temporal contínua <strong>Time2Vec</strong> (Kazemi et al., 2019). Três arquiteturas neurais foram treinadas cronologicamente sobre 3.425 amostras horárias reais do ONS e avaliadas fora da amostra (<em>out-of-sample</em>) em 857 horas para os horizontes operacionais de 6h e 12h:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Arquitetura Neural</th>
+        <th class="center">Horizonte</th>
+        <th class="num">nMAE (%)</th>
+        <th class="num">nRMSE (%)</th>
+        <th class="num">Correlação Pearson (r)</th>
+        <th class="num">Acurácia de Risco</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>MLP + Time2Vec</td>
+        <td class="center">6 horas</td>
+        <td class="num">12,50%</td>
+        <td class="num">17,26%</td>
+        <td class="num">0,4818</td>
+        <td class="num">81,35%</td>
+      </tr>
+      <tr class="highlight">
+        <td>LSTM + Time2Vec</td>
+        <td class="center">6 horas</td>
+        <td class="num">11,82%</td>
+        <td class="num">16,61%</td>
+        <td class="num">0,5725</td>
+        <td class="num">81,00%</td>
+      </tr>
+      <tr>
+        <td>DLinear + Time2Vec</td>
+        <td class="center">6 horas</td>
+        <td class="num">12,53%</td>
+        <td class="num">17,18%</td>
+        <td class="num">0,5026</td>
+        <td class="num">82,17%</td>
+      </tr>
+      <tr>
+        <td>MLP + Time2Vec</td>
+        <td class="center">12 horas</td>
+        <td class="num">14,34%</td>
+        <td class="num">19,50%</td>
+        <td class="num">0,3152</td>
+        <td class="num">78,18%</td>
+      </tr>
+      <tr>
+        <td>LSTM + Time2Vec</td>
+        <td class="center">12 horas</td>
+        <td class="num">13,91%</td>
+        <td class="num">18,90%</td>
+        <td class="num">0,4025</td>
+        <td class="num">81,68%</td>
+      </tr>
+      <tr class="highlight">
+        <td>DLinear + Time2Vec</td>
+        <td class="center">12 horas</td>
+        <td class="num">13,75%</td>
+        <td class="num">18,85%</td>
+        <td class="num">0,3672</td>
+        <td class="num">79,11%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="two-col">
+    <div class="box">
+      <div class="box-title">Aplicação para Geradoras e Equipes de O&amp;M</div>
+      <ul>
+        <li><strong>Planejamento O&amp;M e NR-35:</strong> Cruzamento das curvas de risco com reanálise horária NASA POWER (cisalhamento de vento a 80m) e Open-Meteo para liberação segura de trabalho em altura.</li>
+        <li><strong>Auditoria de Ressarcimento:</strong> Separação automática de blocos de 30 minutos (REL, CNF, ENE) e simulação imediata dos efeitos da NT 183/2026 e REN 1.170/2026.</li>
+        <li><strong>Viabilidade de Armazenamento (BESS):</strong> Simulador financeiro para baterias LFP aproveitando energia cortada via arbitragem de PLD horário.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <div class="box-title">Aplicação para Prefeituras e Consórcios</div>
+      <ul>
+        <li><strong>Defesa de Receita Tributária:</strong> Base auditável para acompanhamento e contestação do índice IPM/VAF junto à SEFAZ-BA.</li>
+        <li><strong>Previsibilidade Orçamentária (LOA/LDO):</strong> Antecipação exata das perdas de repasse de ICMS para os exercícios <em>t+2</em> e <em>t+3</em>.</li>
+        <li><strong>Transparência Rural:</strong> Auditoria independente dos percentuais de arrendamento fundiário devidos a proprietários de terras locais.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>6. Proposta de Cooperação Técnica / Prova de Conceito (PoC)</h2>
+  <p>
+    Colocamos o sistema <strong>CurtaVento</strong> à disposição para uma apresentação técnica de 15 minutos e realização de uma <strong>Prova de Conceito (PoC) gratuita de 30 dias</strong>, configurada especificamente para os parques geradores de sua empresa ou para a apuração fiscal de seu município, permitindo a validação prática das projeções frente aos relatórios internos da organização.
+  </p>
+
+  <div class="footer">
+    <div>
+      <strong>Responsável Técnico:</strong> Hiago Rocha Souza &mdash; Análise e Desenvolvimento de Sistemas (IF Baiano Campus Guanambi)
+    </div>
+    <div>
+      <strong>Repositório / Documentação:</strong> github.com/HiagoLBP/CurtaVento
+    </div>
+  </div>
+
+</body>
+</html>
