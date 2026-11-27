@@ -38,14 +38,31 @@ public class BackfillOnsService {
             "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_eolica_detail_tm/RESTRICAO_COFF_EOLICA_DETAIL_%d_%02d.csv";
     private static final String URL_BASE_CONJUNTO =
             "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_eolica_tm/RESTRICAO_COFF_EOLICA_%d_%02d.csv";
+    private static final String URL_BASE_SOLAR_DETAIL =
+            "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_fotovoltaica_detail_tm/RESTRICAO_COFF_FOTOVOLTAICA_DETAIL_%d_%02d.csv";
+    private static final String URL_BASE_SOLAR_CONJUNTO =
+            "https://ons-aws-prod-opendata.s3.amazonaws.com/dataset/restricao_coff_fotovoltaica_tm/RESTRICAO_COFF_FOTOVOLTAICA_%d_%02d.csv";
 
     private static final String DELIMITADOR = ";";
     private static final DateTimeFormatter PARSER_INSTANTE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final double VENTO_MAX_VALIDO_RO_AO_BR_13 = 25.0; // RO-AO.BR.13 item 7.1.a: [0, 25] m/s
 
     private final HistoricoCorteOnsService corteService;
     private final SpringDataUsinaRepository springDataUsinaRepository;
     private final SpringDataPldHorarioRepository pldHorarioRepository;
     private final RestTemplate restTemplate;
+    private Set<String> ufsPermitidas = Set.of("BA");
+
+    @org.springframework.beans.factory.annotation.Value("${curtavento.ons.ufs:BA}")
+    public void setUfsPermitidas(String ufsCsv) {
+        if (ufsCsv != null && !ufsCsv.isBlank()) {
+            Set<String> set = new HashSet<>();
+            for (String uf : ufsCsv.split(",")) {
+                if (!uf.isBlank()) set.add(uf.trim().toUpperCase(Locale.ROOT));
+            }
+            if (!set.isEmpty()) this.ufsPermitidas = set;
+        }
+    }
 
     private record ConjuntoRestricaoInfo(String codRazao, String dscRestricao, String pontoConexao) {}
 
@@ -93,9 +110,24 @@ public class BackfillOnsService {
     }
 
     public int baixarEProcessarMes(int ano, int mes) {
-        String urlConjunto = String.format(URL_BASE_CONJUNTO, ano, mes);
-        String urlDetail = String.format(URL_BASE_DETAIL, ano, mes);
-        logger.info("Iniciando backfill ONS {}/{}...", mes, ano);
+        int totalEolica = processarDatasetMes(ano, mes,
+                String.format(URL_BASE_CONJUNTO, ano, mes),
+                String.format(URL_BASE_DETAIL, ano, mes),
+                false);
+        int totalSolar = 0;
+        try {
+            totalSolar = processarDatasetMes(ano, mes,
+                    String.format(URL_BASE_SOLAR_CONJUNTO, ano, mes),
+                    String.format(URL_BASE_SOLAR_DETAIL, ano, mes),
+                    true);
+        } catch (Exception ex) {
+            logger.debug("Dataset solar ONS {}/{} indisponível ou sem usinas cadastradas: {}", mes, ano, ex.getMessage());
+        }
+        return totalEolica + totalSolar;
+    }
+
+    private int processarDatasetMes(int ano, int mes, String urlConjunto, String urlDetail, boolean modoSolar) {
+        logger.info("Iniciando backfill ONS {} {}/{}...", modoSolar ? "SOLAR" : "EOLICA", mes, ano);
 
         Map<String, ConjuntoRestricaoInfo> restricoesConjunto = carregarRestricoesConjunto(urlConjunto);
         Map<String, BigDecimal> pldPorDiaHora = carregarPldMes(ano, mes);
@@ -110,6 +142,7 @@ public class BackfillOnsService {
         Map<String, UsinaEntity> cacheUsinaPorNome = new HashMap<>();
         List<HistoricoCorteOnsBlocoEntity> blocosParaSalvar = new ArrayList<>();
         Set<UsinaEntity> usinasEnriquecidas = new HashSet<>();
+        int[] blocosReferenciaDistortiva = new int[]{0};
 
         restTemplate.execute(urlDetail, HttpMethod.GET, null, response -> {
             try (BufferedReader reader = new BufferedReader(
@@ -142,8 +175,8 @@ public class BackfillOnsService {
                     String[] campos = linha.split(DELIMITADOR, -1);
 
                     if (idxEstado >= 0 && idxEstado < campos.length) {
-                        String uf = limparCampo(campos[idxEstado]);
-                        if (!"BA".equalsIgnoreCase(uf)) continue;
+                        String uf = limparCampo(campos[idxEstado]).toUpperCase(Locale.ROOT);
+                        if (!ufsPermitidas.contains(uf)) continue;
                     }
 
                     String nomeUsinaCsv = limparCampo(campos[idxUsina]);
@@ -177,6 +210,9 @@ public class BackfillOnsService {
                             || "TRUE".equalsIgnoreCase(limparCampo(campos[idxFlagRestrita]))
                             || limparCampo(campos[idxFlagRestrita]).isEmpty();
 
+                    // Submodulo 6.5 Sec. 1.5.4: eventos de restricao solar UFV apenas entre 04h00 e 20h00
+                    if (modoSolar && (instante.getHour() < 4 || instante.getHour() > 20)) continue;
+
                     double estimadaMwh = Math.max(0.0, valEstimadaMw * 0.5);
                     double verificadaMwh = Math.max(0.0, valVerificadaMw * 0.5);
 
@@ -184,12 +220,18 @@ public class BackfillOnsService {
                     AgregadoDiario agg = agregadoPorDia.computeIfAbsent(chaveDia, k -> new AgregadoDiario());
                     agg.energiaEstimadaMwh += estimadaMwh;
                     agg.energiaVerificadaMwh += verificadaMwh;
-                    if (ventoMs > 0) {
+                    // RO-AO.BR.13 item 7.1.a: vento válido apenas no intervalo [0, 25] m/s
+                    boolean ventoValido = !modoSolar && ventoMs > 0.0 && ventoMs <= VENTO_MAX_VALIDO_RO_AO_BR_13;
+                    if (ventoValido) {
                         agg.somaVento += ventoMs;
                         agg.blocosVento++;
                     }
 
                     double valCorteMw = valEstimadaMw - valVerificadaMw;
+                    if (flagRestrita && valVerificadaMw > valEstimadaMw) {
+                        // GESEL TDSE 149 Sec. 4.3.3: base ONS pode trazer geracaoReferencia < geracaoVerificada
+                        blocosReferenciaDistortiva[0]++;
+                    }
                     if (valCorteMw <= 0.0 || !flagRestrita) continue;
 
                     double corteMwh = valCorteMw * 0.5;
@@ -218,7 +260,7 @@ public class BackfillOnsService {
                     bloco.setCodRazaoRestricao(codRazao);
                     bloco.setDscRestricao(dscRestricao);
                     bloco.setSubestacaoConexao(subestacao);
-                    if (ventoMs > 0) {
+                    if (ventoValido) {
                         bloco.setVentoVerificadoMs(BigDecimal.valueOf(ventoMs).setScale(2, RoundingMode.HALF_UP));
                     }
                     bloco.setPldMwh(pldMwh);
@@ -271,8 +313,8 @@ public class BackfillOnsService {
 
         int registrosGravados = corteService.registrarCortes(cortesParaSalvar, inicioMes, fimMes);
 
-        logger.info("Backfill de {}/{} concluído: {} registros diários e {} blocos semi-horários gravados.",
-                mes, ano, registrosGravados, blocosGravados);
+        logger.info("Backfill {} {}/{} concluído: {} registros diários, {} blocos semi-horários gravados (distorções referência<verificada={}).",
+                modoSolar ? "SOLAR" : "EOLICA", mes, ano, registrosGravados, blocosGravados, blocosReferenciaDistortiva[0]);
         return registrosGravados;
     }
 
@@ -318,7 +360,7 @@ public class BackfillOnsService {
                         if (linha.isBlank()) continue;
                         String[] campos = linha.split(DELIMITADOR, -1);
 
-                        if (idxEstado >= 0 && idxEstado < campos.length && !"BA".equalsIgnoreCase(limparCampo(campos[idxEstado]))) {
+                        if (idxEstado >= 0 && idxEstado < campos.length && !ufsPermitidas.contains(limparCampo(campos[idxEstado]).toUpperCase(Locale.ROOT))) {
                             continue;
                         }
                         String razao = idxRazao < campos.length ? limparCampo(campos[idxRazao]) : "";
@@ -329,7 +371,19 @@ public class BackfillOnsService {
                         String instante = limparCampo(campos[idxInstante]);
                         String dsc = idxDesc >= 0 && idxDesc < campos.length ? limparCampo(campos[idxDesc]) : "";
 
-                        mapa.put(idOns + "|" + instante, new ConjuntoRestricaoInfo(razao, dsc, ponto));
+                        String chave = idOns + "|" + instante;
+                        ConjuntoRestricaoInfo anterior = mapa.get(chave);
+                        if (anterior == null) {
+                            mapa.put(chave, new ConjuntoRestricaoInfo(razao, dsc, ponto));
+                        } else {
+                            // Evita sobrescrita silenciosa em colisoes: prioriza ENE > CNF > REL (prevalencia MME/ONS)
+                            String novaRazao = priorizarRazao(anterior.codRazao(), razao);
+                            String novaDsc = anterior.dscRestricao().contains(dsc) || dsc.isBlank()
+                                    ? anterior.dscRestricao()
+                                    : anterior.dscRestricao() + " | " + dsc;
+                            String novoPonto = !isBlank(anterior.pontoConexao()) ? anterior.pontoConexao() : ponto;
+                            mapa.put(chave, new ConjuntoRestricaoInfo(novaRazao, truncar(novaDsc, 500), novoPonto));
+                        }
                     }
                 }
                 return null;
@@ -345,12 +399,22 @@ public class BackfillOnsService {
     private Map<String, BigDecimal> carregarPldMes(int ano, int mes) {
         YearMonth ym = YearMonth.of(ano, mes);
         Map<String, BigDecimal> pldMap = new HashMap<>();
+        String submercado = resolverSubmercadoPld();
         List<PldHorarioEntity> registros = pldHorarioRepository.findByDiaBetweenAndSubmercado(
-                ym.atDay(1), ym.atEndOfMonth(), "NORDESTE");
+                ym.atDay(1), ym.atEndOfMonth(), submercado);
         for (PldHorarioEntity p : registros) {
             pldMap.putIfAbsent(p.getDia() + "|" + p.getHora(), p.getPldHora());
         }
         return pldMap;
+    }
+
+    private String resolverSubmercadoPld() {
+        for (String uf : ufsPermitidas) {
+            if (Set.of("SP", "MG", "RJ", "ES", "MT", "MS", "GO", "DF").contains(uf)) return "SUDESTE";
+            if (Set.of("PR", "SC", "RS").contains(uf)) return "SUL";
+            if (Set.of("PA", "AM", "TO", "AP", "RR", "AC", "RO").contains(uf)) return "NORTE";
+        }
+        return "NORDESTE";
     }
 
     private boolean enriquecerUsina(UsinaEntity usina, String idOns, String ceg,
@@ -373,6 +437,23 @@ public class BackfillOnsService {
             alterada = true;
         }
         return alterada;
+    }
+
+    private String priorizarRazao(String r1, String r2) {
+        int p1 = pesoRazao(r1);
+        int p2 = pesoRazao(r2);
+        return p2 > p1 ? r2 : r1;
+    }
+
+    private int pesoRazao(String r) {
+        if (r == null) return 0;
+        return switch (r.trim().toUpperCase(Locale.ROOT)) {
+            case "ENE" -> 4;
+            case "CNF" -> 3;
+            case "REL" -> 2;
+            case "PAR" -> 1;
+            default -> 0;
+        };
     }
 
     private String normalizarRazao(String codRazao) {

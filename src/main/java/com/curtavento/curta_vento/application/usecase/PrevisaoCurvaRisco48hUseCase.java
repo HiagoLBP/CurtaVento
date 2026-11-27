@@ -191,6 +191,8 @@ public class PrevisaoCurvaRisco48hUseCase {
                         if (mlPonto != null) {
                             item.put("probabilidadeMlPct", mlPonto.get("probabilidadeCorte"));
                             item.put("mwhEstimadoCorteMl", mlPonto.get("mwhEstimadoCorte"));
+                            item.put("mwhEstimadoCorteMlP10", mlPonto.get("mwhEstimadoP10"));
+                            item.put("mwhEstimadoCorteMlP90", mlPonto.get("mwhEstimadoP90"));
                         }
                     }
                 }

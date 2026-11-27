@@ -50,4 +50,12 @@ public interface SpringDataHistoricoCorteOnsBlocoRepository extends JpaRepositor
 
     @Query("SELECT SUM(b.energiaCortadaMwh) FROM HistoricoCorteOnsBlocoEntity b WHERE b.instante >= :inicio AND b.instante <= :fim")
     BigDecimal sumEnergiaCortadaPeriodo(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
+
+    @Query("SELECT HOUR(b.instante), COALESCE(b.codRazaoRestricao, b.motivoOns, 'NAO_CLASSIFICADO'), SUM(b.energiaCortadaMwh), COUNT(b) " +
+            "FROM HistoricoCorteOnsBlocoEntity b WHERE b.instante >= :inicio AND b.instante <= :fim " +
+            "AND (:usinaId IS NULL OR b.usina.id = :usinaId) " +
+            "GROUP BY HOUR(b.instante), COALESCE(b.codRazaoRestricao, b.motivoOns, 'NAO_CLASSIFICADO')")
+    List<Object[]> findResumoPorHoraEMotivo(@Param("inicio") LocalDateTime inicio,
+                                            @Param("fim") LocalDateTime fim,
+                                            @Param("usinaId") Long usinaId);
 }

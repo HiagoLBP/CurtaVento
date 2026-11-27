@@ -64,8 +64,8 @@
       <ul>
         <li><strong>Equação 5.1 (Perda no VAF Municipal):</strong> <span class="formula">&Delta;VAF<sub>m</sub> = &Delta;E<sub>cortada,m</sub> &times; P<sub>ref</sub></span>.</li>
         <li><strong>Equação 5.2 (Reflexo no Repasse ICMS):</strong> <span class="formula">&Delta;ICMS<sub>m</sub> = (&Delta;VAF<sub>m</sub> / VAF<sub>total,BA</sub>) &times; (ICMS<sub>total,BA</sub> &times; 0,25 &times; 0,65)</span> — 25% cota-parte municipal e 65% via VAF na Bahia.</li>
-        <li><strong>Defasagem Bienal (Art. 3º &sect; 4º LC 63/1990):</strong> O impacto do ano-base <em>t</em> entra 50% em <em>t+2</em> e 50% em <em>t+3</em> na média bienal do IPM; também exibimos o reflexo proporcional direto pelo IPM do município.</li>
-        <li><strong>Arrendamento Rural:</strong> Contratos fundiários na Bahia remuneram os proprietários de terras com 1% a 2,5% da receita bruta gerada pelo parque.</li>
+        <li><strong>Defasagem Bienal (Art. 3º &sect; 4º LC 63/1990 · Validação FGV 2024):</strong> O impacto do ano-base <em>t</em> entra 50% em <em>t+2</em> e 50% em <em>t+3</em>. Estudo empírico da FGV (2024) comprova efeito nulo em <em>t</em> e <em>t+1</em> (por REIDI, IPI zero e Convênio ICMS 109/14) e impacto estatístico entre <em>t+2</em> (+18,2%) e <em>t+5</em> (+47,8%).</li>
+        <li><strong>Dinâmica Obra vs. Operação (SDE-BA 2026) &amp; Arrendamento Rural:</strong> O ISS concentra-se na obra e cai na operação, enquanto o ICMS se consolida na fase operacional; contratos fundiários na Bahia remuneram os proprietários com 1% a 2,5% da receita bruta gerada.</li>
       </ul>
       <div class="form-inline" style="margin-top:14px; margin-bottom:0;">
         <div class="fld">
@@ -228,13 +228,13 @@
     (proj.municipios || []).forEach(item => {
       tbody.innerHTML += `
         <tr>
-          <td><strong>${escapeHTML(item.municipio)}</strong></td>
-          <td class="num-col">${(item.ipmPercentual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 })}%</td>
-          <td class="num-col">${((item.energiaCortadaMwh || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GWh</td>
-          <td class="num-col val-warn">${formatMoney(item.deltaVafRs || item.faturamentoPerdidoRs)}</td>
-          <td class="num-col" style="color:var(--brand); font-weight:600;">${formatMoney(item.impactoAnoT2Bienal)}</td>
-          <td class="num-col" style="color:var(--crit); font-weight:600;">${formatMoney(item.impactoAnoT3Bienal)}</td>
-          <td class="num-col" style="color:var(--text-muted);">${formatMoney(item.impactoAnoT2)}</td>
+          <td data-label="Município (BA)"><strong>${escapeHTML(item.municipio)}</strong></td>
+          <td data-label="IPM (%)" class="num-col">${(item.ipmPercentual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 })}%</td>
+          <td data-label="Cortada (GWh)" class="num-col">${((item.energiaCortadaMwh || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GWh</td>
+          <td data-label="ΔVAF (Eq. 5.1)" class="num-col val-warn">${formatMoney(item.deltaVafRs || item.faturamentoPerdidoRs)}</td>
+          <td data-label="Eq. 5.2 (t+2 · 50%)" class="num-col" style="color:var(--brand); font-weight:600;">${formatMoney(item.impactoAnoT2Bienal)}</td>
+          <td data-label="Eq. 5.2 (t+3 · 50%)" class="num-col" style="color:var(--crit); font-weight:600;">${formatMoney(item.impactoAnoT3Bienal)}</td>
+          <td data-label="Reflexo IPM Direto" class="num-col" style="color:var(--text-muted);">${formatMoney(item.impactoAnoT2)}</td>
         </tr>
       `;
     });

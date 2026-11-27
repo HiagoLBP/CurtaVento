@@ -53,7 +53,7 @@ public interface SpringDataHistoricoCorteOnsRepository extends JpaRepository<His
     List<Object[]> findTotaisPorUsinaPeriodo(@Param("usinaId") Long usinaId, @Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
 
     @Query("SELECT c.usina.id, c.usina.nome, COALESCE(c.codRazaoRestricao, c.motivoOns, 'NAO_CLASSIFICADO'), " +
-            "SUM(c.energiaCortadaMwh), SUM(c.duracaoMinutos) / 30, " +
+            "SUM(c.energiaCortadaMwh), SUM(c.duracaoMinutos) / 30.0, " +
             "SUM(COALESCE(c.valoradoPldRs, c.energiaCortadaMwh * c.usina.precoPpaMwh)) " +
             "FROM HistoricoCorteOnsEntity c " +
             "WHERE c.dataCorte >= :inicio AND c.dataCorte <= :fim " +

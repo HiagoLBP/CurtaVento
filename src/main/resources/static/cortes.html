@@ -47,15 +47,25 @@
       </div>
       <div class="filter-separator"></div>
       <div>
-        <label>Franquia (h/ano)</label><br>
-        <input type="number" id="filter-franquia" value="78" min="0" step="1" style="width:90px; padding:6px 8px; border:1px solid var(--border); border-radius:4px;">
+        <label>Franquia (h/ano) / Fonte</label><br>
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+          <input type="number" id="filter-franquia" value="78" min="0" step="1" title="Franquia anual de indisponibilidade (ou deixe 0 se usar DISPF)" style="width:68px; padding:6px 8px; border:1px solid var(--border); border-radius:4px;">
+          <select id="filter-tipo-fonte" title="Submódulo 6.5 Sec. 1.5.6: Solar UFV aplica 50% da franquia eólica" style="font-size:12px; padding:5px 6px;">
+            <option value="EOLICA" selected>Eólica (100%)</option>
+            <option value="SOLAR">Solar UFV (50%)</option>
+          </select>
+        </div>
       </div>
       <div class="filter-separator"></div>
       <div>
         <label>Simulação Regulatória</label><br>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:4px;">
+          <select id="filter-modo-reg" title="REN 1.030/2022 vigente ressarce apenas REL; Proposta Senado inclui CNF" style="font-size:12px; padding:4px 6px;">
+            <option value="REGRA_VIGENTE_REL" selected>Vigente REN 1.030 (só REL)</option>
+            <option value="PROPOSTA_SENADO_REL_CNF">Proposta Senado (REL + CNF)</option>
+          </select>
           <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="checkbox" id="filter-nt183"> Aplicar NT 183/2026 (-17% ressarcível)
+            <input type="checkbox" id="filter-nt183"> NT 183/2026 (-17%)
           </label>
           <select id="filter-ren1170" title="Rateio gradual ENE com hidrelétricas (EVT) — REN 1.170/2026" style="font-size:12px; padding:4px 6px;">
             <option value="0" selected>REN 1.170/2026: Sombra (0%)</option>
@@ -80,7 +90,7 @@
 
     <div class="kpi-row">
       <div class="kpi-card">
-        <div class="kpi-label">Ressarcível Líquido via ESS (REL + CNF)</div>
+        <div class="kpi-label" id="kpi-ressarcivel-label">Ressarcível Líquido Vigente (somente REL · REN 1.030)</div>
         <div class="kpi-value" id="kpi-ressarcivel-rs" style="color:var(--ok);">R$ 0,00</div>
         <div class="kpi-trend neutral" id="kpi-ressarcivel-mwh">0,00 GWh pós-franquia</div>
       </div>
@@ -123,6 +133,27 @@
         <h2>Distribuição Real por Motivo (ONS)</h2>
         <div style="height:300px; display:flex; justify-content:center;"><canvas id="motivoChart"></canvas></div>
       </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px; overflow-x:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+        <h2 style="margin:0;">Patamares Horários de Corte (Diagnóstico ONS RT 0189/2025)</h2>
+        <span style="font-size:12px; color:var(--text-muted);">P3 (09h–15h59) concentra sobreoferta solar/MMGD + vento</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Patamar</th>
+            <th>Faixa Horária</th>
+            <th class="num-col">Participação (%)</th>
+            <th class="num-col">Total (MWh)</th>
+            <th class="num-col">REL (MWh)</th>
+            <th class="num-col">CNF (MWh)</th>
+            <th class="num-col">ENE (MWh)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-patamares"></tbody>
+      </table>
     </div>
 
     <div class="card" style="margin-bottom:24px; overflow-x:auto;">
@@ -199,17 +230,35 @@
     const franquia = document.getElementById('filter-franquia').value || 0;
     const nt183 = document.getElementById('filter-nt183').checked;
     const ren1170 = document.getElementById('filter-ren1170')?.value || 0;
+    const modoReg = document.getElementById('filter-modo-reg')?.value || 'REGRA_VIGENTE_REL';
+    const tipoFonte = document.getElementById('filter-tipo-fonte')?.value || 'EOLICA';
 
-    const r = await fetchWithAuth(`/api/cortes-ons/ressarcimento?ano=${ano}&franquiaHoras=${franquia}&aplicarNt183=${nt183}&percentualRateioRen1170=${ren1170}`);
+    const r = await fetchWithAuth(`/api/cortes-ons/ressarcimento?ano=${ano}&franquiaHoras=${franquia}&aplicarNt183=${nt183}&percentualRateioRen1170=${ren1170}&modoRegulatorio=${modoReg}&tipoFonte=${tipoFonte}`);
     if (!r) return;
 
+    const lblRes = document.getElementById('kpi-ressarcivel-label');
+    if (lblRes) {
+      lblRes.textContent = r.cnfRessarcivel
+        ? 'Ressarcível Líquido via ESS (REL + CNF · Proposta)'
+        : 'Ressarcível Líquido Vigente (somente REL · REN 1.030)';
+    }
+
     document.getElementById('kpi-ressarcivel-rs').textContent = fmtMoney(r.ressarcivelLiquidoRs);
-    document.getElementById('kpi-ressarcivel-mwh').textContent = `${fmtGWh(r.ressarcivelLiquidoMwh || 0)} GWh pós-franquia`;
+    document.getElementById('kpi-ressarcivel-mwh').textContent = `${fmtGWh(r.ressarcivelLiquidoMwh || 0)} GWh pós-franquia (${r.franquiaHorasAplicada ?? franquia}h)`;
     document.getElementById('kpi-ene-rs').textContent = fmtMoney(r.naoRessarcivelRs);
     const compRen = r.compensavelRen1170Mwh || 0;
-    document.getElementById('kpi-ene-mwh').textContent = compRen > 0
+    const parExcl = r.parExcluidoMwh || 0;
+    const cnfNaoRes = r.cnfNaoRessarcivelMwh || 0;
+    let eneTxt = compRen > 0
       ? `${fmtGWh(r.naoRessarcivelMwh || 0)} GWh líquido (${fmtGWh(compRen)} GWh rateado REN 1.170)`
       : `${fmtGWh(r.naoRessarcivelMwh || 0)} GWh sem ressarcimento`;
+    if (cnfNaoRes > 0) {
+      eneTxt += ` · CNF não ressarcível: ${fmtGWh(cnfNaoRes)} GWh`;
+    }
+    if (parExcl > 0) {
+      eneTxt += ` · PAR excluído: ${fmtGWh(parExcl)} GWh`;
+    }
+    document.getElementById('kpi-ene-mwh').textContent = eneTxt;
     document.getElementById('kpi-franquia-rs').textContent = fmtMoney(r.franquiaAbsorvidaRs);
     document.getElementById('kpi-franquia-mwh').textContent = `${fmtGWh(r.franquiaAbsorvidaMwh || 0)} GWh absorvidos na franquia`;
 
@@ -218,12 +267,12 @@
     (r.porUsina || []).slice(0, 20).forEach(u => {
       tbody.innerHTML += `
         <tr>
-          <td><strong>${escapeHTML(u.usina)}</strong></td>
-          <td class="num-col">${(u.relMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
-          <td class="num-col">${(u.cnfMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
-          <td class="num-col">${(u.eneMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
-          <td class="num-col" style="color:var(--ok); font-weight:600;">${fmtMoney(u.ressarcivelLiquidoRs)}</td>
-          <td class="num-col" style="color:var(--crit); font-weight:600;">${fmtMoney(u.naoRessarcivelRs)}</td>
+          <td data-label="Usina"><strong>${escapeHTML(u.usina)}</strong></td>
+          <td data-label="REL (MWh)" class="num-col">${(u.relMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          <td data-label="CNF (MWh)" class="num-col">${(u.cnfMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          <td data-label="ENE (MWh)" class="num-col">${(u.eneMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          <td data-label="Ressarcível (R$)" class="num-col" style="color:var(--ok); font-weight:600;">${fmtMoney(u.ressarcivelLiquidoRs)}</td>
+          <td data-label="Não Ressarcível (R$)" class="num-col" style="color:var(--crit); font-weight:600;">${fmtMoney(u.naoRessarcivelRs)}</td>
         </tr>
       `;
     });
@@ -232,13 +281,28 @@
   async function init() {
     const ano = document.getElementById('filter-ano').value;
     try {
-      const [evolucao, motivos, rankingUsinas, ultimosCortes] = await Promise.all([
+      const [evolucao, motivos, rankingUsinas, ultimosCortes, patamaresResp] = await Promise.all([
         fetchWithAuth(`/api/cortes-ons/evolucao?ano=${ano}`),
         fetchWithAuth(`/api/cortes-ons/motivos?ano=${ano}`),
         fetchWithAuth(`/api/cortes-ons/ranking?ano=${ano}`),
         fetchWithAuth('/api/cortes-ons/auditoria'),
+        fetchWithAuth(`/api/cortes-ons/patamares?ano=${ano}`),
         carregarRessarcimento()
       ]);
+      if (patamaresResp && patamaresResp.patamares) {
+        const tbPat = document.getElementById('tb-patamares');
+        tbPat.innerHTML = patamaresResp.patamares.map(p => `
+          <tr>
+            <td data-label="Patamar"><strong>${escapeHTML(p.rotulo)}</strong></td>
+            <td data-label="Faixa Horária">${escapeHTML(p.faixa)}</td>
+            <td data-label="Participação" class="num-col"><strong>${(p.participacaoPct || 0).toFixed(1)}%</strong></td>
+            <td data-label="Total (MWh)" class="num-col">${(p.totalMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+            <td data-label="REL (MWh)" class="num-col">${(p.relMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+            <td data-label="CNF (MWh)" class="num-col">${(p.cnfMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+            <td data-label="ENE (MWh)" class="num-col" style="color:var(--crit);">${(p.eneMwh || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>
+          </tr>
+        `).join('');
+      }
       if (!evolucao || !motivos || !rankingUsinas || !ultimosCortes) return;
 
       const data = {
@@ -388,12 +452,12 @@
       const duracao = (c.duracaoMinutos / 60).toFixed(1);
       return `
         <tr>
-          <td style="white-space:nowrap; padding:6px 6px;">${escapeHTML(c.dataHora)}</td>
-          <td style="padding:6px 6px; overflow-wrap:anywhere;"><strong>${escapeHTML(c.usina)}</strong></td>
-          <td style="padding:6px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHTML(c.motivo || 'N/I')}">${escapeHTML(c.motivo || 'N/I')}</td>
-          <td style="padding:6px 6px; overflow-wrap:anywhere;">${escapeHTML(c.subestacao || 'N/D')}</td>
-          <td style="padding:6px 6px; white-space:nowrap;">${duracao}h</td>
-          <td style="color:var(--crit); font-weight:600; white-space:nowrap; padding:6px 6px;">${c.energiaCortada.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MWh</td>
+          <td data-label="Data/Hora" style="white-space:nowrap; padding:6px 6px;">${escapeHTML(c.dataHora)}</td>
+          <td data-label="Usina" style="padding:6px 6px; overflow-wrap:anywhere;"><strong>${escapeHTML(c.usina)}</strong></td>
+          <td data-label="Motivo" style="padding:6px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHTML(c.motivo || 'N/I')}">${escapeHTML(c.motivo || 'N/I')}</td>
+          <td data-label="Subestação" style="padding:6px 6px; overflow-wrap:anywhere;">${escapeHTML(c.subestacao || 'N/D')}</td>
+          <td data-label="Duração" style="padding:6px 6px; white-space:nowrap;">${duracao}h</td>
+          <td data-label="Cortado" style="color:var(--crit); font-weight:600; white-space:nowrap; padding:6px 6px;">${c.energiaCortada.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MWh</td>
         </tr>
       `;
     }).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:12px;">Nenhum registro encontrado.</td></tr>';
@@ -401,6 +465,8 @@
 
   document.getElementById('filter-ano').addEventListener('change', init);
   document.getElementById('filter-franquia').addEventListener('change', carregarRessarcimento);
+  document.getElementById('filter-tipo-fonte').addEventListener('change', carregarRessarcimento);
+  document.getElementById('filter-modo-reg').addEventListener('change', carregarRessarcimento);
   document.getElementById('filter-nt183').addEventListener('change', carregarRessarcimento);
   document.getElementById('filter-ren1170').addEventListener('change', carregarRessarcimento);
 

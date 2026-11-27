@@ -143,6 +143,9 @@ public class SimularImpactoGovTechUseCase {
         resp.put("totalImpactoT1Rs", arredondar(totalImpactoT1Rs, 2));
         resp.put("totalImpactoT2Rs", arredondar(totalImpactoT2Rs, 2));
         resp.put("totalImpactoBienioRs", arredondar(totalImpactoT1Rs + totalImpactoT2Rs, 2));
+        resp.put("regraDefasagemOficial", "LC 63/1990 (t+2 e t+3) — validada empiricamente por FGV (2024)");
+        resp.put("efeitoImediatoT0T1Esperado", false);
+        resp.put("notaFiscalSetorial", "REIDI, IPI zero e diferimento ICMS (Convênio 109/14) adiam impacto direto; ISS concentra na obra e ICMS consolida na operação (SDE-BA 2026).");
         resp.put("municipios", municipios);
         return resp;
     }

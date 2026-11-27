@@ -45,8 +45,10 @@ public class ImpactoVafService {
         // 1. Perda de Receita Bruta com base no preço médio configurado em PrecoEnergia
         BigDecimal perdaReceita = energiaTotalCortada.multiply(BigDecimal.valueOf(PrecoEnergia.PRECO_MWH));
 
-        // 2. Impacto estimado sobre o VAF/IPM municipal (fallback para 2% caso nulo)
-        BigDecimal ipmMunicipio = municipio.getVafAnoBase() != null ? municipio.getVafAnoBase() : IPM_FALLBACK;
+        // 2. Impacto estimado sobre o IPM/VAF municipal (prioriza municipio.getIpm(), fallback vafAnoBase ou 2%)
+        BigDecimal ipmMunicipio = municipio.getIpm() != null
+                ? municipio.getIpm()
+                : (municipio.getVafAnoBase() != null ? municipio.getVafAnoBase() : IPM_FALLBACK);
         if (ipmMunicipio.compareTo(BigDecimal.ONE) > 0) {
             // Se o valor foi gravado em percentual (ex.: 2.5 em vez de 0.025), converte com escala segura
             ipmMunicipio = ipmMunicipio.divide(CEM, 8, RoundingMode.HALF_UP);

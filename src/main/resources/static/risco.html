@@ -27,6 +27,7 @@
     }
     .btn-primary:hover { opacity: .92; }
     .kpi-grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-grid-4 .card-value { font-size: clamp(18px, 1.65vw, 23px); overflow-wrap: anywhere; }
     .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-bottom: 24px; }
     @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
     .badge-om { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
@@ -76,6 +77,8 @@
         <label for="select-ml-arch">Arquitetura Neural (Time2Vec)</label>
         <select id="select-ml-arch" onchange="carregarCurva48h()">
           <option value="AUTO" selected>AUTO (Melhor nRMSE)</option>
+          <option value="ITRANSFORMER">iTransformer + Time2Vec (Variate Attn)</option>
+          <option value="PATCHTST">PatchTST + Time2Vec (RevIN)</option>
           <option value="LSTM">LSTM + Time2Vec</option>
           <option value="DLINEAR">DLinear + Time2Vec</option>
           <option value="MLP">MLP + Time2Vec</option>
@@ -121,8 +124,8 @@
     <section class="section-card" style="margin-bottom:24px;">
       <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <h2>Previsão Neural de Curto Prazo (6h &amp; 12h · PyTorch + Time2Vec)</h2>
-          <p>Inferência pelo microsserviço Python FastAPI (MLP, LSTM e DLinear) validado sobre dados reais ONS 2026</p>
+          <h2>Previsão Neural de Curto Prazo (6h &amp; 12h · PyTorch + Time2Vec + Quantis P10/P50/P90)</h2>
+          <p>Inferência pelo microsserviço Python FastAPI (MLP, LSTM, DLinear, PatchTST e Baseline Linear) validado sobre dados reais ONS</p>
         </div>
         <span id="ml-badge" class="badge-om om-torre">Verificando microsserviço ML...</span>
       </div>
@@ -158,11 +161,13 @@
                 <th class="num-col">nMAE (%)</th>
                 <th class="num-col">nRMSE (%)</th>
                 <th class="num-col">Correlação (r)</th>
-                <th class="num-col">Acurácia Risco</th>
+                <th class="num-col">Acurácia</th>
+                <th class="num-col">F1 / Recall</th>
+                <th class="num-col">Treino (s)</th>
               </tr>
             </thead>
             <tbody id="tb-benchmark-ml">
-              <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:10px;">Carregando comparativo MLP / LSTM / DLinear...</td></tr>
+              <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:10px;">Carregando comparativo MLP / LSTM / DLinear / PatchTST...</td></tr>
             </tbody>
           </table>
         </div>
@@ -254,7 +259,27 @@
             <label for="bess-capex">CAPEX (R$/kWh)</label>
             <input type="number" id="bess-capex" value="1800" step="50" min="500">
           </div>
+          <div class="ctrl-field">
+            <label for="bess-soc-min">SoC Mín (%)</label>
+            <input type="number" id="bess-soc-min" value="5" step="1" min="0" max="40" style="width:72px;">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-soc-max">SoC Máx (%)</label>
+            <input type="number" id="bess-soc-max" value="95" step="1" min="50" max="100" style="width:72px;">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-deg">Degrad. (R$/MWh)</label>
+            <input type="number" id="bess-deg" value="10" step="1" min="0" style="width:80px;">
+          </div>
+          <div class="ctrl-field">
+            <label for="bess-crcap">LRCAP/CRCAP (R$/kW·ano)</label>
+            <input type="number" id="bess-crcap" value="0" step="25" min="0" title="Receita fixa por disponibilidade de potência (EPE empilhamento / LRCAP 2026)" style="width:110px;">
+          </div>
           <button class="btn-primary" onclick="simularBess()">Simular BESS</button>
+        </div>
+
+        <div id="bess-locacional-banner" style="font-size:12px; padding:10px 14px; border-radius:6px; background:#F8FAFC; border:1px solid var(--border); margin-bottom:16px;">
+          Critério Locacional EPE NT-086/2025 &amp; NT-ONS DPL 0095/2026: aguardando simulação...
         </div>
 
         <div class="kpi-grid-4">
@@ -264,17 +289,17 @@
             <p class="card-subtitle" id="bess-aproveitamento">Aproveitamento: 0%</p>
           </div>
           <div class="card">
-            <h3 class="card-title">Receita Anual Arbitragem</h3>
+            <h3 class="card-title">Receita Anual (Arb. + LRCAP)</h3>
             <p class="card-value val-brand" id="bess-receita">R$ 0,00</p>
             <p class="card-subtitle" id="bess-fluxo">Fluxo líquido: R$ 0,00</p>
           </div>
           <div class="card">
-            <h3 class="card-title">CAPEX Total Estimado</h3>
+            <h3 class="card-title">CAPEX &amp; VPL (10 anos)</h3>
             <p class="card-value" id="bess-capex-total">R$ 0,00</p>
-            <p class="card-subtitle">Inclui sistema LFP + inversores</p>
+            <p class="card-subtitle" id="bess-vpl">VPL 10 anos (WACC 10%): —</p>
           </div>
           <div class="card">
-            <h3 class="card-title">Payback Simples</h3>
+            <h3 class="card-title">Payback (Simples / Desc.)</h3>
             <p class="card-value val-warn" id="bess-payback">—</p>
             <p class="card-subtitle" id="bess-roi">ROI 10 anos: —</p>
           </div>
@@ -282,6 +307,82 @@
 
         <div style="height:280px;">
           <canvas id="bessChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" style="margin-bottom:24px;">
+      <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h2>Simulador de Carga Flexível / Data Center Co-locado (Behind-the-Meter)</h2>
+          <p>Projeto Satoshi (Igaporã/BA), EPE Data Centers (2025), backlog temporal (H_makeup) e roteamento espacial multi-usina</p>
+        </div>
+        <span class="badge-om om-corda" id="dc-badge">CEU / GEC · REN 1.122/2025</span>
+      </div>
+      <div style="padding:20px;">
+        <div class="controls-panel" style="margin-bottom:20px;">
+          <div class="ctrl-field">
+            <label for="dc-ti-mw">Potência TI (MW)</label>
+            <input type="number" id="dc-ti-mw" value="15" step="1" min="1">
+          </div>
+          <div class="ctrl-field">
+            <label for="dc-pue">PUE</label>
+            <input type="number" id="dc-pue" value="1.35" step="0.05" min="1.05" max="2.5">
+          </div>
+          <div class="ctrl-field">
+            <label for="dc-modo">Modo de Carga</label>
+            <select id="dc-modo">
+              <option value="FLEXIVEL_CURTAILMENT" selected>Flexível (HPC / IA / Batch)</option>
+              <option value="HIBRIDO_BASE">Híbrido (Base EPE 0,96–1,04 pu)</option>
+              <option value="TEMPORAL_SHIFT">Temporal Shift (Backlog H_makeup)</option>
+            </select>
+          </div>
+          <div class="ctrl-field">
+            <label for="dc-sla-min">Piso SLA Rede (%)</label>
+            <input type="number" id="dc-sla-min" value="25" step="5" min="0" max="100" style="width:80px;">
+          </div>
+          <div class="ctrl-field">
+            <label for="dc-backlog-h">Backlog H (h)</label>
+            <input type="number" id="dc-backlog-h" value="0" step="2" min="0" max="24" title="Horizonte de adiamento temporal (4-24h)" style="width:76px;">
+          </div>
+          <div class="ctrl-field">
+            <label for="dc-usina-sec">Par Espacial (Geo-Shift 25%)</label>
+            <select id="dc-usina-sec" style="max-width:200px;">
+              <option value="" selected>Sem roteamento espacial</option>
+            </select>
+          </div>
+          <div class="ctrl-field">
+            <label for="dc-valor-mwh">Receita Energia (R$/MWh)</label>
+            <input type="number" id="dc-valor-mwh" value="280" step="10" min="50">
+          </div>
+          <button class="btn-primary" onclick="simularDataCenter()">Simular Data Center</button>
+        </div>
+
+        <div class="kpi-grid-4">
+          <div class="card">
+            <h3 class="card-title">Curtailment Absorvido (CEU)</h3>
+            <p class="card-value val-ok" id="dc-absorvida">0 MWh</p>
+            <p class="card-subtitle" id="dc-ceu">CEU: 0% dos cortes</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Energia da Rede (GEC)</h3>
+            <p class="card-value val-warn" id="dc-rede">0 MWh</p>
+            <p class="card-subtitle" id="dc-gec">GEC (Gray Electricity): 0%</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Resultado Líquido Anual</h3>
+            <p class="card-value val-brand" id="dc-fluxo">R$ 0,00</p>
+            <p class="card-subtitle" id="dc-receita-bruta">Bruto: R$ 0,00</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Economia TUST + GPA</h3>
+            <p class="card-value" id="dc-tust">R$ 0,00</p>
+            <p class="card-subtitle" id="dc-gpa">Garantia GPA (3×MUST×TUST): —</p>
+          </div>
+        </div>
+
+        <div style="height:280px;">
+          <canvas id="dcChart"></canvas>
         </div>
       </div>
     </section>
@@ -313,7 +414,9 @@
     if (resumo && resumo.usinas && resumo.usinas.length > 0) {
       usinasCache = resumo.usinas;
       const select = document.getElementById('select-usina');
+      const secSelect = document.getElementById('dc-usina-sec');
       select.innerHTML = '';
+      if (secSelect) secSelect.innerHTML = '<option value="" selected>Sem roteamento espacial</option>';
       usinasCache.forEach(u => {
         const opt = document.createElement('option');
         opt.value = u.id;
@@ -322,6 +425,12 @@
           opt.selected = true;
         }
         select.appendChild(opt);
+        if (secSelect) {
+          const optSec = document.createElement('option');
+          optSec.value = u.id;
+          optSec.textContent = `${u.nome} (${u.municipio || 'BA'})`;
+          secSelect.appendChild(optSec);
+        }
       });
       await Promise.all([carregarTudoUsina(), carregarBenchmarkMl()]);
     }
@@ -343,12 +452,14 @@
           const destaque = nome === bench.recommended_model ? ' style="background:#EFF6FF; font-weight:600;"' : '';
           rows.push(`
             <tr${destaque}>
-              <td>${h}</td>
-              <td><strong>${escapeHTML(nome)}</strong>${nome === bench.recommended_model ? ' (Recomendado)' : ''}</td>
-              <td class="num-col">${m.nMAE_pct}%</td>
-              <td class="num-col">${m.nRMSE_pct}%</td>
-              <td class="num-col">${m.pearson_r}</td>
-              <td class="num-col">${m.accuracy_pct}%</td>
+              <td data-label="Horizonte">${h}</td>
+              <td data-label="Modelo"><strong>${escapeHTML(nome)}</strong>${nome === bench.recommended_model ? ' (Recomendado)' : ''}</td>
+              <td data-label="nMAE (%)" class="num-col">${m.nMAE_pct}%</td>
+              <td data-label="nRMSE (%)" class="num-col">${m.nRMSE_pct}%</td>
+              <td data-label="Correlação (r)" class="num-col">${m.pearson_r}</td>
+              <td data-label="Acurácia" class="num-col">${m.accuracy_pct}%</td>
+              <td data-label="F1 / Recall" class="num-col">${m.f1_pct != null ? `${m.f1_pct}% / ${m.recall_pct}%` : '—'}</td>
+              <td data-label="Treino (s)" class="num-col">${m.train_time_sec != null ? `${m.train_time_sec}s` : '—'}</td>
             </tr>
           `);
         }
@@ -360,7 +471,7 @@
   }
 
   async function carregarTudoUsina() {
-    await Promise.all([carregarCurva48h(), simularBess()]);
+    await Promise.all([carregarCurva48h(), simularBess(), simularDataCenter()]);
   }
 
   async function carregarCurva48h() {
@@ -379,9 +490,13 @@
       const j6 = ml.janela6h || {};
       const j12 = ml.janela12h || {};
       document.getElementById('ml-prob-6h').textContent = `${j6.probabilidadeCortePct ?? '—'}%`;
-      document.getElementById('ml-mwh-6h').textContent = `Corte est.: ${j6.mwhEstimadoCorte ?? 0} MWh`;
+      document.getElementById('ml-mwh-6h').textContent = j6.mwhEstimadoP10 != null
+        ? `P50: ${j6.mwhEstimadoCorte ?? 0} MWh (P10–P90: ${j6.mwhEstimadoP10}–${j6.mwhEstimadoP90})`
+        : `Corte est.: ${j6.mwhEstimadoCorte ?? 0} MWh`;
       document.getElementById('ml-prob-12h').textContent = `${j12.probabilidadeCortePct ?? '—'}%`;
-      document.getElementById('ml-mwh-12h').textContent = `Corte est.: ${j12.mwhEstimadoCorte ?? 0} MWh`;
+      document.getElementById('ml-mwh-12h').textContent = j12.mwhEstimadoP10 != null
+        ? `P50: ${j12.mwhEstimadoCorte ?? 0} MWh (P10–P90: ${j12.mwhEstimadoP10}–${j12.mwhEstimadoP90})`
+        : `Corte est.: ${j12.mwhEstimadoCorte ?? 0} MWh`;
       document.getElementById('ml-arch-ativa').textContent = ml.modeloAtivo || 'LSTM+Time2Vec';
       const met12 = j12.metricasValidacao || {};
       document.getElementById('ml-nrmse-ativo').textContent = met12.nRMSE_pct != null ? `${met12.nRMSE_pct}%` : '—';
@@ -473,11 +588,11 @@
       const estrela = j.janelaOtimaOm ? '★ ' : '';
       tbody.innerHTML += `
         <tr>
-          <td><strong>${estrela}${escapeHTML(j.rotuloHora)}</strong></td>
-          <td>${j.vento80mMs} m/s</td>
-          <td><strong style="color:${j.scoreCurtailment >= 60 ? 'var(--crit)' : 'var(--warn)'}">${j.scoreCurtailment}%</strong></td>
-          <td><span class="badge-om ${cls}">${escapeHTML(j.categoriaOm.replaceAll('_', ' '))}</span></td>
-          <td>${j.mwhEconomizavel} MWh</td>
+          <td data-label="Janela"><strong>${estrela}${escapeHTML(j.rotuloHora)}</strong></td>
+          <td data-label="Vento 80m">${j.vento80mMs} m/s</td>
+          <td data-label="Risco Corte"><strong style="color:${j.scoreCurtailment >= 60 ? 'var(--crit)' : 'var(--warn)'}">${j.scoreCurtailment}%</strong></td>
+          <td data-label="Condição NR-35"><span class="badge-om ${cls}">${escapeHTML(j.categoriaOm.replaceAll('_', ' '))}</span></td>
+          <td data-label="Ganho Est.">${j.mwhEconomizavel} MWh</td>
         </tr>
       `;
     });
@@ -495,7 +610,11 @@
       eficienciaRtePercentual: Number(document.getElementById('bess-rte').value),
       precoDescargaPontaMwh: Number(document.getElementById('bess-pld').value),
       capexPorKwhRs: Number(document.getElementById('bess-capex').value),
-      opexAnualPercentual: 2.0
+      opexAnualPercentual: 2.0,
+      socMinPct: Number(document.getElementById('bess-soc-min')?.value ?? 5),
+      socMaxPct: Number(document.getElementById('bess-soc-max')?.value ?? 95),
+      custoDegradacaoMwhRs: Number(document.getElementById('bess-deg')?.value ?? 10),
+      receitaFixaCapacidadeKwAnoRs: Number(document.getElementById('bess-crcap')?.value ?? 0)
     };
 
     const res = await fetchWithAuth('/api/simuladores/bess', {
@@ -505,13 +624,21 @@
     });
     if (!res) return;
 
+    const nt095Txt = res.margemSubestacaoNt095Mw != null
+      ? ` · NT-095: ${res.margemSubestacaoNt095Mw} MW (${res.statusConexaoNt095})`
+      : '';
+    document.getElementById('bess-locacional-banner').innerHTML =
+      `<strong>${escapeHTML(res.aderenciaLocacionalEpe || 'EPE NT-086/2025')}</strong>${escapeHTML(nt095Txt)} · ${escapeHTML(res.alertaEscoamento || '')} (Duração: ${res.duracaoHoras ?? '—'}h · Ciclos/ano: ${res.ciclosEquivalentesAno ?? '—'} · SoC útil: ${res.capacidadeUtilMwh ?? res.capacidadeMwh} MWh · Blocos PLD real: ${res.blocosComPldReal || 0})`;
     document.getElementById('bess-entregue').textContent = `${(res.energiaEntreguePontaAnualMwh || 0).toLocaleString('pt-BR')} MWh`;
-    document.getElementById('bess-aproveitamento').textContent = `Aproveitamento dos cortes: ${res.aproveitamentoCurtailmentPct}%`;
-    document.getElementById('bess-receita').textContent = fmtMoeda(res.receitaAnualArbitragemRs);
-    document.getElementById('bess-fluxo').textContent = `Fluxo líquido (-OPEX): ${fmtMoeda(res.fluxoAnualLiquidoRs)}`;
+    document.getElementById('bess-aproveitamento').textContent = `Aproveitamento: ${res.aproveitamentoCurtailmentPct}% (SoC ${res.socMinPct ?? 5}%–${res.socMaxPct ?? 95}%)`;
+    document.getElementById('bess-receita').textContent = fmtMoeda(res.receitaTotalAnualRs ?? res.receitaAnualArbitragemRs);
+    document.getElementById('bess-fluxo').textContent = `Arb.: ${fmtMoeda(res.receitaAnualArbitragemRs)} · LRCAP: ${fmtMoeda(res.receitaCapacidadeAnualRs)} · Líq.: ${fmtMoeda(res.fluxoAnualLiquidoRs)}`;
     document.getElementById('bess-capex-total').textContent = fmtMoeda(res.capexTotalRs);
-    document.getElementById('bess-payback').textContent = res.paybackAnos != null ? `${res.paybackAnos} anos` : 'Sem payback (sem cortes)';
-    document.getElementById('bess-roi').textContent = `ROI em 10 anos: ${res.roi10AnosPct}%`;
+    document.getElementById('bess-vpl').textContent = `VPL 10a (WACC 10%): ${fmtMoeda(res.vpl10AnosRs)}`;
+    document.getElementById('bess-payback').textContent = res.paybackAnos != null
+      ? `${res.paybackAnos}a / ${res.paybackDescontadoAnos != null ? res.paybackDescontadoAnos + 'a' : '>10a'}`
+      : 'Sem payback';
+    document.getElementById('bess-roi').textContent = `ROI simples 10a: ${res.roi10AnosPct}%`;
 
     const serie = res.serieMensal || [];
     if (window._bessChart) window._bessChart.destroy();
@@ -522,6 +649,59 @@
         datasets: [
           { label: 'Energia Cortada (MWh)', data: serie.map(s => s.cortadaMwh), backgroundColor: 'rgba(239,68,68,0.65)' },
           { label: 'Recuperada pelo BESS (MWh)', data: serie.map(s => s.recuperadaMwh), backgroundColor: 'rgba(16,185,129,0.8)' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  async function simularDataCenter() {
+    const usinaId = document.getElementById('select-usina').value;
+    if (!usinaId) return;
+
+    const usinaSecRaw = document.getElementById('dc-usina-sec')?.value || '';
+    const payload = {
+      usinaId: Number(usinaId),
+      ano: Number(document.getElementById('bess-ano').value),
+      potenciaTiMw: Number(document.getElementById('dc-ti-mw').value),
+      pue: Number(document.getElementById('dc-pue').value),
+      modoOperacao: document.getElementById('dc-modo').value,
+      fatorCargaMinimoPct: Number(document.getElementById('dc-sla-min').value),
+      tarifaRedeMwhRs: 220.0,
+      valorEnergiaAproveitadaMwhRs: Number(document.getElementById('dc-valor-mwh').value),
+      tustKwMesRs: 12.0,
+      horizonteBacklogHoras: Number(document.getElementById('dc-backlog-h')?.value ?? 0),
+      usinaSecundariaId: usinaSecRaw ? Number(usinaSecRaw) : null,
+      percentualFlexEspacial: 25.0
+    };
+
+    const res = await fetchWithAuth('/api/simuladores/datacenter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res) return;
+
+    document.getElementById('dc-badge').textContent = `${res.potenciaTotalMw} MW totais (PUE ${res.pue}) · ${(res.tco2Evitadas || 0).toLocaleString('pt-BR')} tCO₂e evitadas`;
+    document.getElementById('dc-absorvida').textContent = `${(res.energiaCorteAbsorvidaMwh || 0).toLocaleString('pt-BR')} MWh`;
+    document.getElementById('dc-ceu').textContent = `CEU: ${res.ceuPct}% · Temporal: ${res.energiaDeslocadaTemporalMwh || 0} MWh · Geo: ${res.energiaMigradaEspacialMwh || 0} MWh`;
+    document.getElementById('dc-rede').textContent = `${(res.energiaRedeComplementarMwh || 0).toLocaleString('pt-BR')} MWh`;
+    document.getElementById('dc-gec').textContent = `GEC (Gray Electricity): ${res.gecPct}%`;
+    document.getElementById('dc-fluxo').textContent = fmtMoeda(res.fluxoLiquidoAnualRs);
+    document.getElementById('dc-receita-bruta').textContent = `Bruto: ${fmtMoeda(res.receitaBrutaRecuperadaRs)} · Rede: -${fmtMoeda(res.custoRedeComplementarRs)}`;
+    document.getElementById('dc-tust').textContent = fmtMoeda(res.economiaTustAnualRs);
+    document.getElementById('dc-gpa').textContent = `Líquido+TUST: ${fmtMoeda(res.beneficioTotalAnualComTustRs)} · GPA: ${fmtMoeda(res.economiaGarantiaGpaRs)}`;
+
+    const serie = res.serieMensal || [];
+    if (window._dcChart) window._dcChart.destroy();
+    window._dcChart = new Chart(document.getElementById('dcChart'), {
+      type: 'bar',
+      data: {
+        labels: serie.map(s => s.mes),
+        datasets: [
+          { label: 'Cortada ONS (MWh)', data: serie.map(s => s.cortadaMwh), backgroundColor: 'rgba(239,68,68,0.55)' },
+          { label: 'Absorvida pelo Data Center (MWh)', data: serie.map(s => s.absorvidaDcMwh), backgroundColor: 'rgba(37,99,235,0.8)' },
+          { label: 'Rede Complementar / GEC (MWh)', data: serie.map(s => s.redeComplementarMwh), backgroundColor: 'rgba(245,158,11,0.7)' }
         ]
       },
       options: { responsive: true, maintainAspectRatio: false }

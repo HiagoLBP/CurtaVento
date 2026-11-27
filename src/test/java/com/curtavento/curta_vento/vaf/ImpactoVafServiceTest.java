@@ -97,6 +97,21 @@ class ImpactoVafServiceTest {
     }
 
     @Test
+    void devePriorizarIpmSobreVafAnoBaseQuandoAmbosPreenchidos() {
+        municipioMock.setIpm(new BigDecimal("0.04"));
+        municipioMock.setVafAnoBase(new BigDecimal("0.01"));
+        when(municipioRepository.findById(1L)).thenReturn(Optional.of(municipioMock));
+        when(corteRepository.sumEnergiaCortadaPorMunicipioEAno(eq(1L), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(new BigDecimal("100.0"));
+        when(impactoRepository.save(any(ImpactoVafEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        ImpactoVafEntity impacto = impactoVafService.calcularImpacto(1L, 2026);
+
+        // 100 * 200 = 20000; 4% (ipm) = 800
+        assertEquals(0, new BigDecimal("800.0").compareTo(impacto.getImpactoVafEstimado()));
+    }
+
+    @Test
     void deveLancarExcecaoSeMunicipioNaoExistir() {
         when(municipioRepository.findById(999L)).thenReturn(Optional.empty());
 

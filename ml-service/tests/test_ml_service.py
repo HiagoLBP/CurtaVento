@@ -18,16 +18,21 @@ def test_time2vec_output_shape():
     assert out.shape == (1, 24, 8)
 
 
-def test_all_three_architectures_forward():
-    x = torch.randn(4, 24, 5)
+def test_all_four_architectures_forward():
+    x = torch.randn(4, 24, 6)
     tau = torch.randn(4, 24, 1)
-    for arch in ("MLP", "LSTM", "DLINEAR"):
-        model = create_model(arch, seq_len=24, num_features=5)
+    for arch in ("MLP", "LSTM", "DLINEAR", "PATCHTST", "ITRANSFORMER"):
+        model = create_model(arch, seq_len=24, num_features=6)
         prob, mwh = model(x, tau)
         assert prob.shape == (4,)
         assert mwh.shape == (4,)
         assert torch.all((prob >= 0.0) & (prob <= 1.0))
         assert torch.all(mwh >= 0.0)
+        prob_q, quantiles = model.forward_quantiles(x, tau)
+        assert prob_q.shape == (4,)
+        assert quantiles.shape == (4, 3)
+        assert torch.all(quantiles[:, 0] <= quantiles[:, 1])
+        assert torch.all(quantiles[:, 1] <= quantiles[:, 2])
 
 
 def test_metrics_computation():
@@ -50,6 +55,10 @@ def test_train_and_predict_endpoints(tmp_path, monkeypatch):
     assert "6h" in report["horizons"]
     assert "12h" in report["horizons"]
     assert "LSTM+Time2Vec" in report["horizons"]["12h"]
+    assert "PatchTST+Time2Vec" in report["horizons"]["12h"]
+    assert "iTransformer+Time2Vec" in report["horizons"]["12h"]
+    assert "LinearBaseline" in report["horizons"]["12h"]
+    assert "confusion_matrix" in report["horizons"]["12h"]["LSTM+Time2Vec"]
 
     client = TestClient(app)
     res_bench = client.get("/models/benchmark")
@@ -73,7 +82,7 @@ def test_train_and_predict_endpoints(tmp_path, monkeypatch):
             "usinaNome": "Ventos de Santa Luzia 15",
             "capacidadeMw": 30.0,
             "diasComCorteRecente": 6,
-            "arquitetura": "AUTO",
+            "arquitetura": "ITRANSFORMER",
             "curvaEntrada": points,
         },
     )
@@ -81,4 +90,5 @@ def test_train_and_predict_endpoints(tmp_path, monkeypatch):
     body = res_pred.json()
     assert 0.0 <= body["janela6h"]["probabilidadeCortePct"] <= 100.0
     assert 0.0 <= body["janela12h"]["probabilidadeCortePct"] <= 100.0
+    assert body["janela6h"]["mwhEstimadoP10"] <= body["janela6h"]["mwhEstimadoCorte"] <= body["janela6h"]["mwhEstimadoP90"]
     assert len(body["curvaHorariaMl"]) == 24

@@ -18,9 +18,13 @@ class Time2Vec(nn.Module):
             raise ValueError("out_features must be >= 2 (1 linear + >= 1 periodic).")
         self.in_features = in_features
         self.out_features = out_features
-        self.w0 = nn.Parameter(torch.randn(in_features, 1) * 0.1)
+        self.w0 = nn.Parameter(torch.randn(in_features, 1) * 0.02)
         self.b0 = nn.Parameter(torch.zeros(1))
-        self.w = nn.Parameter(torch.randn(in_features, out_features - 1) * 0.5)
+        # Multi-scale frequency init covering weekly (tau in weeks), diurnal (24h ~ 44), and 12h harmonics
+        base_scales = torch.tensor([0.5, 1.5, 6.28, 22.0, 44.0, 66.0, 88.0], dtype=torch.float32)
+        repeats = ((out_features - 1) + len(base_scales) - 1) // len(base_scales)
+        scales = base_scales.repeat(repeats)[: out_features - 1]
+        self.w = nn.Parameter(scales.unsqueeze(0).expand(in_features, -1).clone() + torch.randn(in_features, out_features - 1) * 0.5)
         self.b = nn.Parameter(torch.zeros(out_features - 1))
 
     def forward(self, tau: torch.Tensor) -> torch.Tensor:

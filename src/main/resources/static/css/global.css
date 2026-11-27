@@ -676,46 +676,6 @@
 
 
 
-    /* ====== RESPONSIVE ====== */
-
-    @media (max-width: 1024px) {
-
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-
-      .bottom-grid { grid-template-columns: 1fr; }
-
-    }
-
-    @media (max-width: 768px) {
-
-      body { flex-direction: column; }
-
-      .sidebar { width: 100%; height: auto; flex-direction: row; padding: 0; align-items: center; overflow-x: auto; }
-
-      .sidebar-header { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.05); padding: 16px; }
-
-      .nav-list { flex-direction: row; padding: 0 16px; }
-
-      .nav-item { white-space: nowrap; }
-
-      header { flex-direction: column; align-items: flex-start; gap: 16px; }
-
-      main { padding: 16px; }
-
-      .kpi-grid { grid-template-columns: 1fr; }
-
-      .muni-row { grid-template-columns: 90px 1fr 80px; }
-
-      table, thead, tbody, th, td, tr { display: block; }
-      thead tr { display: none; }
-      tr { margin-bottom: 15px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow-sm); }
-      td { display: flex; justify-content: space-between; text-align: right; border-bottom: 1px solid var(--border-light); padding: 8px 0; }
-      td:last-child { border-bottom: none; }
-      td::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); text-align: left; padding-right: 15px; }
-
-    }
-
-  
 #error-banner { display:none; background:var(--high); color:#fff; padding:12px; text-align:center; position:fixed; top:0; width:100%; z-index:9999; font-weight:600; }
 
 
@@ -820,3 +780,45 @@
 .ranking-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#FAFAFA; border:1px solid var(--border-light); border-radius:6px; }
 .ranking-item strong { font-size:14px; }
 .ranking-item .value { font-weight:600; color:var(--crit); }
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 1024px) {
+  .kpi-grid,
+  .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bottom-grid,
+  .charts-row { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .station-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  body { flex-direction: column; height: auto; min-height: 100vh; overflow-y: auto; overflow-x: hidden; }
+  .sidebar { width: 100%; height: auto; flex-direction: column; padding: 0; align-items: stretch; overflow: visible; }
+  .sidebar-header { border-bottom: 1px solid rgba(255,255,255,0.08); border-right: none; padding: 12px 16px; }
+  .nav-list { flex-direction: row; flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
+  .nav-item { white-space: nowrap; padding: 8px 12px; font-size: 13px; margin-top: 0 !important; }
+  .main-wrapper { overflow: visible; min-width: 0; }
+  header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; position: static; }
+  main { padding: 16px; min-width: 0; }
+  footer { flex-direction: column; gap: 8px; padding: 16px; }
+  .card, .section-card, .kpi-card { min-width: 0; max-width: 100%; }
+  .kpi-grid,
+  .kpi-row,
+  .station-grid,
+  .bottom-grid,
+  .charts-row,
+  .usinas-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .filter-separator { display: none; }
+  .search-input { width: 100%; }
+  .muni-row { grid-template-columns: 90px 1fr 80px; }
+
+  table, thead, tbody, th, td, tr { display: block; width: 100%; min-width: 0; }
+  thead tr { display: none; }
+  tbody tr { margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; box-shadow: var(--shadow-sm); background: var(--bg-surface); }
+  tbody td { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: right; border-bottom: 1px solid var(--border-light); padding: 8px 0 !important; white-space: normal !important; overflow-wrap: anywhere; word-break: break-word; }
+  tbody td:last-child { border-bottom: none; }
+  tbody td::before { content: attr(data-label); font-weight: 600; font-size: 12px; color: var(--text-muted); text-align: left; flex-shrink: 0; }
+  tbody td[colspan] { justify-content: center; text-align: center; }
+  tbody td[colspan]::before { display: none; }
+}

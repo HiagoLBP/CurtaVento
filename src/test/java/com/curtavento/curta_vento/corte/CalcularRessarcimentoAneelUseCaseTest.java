@@ -57,4 +57,38 @@ class CalcularRessarcimentoAneelUseCaseTest {
         assertEquals(50000.0, (Double) comRen1170.get("compensavelRen1170Rs"), 0.01);
         assertEquals(250.0, (Double) comRen1170.get("naoRessarcivelMwh"), 0.01);
     }
+
+    @Test
+    void deveExcluirCortesParDoCalculoDeRessarcimentoEDaPerda() {
+        when(blocoRepository.findAgregadoRegulatorio(any(), any(), isNull())).thenReturn(List.of(
+                new Object[]{1L, "Usina Teste", "REL", new BigDecimal("100.0"), 20L, new BigDecimal("20000.0")},
+                new Object[]{1L, "Usina Teste", "PAR", new BigDecimal("300.0"), 60L, new BigDecimal("60000.0")}
+        ));
+
+        Map<String, Object> res = useCase.executar(2026, null, 0.0, false, new BigDecimal("200.0"), 0.0);
+        assertEquals(100.0, (Double) res.get("ressarcivelLiquidoMwh"), 0.01);
+        assertEquals(0.0, (Double) res.get("naoRessarcivelMwh"), 0.01);
+        assertEquals(300.0, (Double) res.get("parExcluidoMwh"), 0.01);
+        assertEquals(60000.0, (Double) res.get("parExcluidoRs"), 0.01);
+    }
+
+    @Test
+    void deveSepararRegraVigenteSomenteRelEAplicarFranquiaSolar50PctSubmodulo65() {
+        // 100h REL (500 MWh), 50h CNF (250 MWh)
+        when(blocoRepository.findAgregadoRegulatorio(any(), any(), isNull())).thenReturn(List.of(
+                new Object[]{1L, "Usina FV Teste", "REL", new BigDecimal("500.0"), 200L, new BigDecimal("100000.0")},
+                new Object[]{1L, "Usina FV Teste", "CNF", new BigDecimal("250.0"), 100L, new BigDecimal("50000.0")}
+        ));
+
+        // Regra vigente (REN 1.030): CNF nao e ressarcivel; Solar UFV usa 50% da franquia DISPF (1 - 0.99)*8760*0.5 = 43.8h
+        Map<String, Object> vigenteSolar = useCase.executar(
+                2026, null, 0.0, false, new BigDecimal("200.0"), 0.0,
+                "REGRA_VIGENTE_REL", "SOLAR", 99.0);
+
+        assertEquals(43.8, (Double) vigenteSolar.get("franquiaHorasAplicada"), 0.01);
+        assertEquals(250.0, (Double) vigenteSolar.get("cnfNaoRessarcivelMwh"), 0.01);
+        assertEquals(250.0, (Double) vigenteSolar.get("naoRessarcivelMwh"), 0.01);
+        // REL = 500 MWh em 100h, franquia = 43.8h => 56.2% ressarcivel = 281.0 MWh
+        assertEquals(281.0, (Double) vigenteSolar.get("ressarcivelLiquidoMwh"), 0.1);
+    }
 }

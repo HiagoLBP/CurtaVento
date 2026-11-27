@@ -1,52 +1,230 @@
 {
-  "generated_at": "2026-11-24T16:54:44.806941+00:00",
+  "generated_at": "2026-11-27T18:39:35.751124+00:00",
   "seq_len_hours": 24,
-  "encoding": "Time2Vec",
+  "encoding": "Time2Vec + Quantile P10/P50/P90",
   "horizons": {
     "6h": {
+      "LinearBaseline": {
+        "nMAE_pct": 18.33,
+        "nRMSE_pct": 23.32,
+        "pearson_r": 0.412,
+        "accuracy_pct": 91.68,
+        "precision_pct": 91.75,
+        "recall_pct": 99.91,
+        "specificity_pct": 0.48,
+        "f1_pct": 95.66,
+        "confusion_matrix": {
+          "vp": 2291,
+          "vn": 1,
+          "fp": 206,
+          "fn": 2
+        },
+        "train_time_sec": 0.051
+      },
       "MLP+Time2Vec": {
-        "nMAE_pct": 12.5,
-        "nRMSE_pct": 17.26,
-        "pearson_r": 0.4818,
-        "accuracy_pct": 81.35
+        "nMAE_pct": 20.45,
+        "nRMSE_pct": 26.84,
+        "pearson_r": 0.3206,
+        "accuracy_pct": 91.52,
+        "precision_pct": 91.9,
+        "recall_pct": 99.52,
+        "specificity_pct": 2.9,
+        "f1_pct": 95.56,
+        "confusion_matrix": {
+          "vp": 2282,
+          "vn": 6,
+          "fp": 201,
+          "fn": 11
+        },
+        "pinball_loss_mwh": 1.25,
+        "train_time_sec": 6.84
       },
       "LSTM+Time2Vec": {
-        "nMAE_pct": 11.82,
-        "nRMSE_pct": 16.61,
-        "pearson_r": 0.5725,
-        "accuracy_pct": 81.0
+        "nMAE_pct": 23.53,
+        "nRMSE_pct": 29.16,
+        "pearson_r": 0.1447,
+        "accuracy_pct": 91.48,
+        "precision_pct": 91.7,
+        "recall_pct": 99.74,
+        "specificity_pct": 0.0,
+        "f1_pct": 95.55,
+        "confusion_matrix": {
+          "vp": 2287,
+          "vn": 0,
+          "fp": 207,
+          "fn": 6
+        },
+        "pinball_loss_mwh": 1.3707,
+        "train_time_sec": 15.413
       },
       "DLinear+Time2Vec": {
-        "nMAE_pct": 12.53,
-        "nRMSE_pct": 17.18,
-        "pearson_r": 0.5026,
-        "accuracy_pct": 82.17
+        "nMAE_pct": 19.67,
+        "nRMSE_pct": 25.91,
+        "pearson_r": 0.3299,
+        "accuracy_pct": 90.52,
+        "precision_pct": 92.06,
+        "recall_pct": 98.12,
+        "specificity_pct": 6.28,
+        "f1_pct": 95.0,
+        "confusion_matrix": {
+          "vp": 2250,
+          "vn": 13,
+          "fp": 194,
+          "fn": 43
+        },
+        "pinball_loss_mwh": 1.1895,
+        "train_time_sec": 6.799
+      },
+      "PatchTST+Time2Vec": {
+        "nMAE_pct": 22.15,
+        "nRMSE_pct": 26.96,
+        "pearson_r": 0.3056,
+        "accuracy_pct": 91.72,
+        "precision_pct": 91.72,
+        "recall_pct": 100.0,
+        "specificity_pct": 0.0,
+        "f1_pct": 95.68,
+        "confusion_matrix": {
+          "vp": 2293,
+          "vn": 0,
+          "fp": 207,
+          "fn": 0
+        },
+        "pinball_loss_mwh": 1.2083,
+        "train_time_sec": 130.105
+      },
+      "iTransformer+Time2Vec": {
+        "nMAE_pct": 21.1,
+        "nRMSE_pct": 26.82,
+        "pearson_r": 0.2058,
+        "accuracy_pct": 91.52,
+        "precision_pct": 91.74,
+        "recall_pct": 99.74,
+        "specificity_pct": 0.48,
+        "f1_pct": 95.57,
+        "confusion_matrix": {
+          "vp": 2287,
+          "vn": 1,
+          "fp": 206,
+          "fn": 6
+        },
+        "pinball_loss_mwh": 1.1808,
+        "train_time_sec": 28.519
       }
     },
     "12h": {
+      "LinearBaseline": {
+        "nMAE_pct": 21.48,
+        "nRMSE_pct": 25.96,
+        "pearson_r": 0.1988,
+        "accuracy_pct": 91.72,
+        "precision_pct": 91.72,
+        "recall_pct": 100.0,
+        "specificity_pct": 0.0,
+        "f1_pct": 95.68,
+        "confusion_matrix": {
+          "vp": 2293,
+          "vn": 0,
+          "fp": 207,
+          "fn": 0
+        },
+        "train_time_sec": 0.047
+      },
       "MLP+Time2Vec": {
-        "nMAE_pct": 14.34,
-        "nRMSE_pct": 19.5,
-        "pearson_r": 0.3152,
-        "accuracy_pct": 78.18
+        "nMAE_pct": 23.74,
+        "nRMSE_pct": 30.42,
+        "pearson_r": 0.1308,
+        "accuracy_pct": 90.92,
+        "precision_pct": 92.03,
+        "recall_pct": 98.65,
+        "specificity_pct": 5.31,
+        "f1_pct": 95.22,
+        "confusion_matrix": {
+          "vp": 2262,
+          "vn": 11,
+          "fp": 196,
+          "fn": 31
+        },
+        "pinball_loss_mwh": 1.4572,
+        "train_time_sec": 5.652
       },
       "LSTM+Time2Vec": {
-        "nMAE_pct": 13.91,
-        "nRMSE_pct": 18.9,
-        "pearson_r": 0.4025,
-        "accuracy_pct": 81.68
+        "nMAE_pct": 23.5,
+        "nRMSE_pct": 29.07,
+        "pearson_r": 0.1598,
+        "accuracy_pct": 91.72,
+        "precision_pct": 91.72,
+        "recall_pct": 100.0,
+        "specificity_pct": 0.0,
+        "f1_pct": 95.68,
+        "confusion_matrix": {
+          "vp": 2293,
+          "vn": 0,
+          "fp": 207,
+          "fn": 0
+        },
+        "pinball_loss_mwh": 1.3179,
+        "train_time_sec": 14.857
       },
       "DLinear+Time2Vec": {
-        "nMAE_pct": 13.75,
-        "nRMSE_pct": 18.85,
-        "pearson_r": 0.3672,
-        "accuracy_pct": 79.11
+        "nMAE_pct": 22.76,
+        "nRMSE_pct": 28.89,
+        "pearson_r": 0.1827,
+        "accuracy_pct": 90.64,
+        "precision_pct": 91.9,
+        "recall_pct": 98.47,
+        "specificity_pct": 3.86,
+        "f1_pct": 95.07,
+        "confusion_matrix": {
+          "vp": 2258,
+          "vn": 8,
+          "fp": 199,
+          "fn": 35
+        },
+        "pinball_loss_mwh": 1.355,
+        "train_time_sec": 6.644
+      },
+      "PatchTST+Time2Vec": {
+        "nMAE_pct": 24.78,
+        "nRMSE_pct": 30.48,
+        "pearson_r": 0.0703,
+        "accuracy_pct": 91.4,
+        "precision_pct": 91.76,
+        "recall_pct": 99.56,
+        "specificity_pct": 0.97,
+        "f1_pct": 95.5,
+        "confusion_matrix": {
+          "vp": 2283,
+          "vn": 2,
+          "fp": 205,
+          "fn": 10
+        },
+        "pinball_loss_mwh": 1.4675,
+        "train_time_sec": 129.043
+      },
+      "iTransformer+Time2Vec": {
+        "nMAE_pct": 23.26,
+        "nRMSE_pct": 28.27,
+        "pearson_r": 0.1755,
+        "accuracy_pct": 90.72,
+        "precision_pct": 91.64,
+        "recall_pct": 98.91,
+        "specificity_pct": 0.0,
+        "f1_pct": 95.13,
+        "confusion_matrix": {
+          "vp": 2268,
+          "vn": 0,
+          "fp": 207,
+          "fn": 25
+        },
+        "pinball_loss_mwh": 1.258,
+        "train_time_sec": 28.812
       }
     }
   },
-  "source": "MYSQL_ONS_REAL",
-  "train_samples": 3425,
-  "test_samples": 857,
-  "capacity_ref_mwh": 8740.22,
-  "recommended_model": "DLinear+Time2Vec"
+  "source": "MYSQL_ONS_PANEL",
+  "train_samples": 8000,
+  "test_samples": 2500,
+  "capacity_ref_mwh": 18.8,
+  "recommended_model": "iTransformer+Time2Vec"
 }
